@@ -1,4 +1,4 @@
-## Active Ideas / In-Progress Concepts
+# Active Ideas / In-Progress Concepts
 
 ### Habit Pattern Miner (Jarvis-style automation)
 - Continuously log structured behavior events (intents, reminders, traumas, app launches).
