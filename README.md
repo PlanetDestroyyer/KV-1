@@ -80,6 +80,12 @@ KV-1 is not just another AI assistant app. It's an operating system where AI run
   - Meal reminder (>6 hours since last meal)
   - Sleep reminder (past bedtime)
 
+### 5. **MCP Connectors + LLM Plugin**
+- Built-in Model Context Protocol registry with connectors for news, user snapshot, traumas, proactive alerts, and system prompt export
+- Plugin system to register your own connectors (calendar, email, smart-home, etc.)
+- Gemini-ready LLM bridge that outputs the HTTP payload you can forward to Google's API (or swap out for your own provider)
+- Configure with `GEMINI_API_KEY` or pass `llm_api_key` when constructing `KV1Orchestrator`
+
 ---
 
 ## 📦 Installation
@@ -113,7 +119,11 @@ pip install -r requirements.txt
 from core import KV1Orchestrator
 
 # Initialize KV-1
-kv1 = KV1Orchestrator(data_dir="./data", use_hsokv=True)
+kv1 = KV1Orchestrator(
+    data_dir="./data",
+    use_hsokv=True,
+    llm_api_key="YOUR_GEMINI_KEY",  # or set GEMINI_API_KEY env var
+)
 
 # Learn something new
 kv1.learn("What's my favorite coding time?", "Late night (11 PM - 2 AM)")
@@ -128,6 +138,10 @@ kv1.add_trauma("missed deadline", pain_level=7.0, context="stayed up too late")
 # Get system prompt for LLM
 prompt = kv1.get_system_prompt()
 print(prompt)
+
+# Build Gemini payload (forward this dict from your MCP / plugin host)
+payload = kv1.generate_with_llm("What's my focus today?")
+print(payload["endpoint"])
 ```
 
 ### Android Integration
@@ -244,6 +258,37 @@ monitor.register_callback("early_morning_hustle", handle_early_hustle)
 monitor.start()
 ```
 
+### Example 4: MCP Connectors & Gemini Plugin
+
+```python
+from core import get_kv1
+
+kv1 = get_kv1()
+
+# List connectors exposed to MCP hosts
+print(kv1.list_mcp_connectors())
+
+# Grab stateful snapshots
+print(kv1.call_mcp_connector("user_snapshot"))
+print(kv1.call_mcp_connector("latest_news", topic="technology"))
+
+# Register a simple calendar plugin
+def register_calendar_plugin(registry):
+    registry.register(
+        "calendar.next_event",
+        "Return the next calendar appointment",
+        lambda: {"summary": "Demo KV-1", "starts_at": "2025-11-19T09:00:00Z"},
+        plugin_name="calendar",
+    )
+
+kv1.register_mcp_plugin("calendar", register_calendar_plugin)
+print(kv1.call_mcp_connector("calendar.next_event"))
+
+# Build Gemini payload (forward request to Google APIs from host)
+payload = kv1.generate_with_llm("Status update?")
+print(payload["endpoint"])
+```
+
 ---
 
 ## 🎨 System Prompt Example
@@ -324,6 +369,13 @@ KV-1 saves all state to disk:
 - [ ] Sleep enforcement
 - [ ] Focus mode with app whitelist
 - [ ] Nightly self-reflection (3 AM cron)
+- [ ] Habit-pattern miner that auto-creates routines (e.g., learns recurring Monday alarms and sets them proactively)
+
+### 🚧 Habit Pattern Miner (Planned)
+- Capture every intent/app event as structured data
+- Nightly miner looks for repeated behaviors (same action + time context)
+- Auto-synthesizes `HabitRule`s that run via MCP connectors (alarms, calendar, smart home)
+- Rules decay if the user cancels or reacts negatively, reinforcing only useful automations
 
 ---
 

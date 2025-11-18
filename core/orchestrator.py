@@ -11,25 +11,38 @@ This is what Android system service calls into.
 """
 
 import os
-from datetime import datetime
-from typing import Optional, List
 import pickle
+from datetime import datetime
+from typing import Callable, List, Optional
 
 from .trauma import TraumaSystem
 from .user_profile import UserProfileManager
 from .proactive_monitor import ProactiveMonitor
+from .mcp import MCPRegistry
+from .llm import LLMBridge
 
 
 class KV1Orchestrator:
     """The KV-1 brain"""
 
-    def __init__(self, data_dir: str = "/data/kv1", use_hsokv: bool = True):
+    def __init__(
+        self,
+        data_dir: str = "/data/kv1",
+        use_hsokv: bool = True,
+        *,
+        llm_provider: str = "gemini",
+        llm_api_key: Optional[str] = None,
+        news_provider: Optional[Callable[[str], List[str]]] = None,
+    ):
         """
         Initialize KV-1
 
         Args:
             data_dir: Where to store persistent data
             use_hsokv: Whether to use HSOKV (False for testing without HSOKV installed)
+            llm_provider: LLM provider identifier (default: Gemini)
+            llm_api_key: API key for the configured provider (falls back to env)
+            news_provider: Optional callable(topic) -> List[str] for MCP news connector
         """
         self.data_dir = data_dir
         os.makedirs(data_dir, exist_ok=True)
@@ -57,6 +70,12 @@ class KV1Orchestrator:
 
         # Initialize proactive monitoring
         self.monitor = ProactiveMonitor(self.user_manager, self.traumas)
+
+        # LLM plugin bridge (Gemini by default)
+        self.llm = LLMBridge(provider=llm_provider, api_key=llm_api_key)
+
+        # MCP connectors
+        self.mcp = MCPRegistry(self, news_provider=news_provider)
 
         # Track app usage
         self.app_usage = {}  # package_name -> usage_count
@@ -198,6 +217,33 @@ YOUR CAPABILITIES:
         self.save()
 
         return "\n".join(insights) if insights else "No significant patterns today"
+
+    # ------------------------------------------------------------------ #
+    # MCP / Plugin utilities
+    # ------------------------------------------------------------------ #
+
+    def register_mcp_plugin(
+        self, name: str, factory: Callable[[MCPRegistry], None]
+    ) -> None:
+        """Expose helper so Android service can register MCP plugins."""
+        self.mcp.load_plugin(name, factory)
+
+    def list_mcp_connectors(self) -> List[dict]:
+        return self.mcp.list_connectors()
+
+    def call_mcp_connector(self, name: str, **kwargs):
+        return self.mcp.call(name, **kwargs)
+
+    def update_headlines(self, headlines: List[str]) -> None:
+        """Allow background sync to push new headlines (feeds MCP connector)."""
+        self.mcp.update_news_cache(headlines)
+
+    def generate_with_llm(
+        self, user_input: str, system_prompt: Optional[str] = None
+    ) -> dict:
+        """Build an LLM payload via the plugin bridge."""
+        prompt = system_prompt or self.get_system_prompt()
+        return self.llm.generate(prompt, user_input)
 
     def save(self) -> None:
         """Persist all state to disk"""
