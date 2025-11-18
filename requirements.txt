@@ -1,0 +1,7 @@
+# KV-1 Core Dependencies
+
+# Note: HSOKV is required for memory system
+# Install from: https://github.com/PlanetDestroyyer/hsokv
+# Will be added as git submodule or installed separately
+
+# No other dependencies for core module (lightweight by design)
