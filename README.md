@@ -391,11 +391,6 @@ KV-1 is in early development. Contributions welcome!
 
 ---
 
-## 📄 License
-
-MIT License - See [LICENSE](LICENSE) for details
-
----
 
 ## 🔗 Links
 
