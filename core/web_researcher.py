@@ -59,22 +59,71 @@ class WebResearcher:
         return result
 
     def _scrape(self, query: str) -> str:
+        # First try Wikipedia API for better educational content
+        wiki_result = self._wiki(query)
+        if wiki_result and len(wiki_result) > 100:  # Got meaningful Wikipedia content
+            return wiki_result
+
+        # Fallback to DuckDuckGo scraping with better filtering
         url = f"https://duckduckgo.com/?q={requests.utils.quote(query)}&ia=web"
         try:
             resp = self.session.get(url, headers={"User-Agent": self.user_agent}, timeout=10)
             resp.raise_for_status()
             soup = BeautifulSoup(resp.text, "html.parser")
+
+            # Remove script and style elements
+            for script in soup(["script", "style", "nav", "header", "footer"]):
+                script.decompose()
+
             paragraphs = []
             for p in soup.find_all("p"):
                 text = p.get_text(strip=True)
-                if any(domain in text.lower() for domain in self.allow_domains):
+                # Filter out common garbage
+                if self._is_clean_content(text):
                     paragraphs.append(text)
-            if not paragraphs:
-                paragraphs = [p.get_text(strip=True) for p in soup.find_all("p")]
+
             return "\n".join(paragraphs)[:5000]
         except Exception as exc:
             self.logger.error("Scrape failed", exc_info=True, extra={"query": query})
             return ""
+
+    def _is_clean_content(self, text: str) -> bool:
+        """Filter out garbage content like JavaScript warnings, redirects, etc."""
+        if not text or len(text) < 20:  # Too short to be meaningful
+            return False
+
+        # Filter out common garbage patterns
+        garbage_patterns = [
+            "javascript",
+            "redirected",
+            "cookies",
+            "enable cookies",
+            "browser",
+            "click here",
+            "non-javascript",
+            "tool_code",
+            "```",
+            "loading...",
+            "please wait",
+            "error",
+            "404",
+            "not found",
+        ]
+
+        text_lower = text.lower()
+        for pattern in garbage_patterns:
+            if pattern in text_lower:
+                return False
+
+        # Must contain some educational keywords
+        educational_patterns = [
+            "is", "are", "means", "refers", "defined",
+            "example", "such as", "called", "known",
+            "number", "word", "sentence", "concept",
+        ]
+
+        has_educational_content = any(pattern in text_lower for pattern in educational_patterns)
+        return has_educational_content
 
     def _wiki(self, query: str) -> str:
         api = "https://en.wikipedia.org/api/rest_v1/page/summary/"
