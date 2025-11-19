@@ -51,6 +51,8 @@ class ThreeStageLearner:
     3. Transfer locks knowledge into LTM.
     """
 
+    STM_DECAY_SECONDS = 30.0  # Episodes expire after 30s without rehearsal
+
     def __init__(
         self,
         orchestrator,
@@ -71,6 +73,9 @@ class ThreeStageLearner:
     # ------------------------------------------------------------------
     def on_surprise(self, unknown_token: str, context: Optional[Dict[str, Any]] = None):
         """Register a surprise and store it in STM."""
+        # Evict expired episodes first
+        self._evict_expired()
+
         similarity = self._ltm_similarity(unknown_token)
         surprise = max(0.0, 1.0 - similarity)
         if surprise < self.surprise_threshold:
@@ -91,6 +96,11 @@ class ThreeStageLearner:
         self._store_episode(episode)
         self._log_episode("surprise_episode", episode)
         self.curiosity_queue.record_episode(episode)
+
+        # Notify genesis mode if enabled
+        if hasattr(self.orchestrator, 'genesis') and self.orchestrator.genesis.enabled:
+            self.orchestrator.genesis.record_surprise()
+
         return episode
 
     # ------------------------------------------------------------------
@@ -98,10 +108,14 @@ class ThreeStageLearner:
     # ------------------------------------------------------------------
     def on_usage(self, token: str):
         """Increase rehearsal counters when the concept is used."""
+        # Evict expired episodes first
+        self._evict_expired()
+
         for episode in self.episodes.values():
             if episode.token == token:
                 episode.replays += 1
                 episode.confidence = min(1.0, episode.confidence + 0.15)
+                episode.timestamp = _now_ts()  # Reset decay timer on rehearsal
                 self._log_episode(
                     "episode_rehearsal",
                     episode,
@@ -128,6 +142,10 @@ class ThreeStageLearner:
         self._log_episode("episode_transfer", episode)
         self.curiosity_queue.resolve(episode.token)
 
+        # Notify genesis mode if enabled
+        if hasattr(self.orchestrator, 'genesis') and self.orchestrator.genesis.enabled:
+            self.orchestrator.genesis.record_transfer()
+
     # ------------------------------------------------------------------
     # Self learning loop primitives
     # ------------------------------------------------------------------
@@ -151,6 +169,19 @@ class ThreeStageLearner:
                 episode.confidence = min(1.0, episode.confidence + 0.05)
                 self.on_usage(episode.token)
                 self._log_episode("episode_probe", episode, extra={"query": query})
+
+                # Extract unknowns from LLM response and feed back into on_surprise
+                unknown_tokens = self._extract_unknown_tokens(explanation)
+                for new_token in unknown_tokens[:3]:  # Limit to 3 to avoid overflow
+                    self.on_surprise(
+                        new_token,
+                        {
+                            "source": "self_probe",
+                            "parent_token": episode.token,
+                            "mood": "reflective",
+                            "snippet": explanation[:280],
+                        },
+                    )
 
     def sleep_replay(self):
         """Replay top episodes during nightly reflections."""
@@ -204,6 +235,18 @@ class ThreeStageLearner:
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+    def _evict_expired(self):
+        """Remove episodes older than STM_DECAY_SECONDS without rehearsal."""
+        now = _now_ts()
+        expired = [
+            ep_id for ep_id, ep in self.episodes.items()
+            if now - ep.timestamp > self.STM_DECAY_SECONDS
+        ]
+        for ep_id in expired:
+            episode = self.episodes[ep_id]
+            del self.episodes[ep_id]
+            self._log_episode("episode_expired", episode)
+
     def _store_episode(self, episode: SurpriseEpisode):
         self.episodes[episode.episode_id] = episode
         # Capacity control (7±2 items)
