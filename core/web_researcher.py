@@ -59,33 +59,26 @@ class WebResearcher:
         return result
 
     def _scrape(self, query: str) -> str:
-        # First try Wikipedia API for better educational content
-        wiki_result = self._wiki(query)
-        if wiki_result and len(wiki_result) > 100:  # Got meaningful Wikipedia content
-            return wiki_result
+        # Try multiple sources in order
+        sources = [
+            ("Wikipedia", self._wiki),
+            ("Simple Wikipedia", self._simple_wiki),
+            ("Britannica", self._britannica),
+            ("Direct web search", self._web_search),
+        ]
 
-        # Fallback to DuckDuckGo scraping with better filtering
-        url = f"https://duckduckgo.com/?q={requests.utils.quote(query)}&ia=web"
-        try:
-            resp = self.session.get(url, headers={"User-Agent": self.user_agent}, timeout=10)
-            resp.raise_for_status()
-            soup = BeautifulSoup(resp.text, "html.parser")
+        for source_name, source_func in sources:
+            try:
+                result = source_func(query)
+                if result and len(result) > 100:
+                    self.logger.info(f"Content found from {source_name}", extra={"query": query})
+                    return result
+            except Exception as exc:
+                self.logger.debug(f"{source_name} failed", exc_info=True, extra={"query": query})
+                continue
 
-            # Remove script and style elements
-            for script in soup(["script", "style", "nav", "header", "footer"]):
-                script.decompose()
-
-            paragraphs = []
-            for p in soup.find_all("p"):
-                text = p.get_text(strip=True)
-                # Filter out common garbage
-                if self._is_clean_content(text):
-                    paragraphs.append(text)
-
-            return "\n".join(paragraphs)[:5000]
-        except Exception as exc:
-            self.logger.error("Scrape failed", exc_info=True, extra={"query": query})
-            return ""
+        self.logger.warning("All sources failed", extra={"query": query})
+        return ""
 
     def _is_clean_content(self, text: str) -> bool:
         """Filter out garbage content like JavaScript warnings, redirects, etc."""
@@ -190,6 +183,130 @@ class WebResearcher:
                 continue  # Try next slug
 
         self.logger.error("Wiki fetch failed for all attempts", extra={"query": query, "slugs": slugs_to_try})
+        return ""
+
+    def _simple_wiki(self, query: str) -> str:
+        """Try Simple English Wikipedia for easier-to-understand content."""
+        api = "https://simple.wikipedia.org/api/rest_v1/page/summary/"
+
+        # Use same query extraction logic
+        query_lower = query.lower().strip()
+
+        # Remove question words
+        for prefix in ["what is a ", "what is an ", "what is the ", "what is ", "what are "]:
+            if query_lower.startswith(prefix):
+                query_lower = query_lower[len(prefix):]
+                break
+
+        # Remove qualifiers
+        for suffix in [" in language", " in mathematics", " in math", " in physics",
+                       " in algebra", " in calculus", " of thermodynamics",
+                       " thermodynamics", " algebra", " calculus", " mathematics"]:
+            if query_lower.endswith(suffix):
+                query_lower = query_lower[:-len(suffix)]
+                break
+
+        slug = query_lower.strip().replace(" ", "_")
+
+        try:
+            resp = self.session.get(
+                api + slug,
+                headers={"User-Agent": self.user_agent},
+                timeout=10,
+            )
+            if resp.ok:
+                extract = resp.json().get("extract", "")
+                if extract and len(extract) > 100:
+                    return extract[:5000]
+        except Exception:
+            pass
+        return ""
+
+    def _britannica(self, query: str) -> str:
+        """Try Britannica for educational content."""
+        # Extract main concept
+        query_lower = query.lower().strip()
+
+        for prefix in ["what is a ", "what is an ", "what is the ", "what is ", "what are "]:
+            if query_lower.startswith(prefix):
+                query_lower = query_lower[len(prefix):]
+                break
+
+        for suffix in [" in language", " in mathematics", " in math", " in physics",
+                       " in algebra", " in calculus", " of thermodynamics",
+                       " thermodynamics", " algebra", " calculus", " mathematics"]:
+            if query_lower.endswith(suffix):
+                query_lower = query_lower[:-len(suffix)]
+                break
+
+        # Try Britannica URL
+        slug = query_lower.strip().replace(" ", "-")
+        url = f"https://www.britannica.com/topic/{slug}"
+
+        try:
+            resp = self.session.get(url, headers={"User-Agent": self.user_agent}, timeout=10)
+            if resp.ok:
+                soup = BeautifulSoup(resp.text, "html.parser")
+
+                # Find first paragraph
+                paragraphs = []
+                for p in soup.find_all("p", limit=5):
+                    text = p.get_text(strip=True)
+                    if len(text) > 50 and self._is_clean_content(text):
+                        paragraphs.append(text)
+
+                if paragraphs:
+                    return "\n".join(paragraphs)[:3000]
+        except Exception:
+            pass
+        return ""
+
+    def _web_search(self, query: str) -> str:
+        """Fallback to general web search."""
+        # Try DuckDuckGo instant answer API first
+        try:
+            url = f"https://api.duckduckgo.com/?q={requests.utils.quote(query)}&format=json&no_html=1"
+            resp = self.session.get(url, headers={"User-Agent": self.user_agent}, timeout=10)
+            if resp.ok:
+                data = resp.json()
+                abstract = data.get("AbstractText", "")
+                if abstract and len(abstract) > 100:
+                    return abstract[:3000]
+
+                # Try related topics
+                topics = data.get("RelatedTopics", [])
+                texts = []
+                for topic in topics[:3]:
+                    if isinstance(topic, dict) and "Text" in topic:
+                        text = topic["Text"]
+                        if len(text) > 50:
+                            texts.append(text)
+                if texts:
+                    return "\n".join(texts)[:3000]
+        except Exception:
+            pass
+
+        # Last resort: scrape DuckDuckGo results page
+        try:
+            url = f"https://duckduckgo.com/?q={requests.utils.quote(query)}&ia=web"
+            resp = self.session.get(url, headers={"User-Agent": self.user_agent}, timeout=10)
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, "html.parser")
+
+            # Remove scripts
+            for script in soup(["script", "style", "nav", "header", "footer"]):
+                script.decompose()
+
+            paragraphs = []
+            for p in soup.find_all("p"):
+                text = p.get_text(strip=True)
+                if self._is_clean_content(text):
+                    paragraphs.append(text)
+
+            return "\n".join(paragraphs)[:5000]
+        except Exception:
+            pass
+
         return ""
 
     def _cache_path(self, query: str, mode: str) -> str:
