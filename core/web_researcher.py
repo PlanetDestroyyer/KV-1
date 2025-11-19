@@ -136,8 +136,14 @@ class WebResearcher:
         context_qualifier = None
         if "grammar" in query_lower or "sentence" in query_lower or "paragraph" in query_lower:
             context_qualifier = "linguistics"
-        elif "number" in query_lower or "counting" in query_lower or "arithmetic" in query_lower:
+        elif ("number" in query_lower or "counting" in query_lower or "arithmetic" in query_lower or
+              "algebra" in query_lower or "mathematics" in query_lower or "math" in query_lower or
+              "calculus" in query_lower or "equation" in query_lower or "variable" in query_lower or
+              "derivative" in query_lower or "integral" in query_lower or "function" in query_lower):
             context_qualifier = "mathematics"
+        elif ("energy" in query_lower or "temperature" in query_lower or "thermodynamics" in query_lower or
+              "entropy" in query_lower or "heat" in query_lower or "physics" in query_lower):
+            context_qualifier = "physics"
 
         # Remove common question words
         for prefix in ["what is a ", "what is an ", "what is the ", "what is ",
@@ -146,9 +152,11 @@ class WebResearcher:
                 query_lower = query_lower[len(prefix):]
                 break
 
-        # Remove trailing qualifiers
+        # Remove trailing qualifiers (try longer patterns first)
         for suffix in [" in language", " in mathematics", " in math", " in physics",
-                       " in algebra", " in calculus", " grammar", " writing", " mathematics"]:
+                       " in algebra", " in calculus", " of thermodynamics",
+                       " thermodynamics", " algebra", " calculus", " mathematics",
+                       " grammar", " writing", " physics"]:
             if query_lower.endswith(suffix):
                 query_lower = query_lower[:-len(suffix)]
                 break
