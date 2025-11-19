@@ -33,7 +33,7 @@ def main():
     iterations = 10 if args.quick else args.iterations
 
     print(f"Starting curriculum experiment with {iterations} iterations...")
-    print(f"This will progress through: Language ’ Numbers ’ Algebra ’ Calculus ’ Thermodynamics\n")
+    print(f"This will progress through: Language -> Numbers -> Algebra -> Calculus -> Thermodynamics\n")
 
     asyncio.run(main_curriculum_experiment(iterations))
 
