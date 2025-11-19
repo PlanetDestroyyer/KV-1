@@ -67,7 +67,7 @@ class EvaluationHarness:
 
     def _handle_failure(self, task: EvaluationTask, answer: str, score: float):
         context = f"Eval fail ({task.domain}) score={score:.2f}"
-        self.orchestrator.add_trauma(f"eval_{task.domain}", 4.0, context)
+        # Add to curiosity queue for research
         self.orchestrator.three_stage.add_curiosity_item(task.domain, task.failure_query)
         self.orchestrator.log_event(
             "eval_failure",
