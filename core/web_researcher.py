@@ -66,6 +66,8 @@ class WebResearcher:
             ("Wikidata", self._wikidata),
             ("StackExchange", self._stackexchange),
             ("ArXiv", self._arxiv),
+            ("OpenLibrary", self._openlibrary),
+            ("Hacker News", self._hackernews),
             ("Britannica", self._britannica),
             ("DuckDuckGo API", self._web_search),
         ]
@@ -444,6 +446,150 @@ class WebResearcher:
 
                     if abstracts:
                         return " ".join(abstracts)[:3000]
+        except Exception:
+            pass
+
+        return ""
+
+    def _openlibrary(self, query: str) -> str:
+        """Try OpenLibrary for books, authors, literary concepts."""
+        # Extract main concept
+        query_lower = query.lower().strip()
+
+        for prefix in ["what is a ", "what is an ", "what is the ", "what is ", "what are ", "who is ", "who was "]:
+            if query_lower.startswith(prefix):
+                query_lower = query_lower[len(prefix):]
+                break
+
+        try:
+            # Search for works/authors
+            search_url = f"https://openlibrary.org/search.json?q={requests.utils.quote(query_lower)}&limit=3"
+            resp = self.session.get(search_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+            if resp.ok:
+                data = resp.json()
+                docs = data.get("docs", [])
+
+                if docs:
+                    # Build description from available fields
+                    parts = []
+
+                    for doc in docs[:2]:
+                        title = doc.get("title", "")
+                        authors = doc.get("author_name", [])
+                        year = doc.get("first_publish_year", "")
+                        subject = doc.get("subject", [])
+
+                        if title:
+                            info = f'"{title}"'
+                            if authors:
+                                author_str = ", ".join(authors[:2])
+                                info += f" by {author_str}"
+                            if year:
+                                info += f" (published {year})"
+
+                            # Add subjects if available
+                            if subject and len(subject) > 0:
+                                subjects_str = ", ".join(subject[:3])
+                                info += f". Topics: {subjects_str}"
+
+                            parts.append(info)
+
+                    if parts:
+                        result = ". ".join(parts)
+                        if len(result) > 100:
+                            return result[:2000]
+
+            # Try dedicated author search
+            author_url = f"https://openlibrary.org/search/authors.json?q={requests.utils.quote(query_lower)}&limit=1"
+            author_resp = self.session.get(author_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+            if author_resp.ok:
+                author_data = author_resp.json()
+                authors = author_data.get("docs", [])
+
+                if authors:
+                    author = authors[0]
+                    name = author.get("name", "")
+                    birth = author.get("birth_date", "")
+                    top_work = author.get("top_work", "")
+
+                    if name:
+                        result = f"{name}"
+                        if birth:
+                            result += f" (born {birth})"
+                        result += " is an author."
+                        if top_work:
+                            result += f" Known for: {top_work}."
+
+                        if len(result) > 100:
+                            return result[:2000]
+
+        except Exception:
+            pass
+
+        return ""
+
+    def _hackernews(self, query: str) -> str:
+        """Try Hacker News for programming/tech concepts via Algolia API."""
+        try:
+            # Hacker News uses Algolia search API (free, no key)
+            search_url = f"https://hn.algolia.com/api/v1/search?query={requests.utils.quote(query)}&tags=story&hitsPerPage=5"
+            resp = self.session.get(search_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+            if resp.ok:
+                data = resp.json()
+                hits = data.get("hits", [])
+
+                if hits:
+                    # Collect titles and text snippets
+                    contents = []
+
+                    for hit in hits[:3]:
+                        title = hit.get("title", "")
+
+                        # Try to get story text if available
+                        story_text = hit.get("story_text", "")
+
+                        if title:
+                            content = title
+                            if story_text and len(story_text) > 50:
+                                # Clean HTML from story text
+                                soup = BeautifulSoup(story_text, "html.parser")
+                                clean_text = soup.get_text(strip=True, separator=" ")
+                                content += f": {clean_text}"
+
+                            if len(content) > 50:
+                                contents.append(content)
+
+                    if contents:
+                        return " | ".join(contents)[:2000]
+
+            # Try comments search for more detailed discussions
+            comments_url = f"https://hn.algolia.com/api/v1/search?query={requests.utils.quote(query)}&tags=comment&hitsPerPage=5"
+            comments_resp = self.session.get(comments_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+            if comments_resp.ok:
+                comments_data = comments_resp.json()
+                comment_hits = comments_data.get("hits", [])
+
+                if comment_hits:
+                    comments = []
+
+                    for comment in comment_hits[:3]:
+                        comment_text = comment.get("comment_text", "")
+
+                        if comment_text:
+                            # Clean HTML
+                            soup = BeautifulSoup(comment_text, "html.parser")
+                            clean = soup.get_text(strip=True, separator=" ")
+
+                            if len(clean) > 100:
+                                comments.append(clean)
+
+                    if comments:
+                        return " ".join(comments)[:2000]
+
         except Exception:
             pass
 
