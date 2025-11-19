@@ -10,10 +10,11 @@ The main KV-1 brain that coordinates:
 This is what Android system service calls into.
 """
 
+import json
 import os
 import pickle
 from datetime import datetime
-from typing import Callable, List, Optional
+from typing import Callable, Dict, List, Optional
 import asyncio
 
 from .trauma import TraumaSystem
@@ -23,6 +24,10 @@ from .mcp import MCPRegistry
 from .llm import LLMBridge
 from .three_stage_learner import ThreeStageLearner
 from .genesis_mode import GenesisController
+from .web_researcher import WebResearcher
+from .scheduler import AutonomyScheduler
+from .evaluation import EvaluationHarness
+from .curriculum import CurriculumManager
 
 
 class KV1Orchestrator:
@@ -50,6 +55,9 @@ class KV1Orchestrator:
         """
         self.data_dir = data_dir
         os.makedirs(data_dir, exist_ok=True)
+        self.logs_dir = os.path.join(data_dir, "logs")
+        os.makedirs(self.logs_dir, exist_ok=True)
+        self.events_log_path = os.path.join(self.logs_dir, "events.jsonl")
 
         # Initialize HSOKV memory system
         self.memory = None
@@ -82,8 +90,13 @@ class KV1Orchestrator:
         self.mcp = MCPRegistry(self, news_provider=news_provider)
 
         # Three-stage learner + genesis controller
-        self.three_stage = ThreeStageLearner(self)
+        cache_dir = os.path.join(self.data_dir, "cache")
+        self.web = WebResearcher(cache_dir=cache_dir)
+        self.three_stage = ThreeStageLearner(self, researcher=self.web)
         self.genesis = GenesisController(self, enabled=genesis_mode)
+        self.scheduler = AutonomyScheduler(self)
+        self.evaluator = EvaluationHarness(self)
+        self.curriculum = CurriculumManager()
 
         # Track app usage
         self.app_usage = {}  # package_name -> usage_count
@@ -238,9 +251,57 @@ YOUR CAPABILITIES:
         if self.genesis.should_trigger_learning():
             self.genesis.daily_probe()
 
+        # Reflection summary + goals
+        reflection = {
+            "insights": insights,
+            "traumas": self.traumas.get_trauma_summary(),
+            "curiosity": self.three_stage.summarize_active_episodes(),
+            "eval_scores": getattr(self.evaluator, "last_scores", {}),
+            "curriculum": self.curriculum.progress,
+        }
+        goals = self._derive_goals(reflection)
+        self.log_event("reflection", {"summary": reflection, "goals": goals})
+
         self.save()
 
         return "\n".join(insights) if insights else "No significant patterns today"
+
+    def _derive_goals(self, reflection: Dict) -> List[str]:
+        goals = []
+        eval_scores = reflection.get("eval_scores", {})
+        for domain, score in eval_scores.items():
+            if score < 1.0:
+                level = self.curriculum.current_stage(domain).level
+                resources = self.curriculum.get_resources(domain)
+                goals.append(f"Study {domain} [{level}] via {resources[0] if resources else 'curriculum pack'}")
+        if reflection.get("curiosity"):
+            goals.append("Review active surprise episodes")
+        return goals
+
+    def log_event(self, event_type: str, payload: Optional[dict] = None) -> None:
+        """Append structured event logs for telemetry."""
+        event = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "type": event_type,
+            "payload": payload or {},
+        }
+        try:
+            with open(self.events_log_path, "a", encoding="utf-8") as f:
+                f.write(json.dumps(event) + "\n")
+        except Exception as exc:
+            print(f"[KV-1] Event log failure: {exc}")
+
+    def start_autonomy(self):
+        self.scheduler.start()
+
+    def stop_autonomy(self):
+        self.scheduler.stop()
+
+    def run_evaluation_cycle(self):
+        """Run domain evaluation tasks."""
+        scores = self.evaluator.run_cycle()
+        self.log_event("evaluation_cycle", scores)
+        return scores
 
     # ------------------------------------------------------------------ #
     # Self-learning utilities
@@ -275,11 +336,17 @@ YOUR CAPABILITIES:
         self.mcp.update_news_cache(headlines)
 
     def generate_with_llm(
-        self, user_input: str, system_prompt: Optional[str] = None
+        self,
+        user_input: str,
+        system_prompt: Optional[str] = None,
+        execute: bool = True,
     ) -> dict:
-        """Build an LLM payload via the plugin bridge."""
+        """Invoke the configured LLM (live call when execute=True)."""
         prompt = system_prompt or self.get_system_prompt()
-        return self.llm.generate(prompt, user_input)
+        return self.llm.generate(prompt, user_input, execute=execute)
+
+    def next_curiosity_item(self) -> Optional[Dict[str, str]]:
+        return self.three_stage.next_curiosity_query()
 
     def save(self) -> None:
         """Persist all state to disk"""

@@ -83,7 +83,7 @@ KV-1 is not just another AI assistant app. It's an operating system where AI run
 ### 5. **MCP Connectors + LLM Plugin**
 - Built-in Model Context Protocol registry with connectors for news, user snapshot, traumas, proactive alerts, and system prompt export
 - Plugin system to register your own connectors (calendar, email, smart-home, etc.)
-- Gemini-ready LLM bridge that outputs the HTTP payload you can forward to Google's API (or swap out for your own provider)
+- Gemini-ready LLM bridge that executes live API calls when `GEMINI_API_KEY` is set (falls back to payload-only mode otherwise)
 - Configure with `GEMINI_API_KEY` or pass `llm_api_key` when constructing `KV1Orchestrator`
 
 ### 6. **Three-Stage Self-Learning**
@@ -95,6 +95,22 @@ KV-1 is not just another AI assistant app. It's an operating system where AI run
 - Opt-in flag (`genesis_mode=True`) resets KV-1 to symbols-only knowledge
 - Daily probes target Algebra, Calculus, Thermodynamics mastery thresholds
 - Progress logged to `genesis_log.json`, gaps automatically trigger new research
+
+### 8. **Telemetry & Safe LLM Calls**
+- Structured event logging (`logs/events.jsonl`) captures surprise episodes, web research, transfers
+- Gemini client uses retry/backoff with full error telemetry; run in `execute=False` mode for dry runs
+
+### 9. **Autonomy Scheduler + Curiosity Queue**
+- Background scheduler (`AutonomyScheduler`) can continuously run self-learning probes, curiosity research, nightly reflections, and genesis checks (`kv1.start_autonomy()`)
+- Curiosity queue prioritizes unknown tokens by surprise/confidence and feeds web research tasks automatically
+
+### 10. **Domain Evaluation Harness**
+- `EvaluationHarness` runs algebra/calculus/thermo tasks via the LLM, scores answers, and routes failures into trauma + curiosity queue
+- Scheduler automatically triggers evaluation cycles; use `kv1.run_evaluation_cycle()` to run on demand
+
+### 11. **Reflection-to-Action Loop**
+- Nightly reflections now log summaries + next goals (`logs/events.jsonl`) combining app usage, traumas, STM surprises, and evaluation scores
+- Goals (e.g., “Study algebra”) feed directly back into the curiosity queue + proactive directives
 
 ---
 
@@ -117,6 +133,8 @@ pip install -e .
 git clone https://github.com/PlanetDestroyyer/KV-1
 cd KV-1
 pip install -r requirements.txt
+# Optional: set your Gemini key (load_env() will read .env automatically)
+echo 'GEMINI_API_KEY="your-key"' > .env
 ```
 
 ---
@@ -132,7 +150,7 @@ from core import KV1Orchestrator
 kv1 = KV1Orchestrator(
     data_dir="./data",
     use_hsokv=True,
-    llm_api_key="YOUR_GEMINI_KEY",  # or set GEMINI_API_KEY env var
+    llm_api_key=None,               # load_env() pulls GEMINI_API_KEY from .env
     genesis_mode=True,              # optional: enable alphanumeric genesis bootstrap
 )
 
@@ -157,6 +175,12 @@ print(payload["endpoint"])
 # Trigger research / self learning
 kv1.research("basic algebra fundamentals")
 kv1.self_learning_tick()
+
+# If you only want the request payload (without hitting Gemini), pass execute=False
+dry_run = kv1.generate_with_llm("payload only demo", execute=False)
+
+# Launch background autonomy loop
+kv1.start_autonomy()
 ```
 
 ### Android Integration
@@ -435,4 +459,9 @@ KV-1 isn't an app you open. It's a presence that's always there.
 **Built with 🧠 by [PlanetDestroyyer](https://github.com/PlanetDestroyyer)**
 - `core/three_stage_learner.py` - surprise episodes, rehearsal, cortical transfer, self-learning loop, safe web scraping
 - `core/genesis_mode.py` - alphanumeric bootstrap controller with daily probes and logging
+- `core/web_researcher.py` - cached, rate-limited, domain-aware web researcher feeding the learner
+- `core/evaluation.py` - domain evaluation harness (algebra/calculus/thermo) with trauma + curiosity feedback
+- `core/scheduler.py` - background autonomy scheduler orchestrating self-learning, curiosity, and genesis probes
 - `test_genesis.py` - regression test simulating 7-day genesis run (`python test_genesis.py`)
+- `test_evaluation.py` - unit test for the evaluation harness (`python test_evaluation.py`)
+- `stages1.md` - roadmap tracking progress toward a self-learning living system

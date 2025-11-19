@@ -1,0 +1,8 @@
+{"timestamp": "2025-11-19T06:33:37.410370", "type": "scheduler_job", "payload": {"job": "self_learning"}}
+{"timestamp": "2025-11-19T06:33:37.411207", "type": "scheduler_job", "payload": {"job": "curiosity"}}
+{"timestamp": "2025-11-19T06:34:13.490473", "type": "reflection", "payload": {"summary": {"insights": [], "traumas": "No active traumas", "curiosity": [], "eval_scores": {"algebra": 0.0, "calculus": 0.0, "thermodynamics": 0.0}, "curriculum": {"algebra": "basics", "calculus": "basics", "thermodynamics": "basics"}}, "goals": ["Study algebra [basics] via Khan: Solving equations", "Study calculus [basics] via Khan: Derivatives", "Study thermodynamics [basics] via Khan: Thermodynamics"]}}
+{"timestamp": "2025-11-19T06:34:13.492402", "type": "nightly_summary", "payload": {"summary": "No significant patterns today"}}
+{"timestamp": "2025-11-19T06:34:13.492824", "type": "scheduler_job", "payload": {"job": "nightly_reflection"}}
+{"timestamp": "2025-11-19T06:34:13.492987", "type": "scheduler_job", "payload": {"job": "genesis_probe"}}
+{"timestamp": "2025-11-19T06:34:25.518141", "type": "eval_failure", "payload": {"domain": "algebra", "score": 0.0, "answer": ""}}
+{"timestamp": "2025-11-19T06:34:37.540703", "type": "eval_failure", "payload": {"domain": "calculus", "score": 0.0, "answer": ""}}

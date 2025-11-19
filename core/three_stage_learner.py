@@ -16,9 +16,7 @@ import uuid
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
-
-import requests
-from bs4 import BeautifulSoup
+import heapq
 
 
 def _now_ts() -> float:
@@ -59,14 +57,14 @@ class ThreeStageLearner:
         *,
         surprise_threshold: float = 0.6,
         max_capacity: int = 9,
-        web_daily_cap: int = 20,
+        researcher=None,
     ):
         self.orchestrator = orchestrator
         self.surprise_threshold = surprise_threshold
         self.max_capacity = max_capacity
         self.episodes: "OrderedDict[str, SurpriseEpisode]" = OrderedDict()
-        self.web_samples_today = 0
-        self.web_daily_cap = web_daily_cap
+        self.researcher = researcher
+        self.curiosity_queue = CuriosityQueue()
 
     # ------------------------------------------------------------------
     # Stage 1
@@ -91,6 +89,8 @@ class ThreeStageLearner:
             confidence=confidence,
         )
         self._store_episode(episode)
+        self._log_episode("surprise_episode", episode)
+        self.curiosity_queue.record_episode(episode)
         return episode
 
     # ------------------------------------------------------------------
@@ -102,6 +102,11 @@ class ThreeStageLearner:
             if episode.token == token:
                 episode.replays += 1
                 episode.confidence = min(1.0, episode.confidence + 0.15)
+                self._log_episode(
+                    "episode_rehearsal",
+                    episode,
+                    extra={"replays": episode.replays},
+                )
                 if episode.replays >= 4 and episode.confidence >= 0.94:
                     self._transfer_to_ltm(episode)
                 break
@@ -120,6 +125,8 @@ class ThreeStageLearner:
         self.orchestrator.memory.learn(episode.token, concept_text)
         if episode.episode_id in self.episodes:
             del self.episodes[episode.episode_id]
+        self._log_episode("episode_transfer", episode)
+        self.curiosity_queue.resolve(episode.token)
 
     # ------------------------------------------------------------------
     # Self learning loop primitives
@@ -138,11 +145,12 @@ class ThreeStageLearner:
         for episode in pending:
             query = f"Explain {episode.token} in detail with examples."
             payload = self.orchestrator.generate_with_llm(query)
-            explanation = payload.get("body", {}).get("contents", [{}])[0].get("parts", [{}])[-1].get("text", "")
+            explanation = payload.get("text")
             if explanation:
                 episode.guessed_meaning = explanation
                 episode.confidence = min(1.0, episode.confidence + 0.05)
                 self.on_usage(episode.token)
+                self._log_episode("episode_probe", episode, extra={"query": query})
 
     def sleep_replay(self):
         """Replay top episodes during nightly reflections."""
@@ -155,21 +163,21 @@ class ThreeStageLearner:
             for episode in top_items:
                 self.on_usage(episode.token)
 
+    def summarize_active_episodes(self) -> List[str]:
+        """Provide summaries for reflection/goals."""
+        return [ep.to_prompt_snippet() for ep in self.episodes.values()]
+
     # ------------------------------------------------------------------
     # Web surfing
     # ------------------------------------------------------------------
     async def surf_and_learn(self, query: str, mode: str = "scrape"):
         """Use the web as endless experience fuel."""
-        if self.web_samples_today >= self.web_daily_cap:
+        if not self.researcher:
             return []
-        text = ""
-        if mode == "api":
-            text = self._wiki_lookup(query)
-        else:
-            text = self._scrape(query)
-        if not text:
+        result = self.researcher.fetch(query, mode=mode)
+        if not result or not result.text:
             return []
-        tokens = self._extract_unknown_tokens(text)
+        tokens = self._extract_unknown_tokens(result.text)
         episodes = []
         for token in tokens[:5]:
             episodes.append(
@@ -179,42 +187,19 @@ class ThreeStageLearner:
                         "source": "web",
                         "query": query,
                         "mood": "curious",
-                        "snippet": text[:280],
+                        "snippet": result.text[:280],
                     },
                 )
             )
-        self.web_samples_today += 1
+        self.orchestrator.log_event(
+            "web_research",
+            {
+                "query": query,
+                "mode": mode,
+                "tokens": [ep.token for ep in episodes if ep],
+            },
+        )
         return [ep for ep in episodes if ep]
-
-    def _scrape(self, query: str) -> str:
-        url = f"https://duckduckgo.com/?q={requests.utils.quote(query)}&ia=web"
-        try:
-            resp = requests.get(
-                url,
-                headers={"User-Agent": "KV1/three-stage"},
-                timeout=10,
-            )
-            resp.raise_for_status()
-            soup = BeautifulSoup(resp.text, "html.parser")
-            paragraphs = [p.get_text(strip=True) for p in soup.find_all("p")]
-            return "\n".join(paragraphs)[:5000]
-        except Exception:
-            return ""
-
-    def _wiki_lookup(self, query: str) -> str:
-        api = "https://en.wikipedia.org/api/rest_v1/page/summary/"
-        slug = query.strip().replace(" ", "_")
-        try:
-            resp = requests.get(
-                api + slug,
-                headers={"User-Agent": "KV1/three-stage"},
-                timeout=10,
-            )
-            if resp.ok:
-                return resp.json().get("extract", "")
-        except Exception:
-            pass
-        return ""
 
     # ------------------------------------------------------------------
     # Helpers
@@ -240,12 +225,62 @@ class ThreeStageLearner:
             "Guess the meaning succinctly."
         )
         payload = self.orchestrator.generate_with_llm(prompt)
-        return payload.get("body", {}).get("contents", [{}])[0].get("parts", [{}])[-1].get(
-            "text", f"Hypothesis about {token}"
-        )
+        return payload.get("text") or f"Hypothesis about {token}"
 
     def _extract_unknown_tokens(self, text: str) -> List[str]:
         words = {word.strip(".,():") for word in text.split() if len(word) > 5}
         shuffled = list(words)
         random.shuffle(shuffled)
         return shuffled
+
+    def _log_episode(self, event_type: str, episode: SurpriseEpisode, extra: Optional[Dict[str, Any]] = None):
+        data = {
+            "episode_id": episode.episode_id,
+            "token": episode.token,
+            "surprise": episode.surprise,
+            "confidence": episode.confidence,
+            "replays": episode.replays,
+            "context": episode.context,
+        }
+        if extra:
+            data.update(extra)
+        self.orchestrator.log_event(event_type, data)
+
+    def next_curiosity_query(self) -> Optional[Dict[str, str]]:
+        return self.curiosity_queue.next_item()
+
+    def add_curiosity_item(self, token: str, query: str):
+        self.curiosity_queue.add_manual(token, query)
+
+
+class CuriosityQueue:
+    """Priority queue for unknown concepts to research next."""
+
+    def __init__(self):
+        self.heap = []
+        self.entries: Dict[str, Dict[str, Any]] = {}
+        self.counter = 0
+
+    def record_episode(self, episode: SurpriseEpisode):
+        priority = episode.surprise + (1.0 - episode.confidence)
+        data = {"token": episode.token, "query": episode.context.get("query") or episode.token}
+        self.entries[episode.token] = data
+        heapq.heappush(self.heap, (-priority, self.counter, episode.token))
+        self.counter += 1
+
+    def resolve(self, token: str):
+        self.entries.pop(token, None)
+
+    def next_item(self) -> Optional[Dict[str, str]]:
+        while self.heap:
+            _, _, token = heapq.heappop(self.heap)
+            if token in self.entries:
+                data = self.entries.pop(token)
+                return data
+        return None
+
+    def add_manual(self, token: str, query: str):
+        data = {"token": token, "query": query}
+        self.entries[token] = data
+        heapq.heappush(self.heap, (-1.0, self.counter, token))
+        self.counter += 1

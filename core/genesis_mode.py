@@ -69,7 +69,7 @@ class GenesisController:
 
     def _score_from_payload(self, payload: Dict) -> float:
         # Simple heuristic: longer answers imply more confidence
-        text = payload.get("body", {}).get("contents", [{}])[0].get("parts", [{}])[-1].get("text", "")
+        text = payload.get("text") or ""
         return min(0.99, 0.5 + len(text) / 4000.0)
 
     def gaps(self):

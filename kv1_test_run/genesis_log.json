@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-11-19T12:04:13.489826",
+  "progress": {
+    "algebra": 0.5,
+    "calculus": 0.5,
+    "thermodynamics": 0.5
+  },
+  "remaining": [
+    "algebra",
+    "calculus",
+    "thermodynamics"
+  ]
+}

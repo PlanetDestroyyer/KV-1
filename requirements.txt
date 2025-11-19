@@ -4,4 +4,6 @@
 # Install from: https://github.com/PlanetDestroyyer/hsokv
 # Will be added as git submodule or installed separately
 
-# No other dependencies for core module (lightweight by design)
+# Additional libraries used across core + self-learning
+requests>=2.31.0
+beautifulsoup4>=4.12.0

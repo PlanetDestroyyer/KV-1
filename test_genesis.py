@@ -10,7 +10,7 @@ from __future__ import annotations
 import json
 import os
 import tempfile
-from types import SimpleNamespace
+from typing import Optional
 
 from core.genesis_mode import GenesisController
 
@@ -30,20 +30,15 @@ class DummyLLM:
     def __init__(self):
         self.counter = 0
 
-    def generate(self, system_prompt: str, user_input: str):
+    def generate(self, system_prompt: str, user_input: str, execute: bool = True):
         self.counter += 1
         text = f"{user_input} :: " + ("x" * (self.counter * 600))
         return {
-            "body": {
-                "contents": [
-                    {
-                        "parts": [
-                            {"text": system_prompt},
-                            {"text": text},
-                        ]
-                    }
-                ]
-            }
+            "provider": "dummy",
+            "request": {"body": {"contents": [{"parts": [{"text": system_prompt}, {"text": user_input}]}]}},
+            "response": {"candidates": [{"content": {"parts": [{"text": text}]}}]},
+            "text": text,
+            "executed": True,
         }
 
 
@@ -52,9 +47,13 @@ class DummyOrchestrator:
         self.data_dir = data_dir
         self.memory = DummyMemory()
         self._llm = DummyLLM()
+        self.logs = []
 
-    def generate_with_llm(self, user_input: str, system_prompt: str = "Genesis test"):
-        return self._llm.generate(system_prompt, user_input)
+    def generate_with_llm(self, user_input: str, system_prompt: str = "Genesis test", execute: bool = False):
+        return self._llm.generate(system_prompt, user_input, execute=execute)
+
+    def log_event(self, event_type: str, payload: Optional[dict] = None):
+        self.logs.append((event_type, payload))
 
 
 def test_genesis_bootstrap():
@@ -62,8 +61,15 @@ def test_genesis_bootstrap():
         orch = DummyOrchestrator(tmp)
         genesis = GenesisController(orch, enabled=True, log_path=os.path.join(tmp, "log.json"))
 
+        print("Genesis bootstrap test started.")
+        print("Agent baseline knowledge: digits 0-9 and letters a-z only.")
+        print("Simulated Gemini/web research loop engaged...")
+
         for _ in range(7):
             genesis.daily_probe()
+            focus = genesis.next_focus_query()
+            if focus:
+                print(f"Simulated research query: {focus}")
 
         for domain, threshold in GenesisController.REQUIRED_THRESHOLDS.items():
             assert genesis.progress[domain] >= threshold, f"{domain} below threshold"
