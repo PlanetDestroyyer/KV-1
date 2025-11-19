@@ -1,11 +1,8 @@
 """
 LLM plugin bridge for KV-1.
 
-Provides a thin abstraction that knows how to format payloads for the
-configured provider (starting with Gemini) while keeping API keys out
-of the main orchestrator logic. The bridge does not make HTTP requests
-directly so it can run inside offline/unit-test environments; instead
-it returns the payload metadata that a plugin host can forward.
+Integrates with Gemini via LangChain's ChatGoogleGenerativeAI wrapper
+so that KV-1 can issue live calls or dry-run payloads.
 """
 
 from __future__ import annotations
@@ -15,7 +12,15 @@ import os
 import time
 from typing import Any, Dict, Optional
 
-import requests
+try:
+    from langchain_core.messages import HumanMessage, SystemMessage
+except ImportError:  # pragma: no cover
+    from langchain.schema import HumanMessage, SystemMessage
+
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+DEFAULT_GEMINI_KEY = "AIzaSyCZxKH24ZN8zfSxdt444p2J4eUUymFhYZ4"
 
 
 class LLMBridge:
@@ -25,18 +30,19 @@ class LLMBridge:
         self,
         provider: str = "gemini",
         api_key: Optional[str] = None,
-        default_model: str = "gemini-1.5-flash-latest",
+        default_model: str = DEFAULT_GEMINI_MODEL,
+        *,
         max_retries: int = 3,
         backoff_seconds: float = 2.0,
-        session: Optional[requests.Session] = None,
     ):
         self.provider = provider
-        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY") or DEFAULT_GEMINI_KEY
         self.default_model = default_model
         self.max_retries = max_retries
         self.backoff_seconds = backoff_seconds
-        self.session = session or requests.Session()
         self.logger = logging.getLogger("kv1.llm")
+        self.client: Optional[ChatGoogleGenerativeAI] = None
+        self._build_client()
 
     def configure(
         self,
@@ -51,6 +57,7 @@ class LLMBridge:
             self.api_key = api_key
         if default_model:
             self.default_model = default_model
+        self._build_client()
 
     def is_configured(self) -> bool:
         return bool(self.api_key)
@@ -70,21 +77,27 @@ class LLMBridge:
         execute: bool = True,
     ) -> Dict[str, Any]:
         """Call the configured LLM (or just build payload if execute=False)."""
-        request = self._build_request(system_prompt, user_input)
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=user_input),
+        ]
         result: Dict[str, Any] = {
             "provider": self.provider,
-            "request": request,
+            "request": {
+                "model": self.default_model,
+                "messages": [msg.content for msg in messages],
+            },
             "executed": False,
             "response": None,
             "text": None,
         }
 
-        if execute and self.is_configured() and request:
+        if execute and self.is_configured() and self.client:
             try:
                 start = time.time()
-                data = self._execute_with_retry(request)
-                result["response"] = data
-                result["text"] = self._extract_text(data)
+                response = self._invoke_with_retry(messages)
+                result["response"] = {"content": response.content}
+                result["text"] = response.content
                 result["executed"] = True
                 elapsed = time.time() - start
                 self.logger.info(
@@ -108,60 +121,20 @@ class LLMBridge:
 
         return result
 
-    # ------------------------------------------------------------------ #
-    # Internal helpers
-    # ------------------------------------------------------------------ #
+    def _build_client(self):
+        if self.provider.lower() == "gemini" and self.api_key:
+            self.client = ChatGoogleGenerativeAI(
+                model=self.default_model,
+                google_api_key=self.api_key,
+            )
+        else:
+            self.client = None
 
-    def _build_request(self, system_prompt: str, user_input: str) -> Optional[Dict[str, Any]]:
-        if self.provider.lower() != "gemini":
-            return None
-        endpoint = (
-            "https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{self.default_model}:generateContent"
-        )
-        body = {
-            "contents": [
-                {
-                    "parts": [
-                        {"text": system_prompt},
-                        {"text": user_input},
-                    ]
-                }
-            ],
-        }
-        return {
-            "endpoint": endpoint,
-            "headers": {
-                "Content-Type": "application/json",
-                "x-goog-api-key": self.api_key or "",
-            },
-            "body": body,
-        }
-
-    def _extract_text(self, response: Dict[str, Any]) -> Optional[str]:
-        try:
-            candidates = response.get("candidates", [])
-            if not candidates:
-                return None
-            content = candidates[0].get("content", {})
-            parts = content.get("parts", [])
-            texts = [part.get("text", "") for part in parts if part.get("text")]
-            return "\n".join(texts) if texts else None
-        except Exception:
-            return None
-
-    def _execute_with_retry(self, request: Dict[str, Any]) -> Dict[str, Any]:
+    def _invoke_with_retry(self, messages):
         last_exc: Optional[Exception] = None
         for attempt in range(1, self.max_retries + 1):
             try:
-                resp = self.session.post(
-                    request["endpoint"],
-                    headers=request["headers"],
-                    json=request["body"],
-                    timeout=30,
-                )
-                resp.raise_for_status()
-                return resp.json()
+                return self.client.invoke(messages)
             except Exception as exc:
                 last_exc = exc
                 wait = self.backoff_seconds * attempt

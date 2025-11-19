@@ -99,6 +99,7 @@ KV-1 is not just another AI assistant app. It's an operating system where AI run
 ### 8. **Telemetry & Safe LLM Calls**
 - Structured event logging (`logs/events.jsonl`) captures surprise episodes, web research, transfers
 - Gemini client uses retry/backoff with full error telemetry; run in `execute=False` mode for dry runs
+- Default model: `gemini-2.5-flash` (with a built-in key for quick tests—override via `GEMINI_API_KEY` to use your own quota)
 
 ### 9. **Autonomy Scheduler + Curiosity Queue**
 - Background scheduler (`AutonomyScheduler`) can continuously run self-learning probes, curiosity research, nightly reflections, and genesis checks (`kv1.start_autonomy()`)
@@ -133,7 +134,7 @@ pip install -e .
 git clone https://github.com/PlanetDestroyyer/KV-1
 cd KV-1
 pip install -r requirements.txt
-# Optional: set your Gemini key (load_env() will read .env automatically)
+# KV-1 falls back to a built-in Gemini key, but you can override it for your account
 echo 'GEMINI_API_KEY="your-key"' > .env
 ```
 
@@ -150,7 +151,7 @@ from core import KV1Orchestrator
 kv1 = KV1Orchestrator(
     data_dir="./data",
     use_hsokv=True,
-    llm_api_key=None,               # load_env() pulls GEMINI_API_KEY from .env
+    llm_api_key=None,               # load_env() pulls GEMINI_API_KEY or uses built-in default
     genesis_mode=True,              # optional: enable alphanumeric genesis bootstrap
 )
 
@@ -168,9 +169,9 @@ kv1.add_trauma("missed deadline", pain_level=7.0, context="stayed up too late")
 prompt = kv1.get_system_prompt()
 print(prompt)
 
-# Build Gemini payload (forward this dict from your MCP / plugin host)
+# Build Gemini payload/execution result
 payload = kv1.generate_with_llm("What's my focus today?")
-print(payload["endpoint"])
+print(payload["request"])  # contains model + message stack
 
 # Trigger research / self learning
 kv1.research("basic algebra fundamentals")
@@ -323,9 +324,9 @@ def register_calendar_plugin(registry):
 kv1.register_mcp_plugin("calendar", register_calendar_plugin)
 print(kv1.call_mcp_connector("calendar.next_event"))
 
-# Build Gemini payload (forward request to Google APIs from host)
+# Build Gemini payload (messages + metadata)
 payload = kv1.generate_with_llm("Status update?")
-print(payload["endpoint"])
+print(payload["request"])
 
 # Genesis probe (if enabled)
 print(kv1.genesis.daily_probe())
