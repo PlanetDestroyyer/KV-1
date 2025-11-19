@@ -49,8 +49,8 @@ class KV1Orchestrator:
         Args:
             data_dir: Where to store persistent data
             use_hsokv: Whether to use HSOKV (False for testing without HSOKV installed)
-            llm_provider: LLM provider identifier (default: Gemini)
-            llm_api_key: API key for the configured provider (falls back to env)
+            llm_provider: LLM provider identifier (default: Ollama)
+            llm_api_key: Unused for Ollama but kept for API parity
             news_provider: Optional callable(topic) -> List[str] for MCP news connector
         """
         self.data_dir = data_dir
@@ -83,7 +83,7 @@ class KV1Orchestrator:
         # Initialize proactive monitoring
         self.monitor = ProactiveMonitor(self.user_manager, self.traumas)
 
-        # LLM plugin bridge (Gemini by default)
+        # LLM plugin bridge (Ollama by default)
         self.llm = LLMBridge(provider=llm_provider, api_key=llm_api_key)
 
         # MCP connectors

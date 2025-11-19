@@ -2,7 +2,7 @@
 Model Context Protocol connectors for KV-1.
 
 Provides a registry pattern that lets KV-1 expose rich, structured
-context to external LLM tooling (Gemini, MCP, etc). The registry ships
+context to external LLM tooling (Ollama, MCP, etc). The registry ships
 with default connectors (news, user snapshot, traumas, proactive alerts)
 and can be extended at runtime via plugins.
 """

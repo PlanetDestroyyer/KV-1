@@ -4,7 +4,7 @@ Goal: evolve KV-1 into a continuously running, self-learning agent. Work will be
 
 ## Stage 1 – Infrastructure & Safety
 1. **LLM Pipeline Hardening**
-   - Implement retry/backoff, logging, and quota handling for Gemini.
+   - Implement retry/backoff, logging, and quota handling for Ollama.
    - Add `execute=False` dry-run mode (already present) + ability to stub for tests.
 2. **Safe Web Research Layer**
    - Build a dedicated `WebResearcher` with domain allowlists, caching, rate-limits, robots.txt respect.
@@ -39,6 +39,6 @@ Goal: evolve KV-1 into a continuously running, self-learning agent. Work will be
 ---
 
 Next actionable work (Stage 1.1):
-- Add retryable Gemini client with error logging.
+- Add retryable Ollama client with error logging.
 - Introduce structured logging for `ThreeStageLearner` episodes.
 - Expose `kv1.log_event(...)` for telemetry.

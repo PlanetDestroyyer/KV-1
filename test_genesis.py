@@ -63,7 +63,7 @@ def test_genesis_bootstrap():
 
         print("Genesis bootstrap test started.")
         print("Agent baseline knowledge: digits 0-9 and letters a-z only.")
-        print("Simulated Gemini/web research loop engaged...")
+        print("Simulated Ollama/web research loop engaged...")
 
         for _ in range(7):
             genesis.daily_probe()
