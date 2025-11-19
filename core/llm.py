@@ -97,7 +97,13 @@ class LLMBridge:
             try:
                 start = time.time()
                 response = self._invoke_with_retry(messages)
-                text = response.get("message", {}).get("content") if isinstance(response, dict) else str(response)
+                # Extract text from Pydantic model or dict
+                if hasattr(response, 'message') and hasattr(response.message, 'content'):
+                    text = response.message.content
+                elif isinstance(response, dict):
+                    text = response.get("message", {}).get("content", "")
+                else:
+                    text = str(response)
                 result["response"] = response
                 result["text"] = text
                 result["executed"] = True

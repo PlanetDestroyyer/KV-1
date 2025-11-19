@@ -58,7 +58,9 @@ class EvaluationHarness:
             self._handle_failure(task, answer, score)
         else:
             self.orchestrator.log_event("eval_success", {"domain": task.domain})
-            self.orchestrator.curriculum.update_progress(task.domain, score)
+            # Update curriculum if available (Genesis mode doesn't have curriculum)
+            if hasattr(self.orchestrator, 'curriculum') and self.orchestrator.curriculum:
+                self.orchestrator.curriculum.update_progress(task.domain, score)
         return score
 
     def _score_answer(self, answer: str, keywords: List[str]) -> float:
