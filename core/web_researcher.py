@@ -59,12 +59,15 @@ class WebResearcher:
         return result
 
     def _scrape(self, query: str) -> str:
-        # Try multiple sources in order
+        # Try multiple free API sources in order (no API keys required)
         sources = [
             ("Wikipedia", self._wiki),
             ("Simple Wikipedia", self._simple_wiki),
+            ("Wikidata", self._wikidata),
+            ("StackExchange", self._stackexchange),
+            ("ArXiv", self._arxiv),
             ("Britannica", self._britannica),
-            ("Direct web search", self._web_search),
+            ("DuckDuckGo API", self._web_search),
         ]
 
         for source_name, source_func in sources:
@@ -304,6 +307,143 @@ class WebResearcher:
                     paragraphs.append(text)
 
             return "\n".join(paragraphs)[:5000]
+        except Exception:
+            pass
+
+        return ""
+
+    def _wikidata(self, query: str) -> str:
+        """Try Wikidata for structured knowledge."""
+        # Extract main concept
+        query_lower = query.lower().strip()
+
+        for prefix in ["what is a ", "what is an ", "what is the ", "what is ", "what are "]:
+            if query_lower.startswith(prefix):
+                query_lower = query_lower[len(prefix):]
+                break
+
+        for suffix in [" in language", " in mathematics", " in math", " in physics",
+                       " in algebra", " in calculus", " of thermodynamics",
+                       " thermodynamics", " algebra", " calculus", " mathematics"]:
+            if query_lower.endswith(suffix):
+                query_lower = query_lower[:-len(suffix)]
+                break
+
+        # Search Wikidata
+        try:
+            search_url = f"https://www.wikidata.org/w/api.php?action=wbsearchentities&search={requests.utils.quote(query_lower)}&language=en&format=json&limit=1"
+            resp = self.session.get(search_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+            if resp.ok:
+                data = resp.json()
+                results = data.get("search", [])
+
+                if results:
+                    entity = results[0]
+                    description = entity.get("description", "")
+                    label = entity.get("label", "")
+
+                    if description and len(description) > 20:
+                        # Get full description from entity
+                        entity_id = entity.get("id", "")
+                        if entity_id:
+                            entity_url = f"https://www.wikidata.org/w/api.php?action=wbgetentities&ids={entity_id}&languages=en&format=json"
+                            entity_resp = self.session.get(entity_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+                            if entity_resp.ok:
+                                entity_data = entity_resp.json()
+                                entities = entity_data.get("entities", {})
+
+                                if entity_id in entities:
+                                    claims = entities[entity_id].get("claims", {})
+                                    desc = entities[entity_id].get("descriptions", {}).get("en", {}).get("value", description)
+
+                                    # Build description from label + description
+                                    result = f"{label} is {desc}."
+
+                                    # Add instance of if available
+                                    if "P31" in claims:  # instance of
+                                        instance_claims = claims["P31"]
+                                        if instance_claims:
+                                            return result[:3000]
+
+                                    return result[:3000] if len(result) > 100 else ""
+        except Exception:
+            pass
+
+        return ""
+
+    def _stackexchange(self, query: str) -> str:
+        """Try StackExchange network for educational Q&A (Math, Physics, etc)."""
+        # Try multiple StackExchange sites relevant to learning
+        sites = ["math", "physics", "english", "chemistry", "biology"]
+
+        try:
+            # Search across sites
+            for site in sites:
+                search_url = f"https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&q={requests.utils.quote(query)}&site={site}"
+                resp = self.session.get(search_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+                if resp.ok:
+                    data = resp.json()
+                    items = data.get("items", [])
+
+                    if items:
+                        # Get the top answer
+                        question = items[0]
+                        question_id = question.get("question_id")
+
+                        if question.get("is_answered") and question_id:
+                            # Fetch the question with answers
+                            answer_url = f"https://api.stackexchange.com/2.3/questions/{question_id}/answers?order=desc&sort=votes&site={site}&filter=withbody"
+                            answer_resp = self.session.get(answer_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+                            if answer_resp.ok:
+                                answer_data = answer_resp.json()
+                                answers = answer_data.get("items", [])
+
+                                if answers:
+                                    # Get top voted answer body
+                                    body = answers[0].get("body", "")
+
+                                    # Strip HTML
+                                    soup = BeautifulSoup(body, "html.parser")
+                                    text = soup.get_text(strip=True, separator=" ")
+
+                                    if len(text) > 100:
+                                        return text[:3000]
+        except Exception:
+            pass
+
+        return ""
+
+    def _arxiv(self, query: str) -> str:
+        """Try ArXiv for scientific concepts (abstracts only)."""
+        try:
+            # ArXiv API search
+            search_url = f"http://export.arxiv.org/api/query?search_query=all:{requests.utils.quote(query)}&start=0&max_results=3"
+            resp = self.session.get(search_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+            if resp.ok:
+                # Parse XML response
+                from xml.etree import ElementTree as ET
+                root = ET.fromstring(resp.content)
+
+                # Find entries
+                namespace = {'atom': 'http://www.w3.org/2005/Atom'}
+                entries = root.findall('atom:entry', namespace)
+
+                if entries:
+                    abstracts = []
+                    for entry in entries[:2]:  # Top 2 papers
+                        abstract = entry.find('atom:summary', namespace)
+                        if abstract is not None and abstract.text:
+                            clean_abstract = abstract.text.strip().replace('\n', ' ')
+                            if len(clean_abstract) > 100:
+                                abstracts.append(clean_abstract)
+
+                    if abstracts:
+                        return " ".join(abstracts)[:3000]
         except Exception:
             pass
 
