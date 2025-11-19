@@ -103,7 +103,7 @@ CONCEPTS YOU'VE MASTERED: {', '.join(learned) if learned else 'None yet'}
 PHASE PROGRESS:
 """
         for phase_name, prog in progress.items():
-            bar = '�' * int(prog * 10) + '�' * (10 - int(prog * 10))
+            bar = '#' * int(prog * 10) + '-' * (10 - int(prog * 10))
             prompt += f"  {phase_name}: [{bar}] {prog*100:.0f}%\n"
 
         prompt += """
@@ -122,18 +122,18 @@ When asked to explain a concept, provide:
 
     async def learn_concept(self, concept: Concept) -> bool:
         """Learn a single concept through web research and LLM explanation."""
-        print(f"\n=� Learning: {concept.name}")
+        print(f"\n[L] Learning: {concept.name}")
         print(f"   Query: {concept.search_query}")
 
         # Web research
         research_result = self.web_researcher.fetch(concept.search_query, mode="scrape")
         if not research_result or not research_result.text:
-            print(f"   �  No web content found")
+            print(f"   [X]  No web content found")
             return False
 
         # Extract clean snippet
         snippet = research_result.text[:2000]  # First 2000 chars
-        print(f"    Retrieved {len(research_result.text)} chars from web")
+        print(f"   [i] Retrieved {len(research_result.text)} chars from web")
 
         # Feed to 3-stage learner as surprise
         self.three_stage.on_surprise(
@@ -157,20 +157,20 @@ Please explain what '{concept.name}' means in 2-3 clear sentences. Focus on the 
         explanation = response.get("text", "")
 
         if explanation:
-            print(f"   =� Explanation: {explanation[:200]}...")
+            print(f"   [i] Explanation: {explanation[:200]}...")
 
             # Verify understanding using keywords
             understood = self.curriculum.verify_concept(concept.name, explanation)
 
             if understood:
                 self.curriculum.mark_learned(concept.name)
-                print(f"    Concept mastered!")
+                print(f"   [OK] Concept mastered!")
 
                 # Store explanation in memory
                 self.memory.learn(concept.name, explanation[:500])
                 return True
             else:
-                print(f"   �  Understanding incomplete (missing key concepts)")
+                print(f"   [X]  Understanding incomplete (missing key concepts)")
                 return False
         else:
             print(f"   L Failed to generate explanation")
@@ -188,30 +188,30 @@ Please explain what '{concept.name}' means in 2-3 clear sentences. Focus on the 
         concept = self.curriculum.next_concept_to_learn()
 
         if not concept:
-            print("<� Curriculum complete!")
+            print("[OK] Curriculum complete!")
             return False  # No more concepts to learn
 
         # Learn the concept
         learned = await self.learn_concept(concept)
 
         # Trigger 3-stage learning processes
-        print(f"\n>� Processing working memory...")
+        print(f"\n[M] Processing working memory...")
         await self.three_stage._self_probe()
-        print(f"    STM: {len(self.three_stage.episodes)} active episodes")
+        print(f"   [i] STM: {len(self.three_stage.episodes)} active episodes")
 
         # Periodic consolidation
         if self.iteration_count % 5 == 0:
-            print(f"\n=� Consolidating memories...")
-            await self.three_stage._consolidate()
+            print(f"\n[Z] Consolidating memories...")
+            self.three_stage.sleep_replay()  # Correct method name
 
         # Show progress
-        print(f"\n=� Curriculum Progress:")
+        print(f"\n[#] Curriculum Progress:")
         summary = self.curriculum.summary()
         print(f"   Phase: {summary['current_phase']}")
         print(f"   Learned: {summary['learned_concepts']}/{summary['total_concepts']} concepts")
 
         for phase_name, prog in summary['progress'].items():
-            bar = '�' * int(prog * 20) + '�' * (20 - int(prog * 20))
+            bar = '#' * int(prog * 20) + '-' * (20 - int(prog * 20))
             print(f"   {phase_name:25} [{bar}] {prog*100:.0f}%")
 
         return True  # Continue learning
@@ -224,10 +224,10 @@ Please explain what '{concept.name}' means in 2-3 clear sentences. Focus on the 
 async def main_curriculum_experiment(iterations: int = 30):
     """Run curriculum-based learning experiment."""
     print("="*60)
-    print("<� CURRICULUM-BASED LEARNING EXPERIMENT")
+    print("[G] CURRICULUM-BASED LEARNING EXPERIMENT")
     print("="*60)
     print(f"Iterations: {iterations}")
-    print("Curriculum: Language � Numbers � Algebra � Calculus � Thermodynamics")
+    print("Curriculum: Language -> Numbers -> Algebra -> Calculus -> Thermodynamics")
     print("="*60)
 
     orchestrator = CurriculumOrchestrator()
@@ -236,7 +236,7 @@ async def main_curriculum_experiment(iterations: int = 30):
         should_continue = await orchestrator.learning_cycle()
 
         if not should_continue:
-            print("\n Curriculum complete!")
+            print("\n[OK] Curriculum complete!")
             break
 
         # Short delay between iterations
@@ -244,7 +244,7 @@ async def main_curriculum_experiment(iterations: int = 30):
 
     # Final summary
     print("\n" + "="*60)
-    print("=� FINAL SUMMARY")
+    print("[#] FINAL SUMMARY")
     print("="*60)
     summary = orchestrator.curriculum.summary()
     print(f"Learned Concepts: {summary['learned_concepts']}/{summary['total_concepts']}")
