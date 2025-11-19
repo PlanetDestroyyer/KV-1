@@ -29,23 +29,36 @@ True autonomous goal-driven learning - the AI discovers knowledge through need, 
 5. Repeat until success or max attempts
 ```
 
-### 2. Recursive Learning
+### 2. Goal-Aware Domain Detection
+
+The system automatically detects the goal's domain:
+- **Mathematics**: solve, equation, calculate, algebra, quadratic, etc.
+- **Science**: energy, force, physics, chemistry, atom, etc.
+- **Programming**: code, function, algorithm, data structure, etc.
+- **Language**: word, sentence, grammar, alphabet, etc.
+- **Literature**: book, novel, story, author, etc.
+
+This ensures focused learning - no plant biology when solving math equations!
+
+### 3. Recursive Learning with Relevance Filtering
 
 When learning a concept, the system:
 1. Checks if already in LTM (skip if known)
-2. Searches web for information
-3. Asks LLM to extract definition and prerequisites
-4. Recursively learns prerequisites first
-5. Stores in persistent LTM
+2. Validates concept is relevant to goal domain
+3. Searches web with domain-aware query ("mathematical root" vs "plant root")
+4. Asks LLM to extract definition and domain-specific prerequisites
+5. Filters prerequisites by relevance (skips cross-domain concepts)
+6. Recursively learns relevant prerequisites first
+7. Stores in persistent LTM
 
-### 3. Persistent Memory
+### 4. Persistent Memory
 
 - **Storage**: JSON file (`ltm_memory.json`)
 - **Load on startup**: Reuses previous knowledge
 - **Save after each concept**: Never forgets
 - **Accumulative**: Grows over time like human memory
 
-### 4. Learning Journal
+### 5. Learning Journal
 
 Tracks the discovery path:
 - What was learned
@@ -149,6 +162,68 @@ python run_self_discovery.py "What is escape velocity"
 python run_self_discovery.py "Explain why ice floats"
 python run_self_discovery.py "Calculate kinetic energy of 5kg object at 10m/s"
 ```
+
+## Goal-Aware Learning in Action
+
+### The Focus Problem (SOLVED)
+
+**Problem**: Without domain awareness, the system would learn 400+ irrelevant concepts:
+- Goal: "solve x^2 - 5x + 6 = 0"
+- System learns "roots of equation"
+- Wikipedia returns article about plant roots
+- Follows chain: roots(plant) → eukaryotes → cells → biology → chemistry → bonds(financial!) → interest rates → ...
+- Result: 420 concepts learned, including plant biology, finance, networking, music, philosophy
+- Outcome: FAILED to solve equation, exhausted web quota
+
+**Solution**: Goal-aware domain detection and relevance filtering
+
+### How It Works Now
+
+```bash
+$ python run_self_discovery.py "solve x^2 - 5x + 6 = 0"
+
+[i] Detected goal domain: mathematics
+[i] Goal keywords: solve, quadratic, equation
+
+[Attempt 1] Trying to achieve goal
+...
+MISSING: quadratic equation, roots, factoring
+
+[L] Discovering: quadratic equation
+    Query: mathematical quadratic equation  # Domain-aware!
+    [+] Retrieved content from Wikipedia (mathematics)
+    [i] Relevant prerequisites: equation, variable, polynomial
+
+[L] Discovering: roots
+    Query: mathematical root of equation  # Not "plant root"!
+    [+] Retrieved content from Math StackExchange
+    [i] Relevant prerequisites: equation, solution
+    [i] Filtered 3 irrelevant prerequisites  # Skipped plant biology!
+
+[OK] GOAL ACHIEVED!
+Learned: 8 relevant concepts (was 420 before!)
+```
+
+### Domain Detection Examples
+
+| Goal | Detected Domain | Keywords | Skips |
+|------|----------------|----------|-------|
+| "solve 2x + 5 = 15" | mathematics | solve, equation | plant biology, finance |
+| "explain photosynthesis" | science | photosynthesis | algebra, programming |
+| "write a for loop in Python" | programming | write, loop, python | literature, math |
+| "what is a noun" | language | noun | equations, variables |
+| "summarize Hamlet" | literature | summarize, hamlet | physics, chemistry |
+
+### Relevance Filtering
+
+**Mathematics domain** accepts:
+- equation, variable, algebra, solve, calculate, root (math), function (math)
+
+**Mathematics domain** rejects:
+- plant, eukaryote, photosynthesis (biology)
+- bond (finance), interest rate, investment (finance)
+- TCP/IP, network, protocol (networking)
+- drum, percussion, instrument (music)
 
 ## Advanced Usage
 
@@ -267,11 +342,13 @@ python -c "import json; print(json.dumps(json.load(open('ltm_memory.json')), ind
 
 ✅ **True autonomy** - Discovers what it needs to know
 ✅ **Goal-driven** - Learns with purpose
+✅ **Domain-aware** - Stays focused on goal domain, filters irrelevant concepts
 ✅ **Persistent memory** - Never forgets, builds over time
-✅ **Efficient** - Only learns what's needed
+✅ **Efficient** - Only learns what's needed and relevant
 ✅ **Natural emergence** - Discovers A-Z, 0-9 only if required
 ✅ **Learning history** - Shows journey like human civilization
 ✅ **Reusable knowledge** - Second goals use first goal's learning
+✅ **Smart search** - Context-aware queries prevent ambiguity ("mathematical root" not "plant root")
 
 ## Future Enhancements
 
