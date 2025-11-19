@@ -86,6 +86,16 @@ KV-1 is not just another AI assistant app. It's an operating system where AI run
 - Gemini-ready LLM bridge that outputs the HTTP payload you can forward to Google's API (or swap out for your own provider)
 - Configure with `GEMINI_API_KEY` or pass `llm_api_key` when constructing `KV1Orchestrator`
 
+### 6. **Three-Stage Self-Learning**
+- Biological loop (surprise episode → rehearsal → cortical transfer) implemented in `core/three_stage_learner.py`
+- Safe web scraping / wiki API fetching fuels surprise episodes
+- Nightly replay and async self-learning probes reinforce knowledge autonomously
+
+### 7. **Alphanumeric Genesis Mode**
+- Opt-in flag (`genesis_mode=True`) resets KV-1 to symbols-only knowledge
+- Daily probes target Algebra, Calculus, Thermodynamics mastery thresholds
+- Progress logged to `genesis_log.json`, gaps automatically trigger new research
+
 ---
 
 ## 📦 Installation
@@ -123,6 +133,7 @@ kv1 = KV1Orchestrator(
     data_dir="./data",
     use_hsokv=True,
     llm_api_key="YOUR_GEMINI_KEY",  # or set GEMINI_API_KEY env var
+    genesis_mode=True,              # optional: enable alphanumeric genesis bootstrap
 )
 
 # Learn something new
@@ -142,6 +153,10 @@ print(prompt)
 # Build Gemini payload (forward this dict from your MCP / plugin host)
 payload = kv1.generate_with_llm("What's my focus today?")
 print(payload["endpoint"])
+
+# Trigger research / self learning
+kv1.research("basic algebra fundamentals")
+kv1.self_learning_tick()
 ```
 
 ### Android Integration
@@ -287,6 +302,9 @@ print(kv1.call_mcp_connector("calendar.next_event"))
 # Build Gemini payload (forward request to Google APIs from host)
 payload = kv1.generate_with_llm("Status update?")
 print(payload["endpoint"])
+
+# Genesis probe (if enabled)
+print(kv1.genesis.daily_probe())
 ```
 
 ---
@@ -370,6 +388,7 @@ KV-1 saves all state to disk:
 - [ ] Focus mode with app whitelist
 - [ ] Nightly self-reflection (3 AM cron)
 - [ ] Habit-pattern miner that auto-creates routines (e.g., learns recurring Monday alarms and sets them proactively)
+- [ ] Deeper alphanumeric genesis curriculum with physics simulators
 
 ### 🚧 Habit Pattern Miner (Planned)
 - Capture every intent/app event as structured data
@@ -414,3 +433,6 @@ KV-1 isn't an app you open. It's a presence that's always there.
 ---
 
 **Built with 🧠 by [PlanetDestroyyer](https://github.com/PlanetDestroyyer)**
+- `core/three_stage_learner.py` - surprise episodes, rehearsal, cortical transfer, self-learning loop, safe web scraping
+- `core/genesis_mode.py` - alphanumeric bootstrap controller with daily probes and logging
+- `test_genesis.py` - regression test simulating 7-day genesis run (`python test_genesis.py`)

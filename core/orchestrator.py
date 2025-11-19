@@ -14,12 +14,15 @@ import os
 import pickle
 from datetime import datetime
 from typing import Callable, List, Optional
+import asyncio
 
 from .trauma import TraumaSystem
 from .user_profile import UserProfileManager
 from .proactive_monitor import ProactiveMonitor
 from .mcp import MCPRegistry
 from .llm import LLMBridge
+from .three_stage_learner import ThreeStageLearner
+from .genesis_mode import GenesisController
 
 
 class KV1Orchestrator:
@@ -33,6 +36,7 @@ class KV1Orchestrator:
         llm_provider: str = "gemini",
         llm_api_key: Optional[str] = None,
         news_provider: Optional[Callable[[str], List[str]]] = None,
+        genesis_mode: bool = False,
     ):
         """
         Initialize KV-1
@@ -76,6 +80,10 @@ class KV1Orchestrator:
 
         # MCP connectors
         self.mcp = MCPRegistry(self, news_provider=news_provider)
+
+        # Three-stage learner + genesis controller
+        self.three_stage = ThreeStageLearner(self)
+        self.genesis = GenesisController(self, enabled=genesis_mode)
 
         # Track app usage
         self.app_usage = {}  # package_name -> usage_count
@@ -127,12 +135,23 @@ YOUR CAPABILITIES:
         if user.github_checks_last_hour > 3:
             prompt += f"\nCONTEXT: User checked GitHub {user.github_checks_last_hour} times in last hour"
 
+        if self.genesis.enabled:
+            prompt += "\n\nGENESIS MODE: Bootstrap intelligence from alphanumerics. Benchmarked on Algebra/Calculus/Thermo."
+
+        prompt += "\n\nSELF-LEARNING DIRECTIVE:\n- Run three-stage loop (surprise → rehearsal → cortical transfer)\n- Autonomously research gaps using safe web scraping"
+
+        if self.three_stage.episodes:
+            prompt += "\nACTIVE SURPRISE EPISODES:"
+            for ep in list(self.three_stage.episodes.values())[:3]:
+                prompt += f"\n- {ep.to_prompt_snippet()}"
+
         return prompt
 
     def learn(self, query: str, answer: str) -> None:
         """Learn a new memory (zero catastrophic forgetting)"""
         if self.memory:
             self.memory.learn(query, answer)
+        self.three_stage.on_usage(query)
         self.save()
 
     def recall(self, query: str) -> Optional[str]:
@@ -214,9 +233,26 @@ YOUR CAPABILITIES:
         # Reset hourly counters
         self.user_manager.profile.reset_github_checks()
 
+        # Rehearse STM + genesis probes
+        self.three_stage.sleep_replay()
+        if self.genesis.should_trigger_learning():
+            self.genesis.daily_probe()
+
         self.save()
 
         return "\n".join(insights) if insights else "No significant patterns today"
+
+    # ------------------------------------------------------------------ #
+    # Self-learning utilities
+    # ------------------------------------------------------------------ #
+
+    def research(self, query: str, mode: str = "scrape"):
+        """Expose safe surfing hook."""
+        return asyncio.run(self.three_stage.surf_and_learn(query, mode=mode))
+
+    def self_learning_tick(self):
+        """Manual trigger for self-learning probe."""
+        return asyncio.run(self.three_stage._self_probe())
 
     # ------------------------------------------------------------------ #
     # MCP / Plugin utilities
