@@ -12,12 +12,29 @@ from typing import Optional
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+# Add hsokv to path
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hsokv'))
 
 from core.learning_curriculum import LearningCurriculum, Concept
 from core.llm import LLMBridge
 from core.three_stage_learner import ThreeStageLearner
-from core.hsokv_memory import HSOKVMemory
 from core.web_researcher import WebResearcher
+
+try:
+    from hsokv import DualMemorySystem, SentenceBERTEmbedder
+    HSOKV_AVAILABLE = True
+except ImportError:
+    HSOKV_AVAILABLE = False
+    print("[Warning] HSOKV not available. Install with: cd hsokv && pip install -e .")
+    # Create simple mock memory for basic functionality
+    class MockMemory:
+        def __init__(self, **kwargs):
+            self.stm = []
+            self.ltm = []
+        def learn(self, word: str, definition: str, **kwargs):
+            self.ltm.append((word, definition))
+    DualMemorySystem = MockMemory
+    SentenceBERTEmbedder = None
 
 
 class CurriculumOrchestrator:
@@ -33,23 +50,30 @@ class CurriculumOrchestrator:
         # Initialize LLM
         self.llm = LLMBridge(provider="ollama", default_model="gemma3:4b")
 
-        # Initialize memory
-        self.memory = HSOKVMemory(
-            vocab_file=os.path.join(data_dir, "vocab.txt"),
-            stm_capacity=7,
+        # Initialize memory with HSOKV
+        if HSOKV_AVAILABLE and SentenceBERTEmbedder:
+            embedder = SentenceBERTEmbedder()
+            self.memory = DualMemorySystem(
+                embedder=embedder,
+                stm_capacity=7,  # Miller's magic number
+                stm_decay_seconds=30.0
+            )
+            print("[+] HSOKV memory initialized (STM: 7, LTM: 0)")
+        else:
+            # Use mock memory
+            self.memory = DualMemorySystem()
+            print("[!] Using mock memory (HSOKV not available)")
+
+        # Initialize web researcher (before three_stage needs it)
+        self.web_researcher = WebResearcher(
+            cache_dir=os.path.join(data_dir, "web_cache"),
+            daily_cap=50,  # Allow more requests for curriculum learning
         )
 
         # Initialize three-stage learner
         self.three_stage = ThreeStageLearner(
-            orchestrator=self,
-            memory=self.memory,
-            data_dir=data_dir,
-        )
-
-        # Initialize web researcher
-        self.web_researcher = WebResearcher(
-            cache_dir=os.path.join(data_dir, "web_cache"),
-            daily_cap=50,  # Allow more requests for curriculum learning
+            self,
+            researcher=self.web_researcher
         )
 
         self.iteration_count = 0
