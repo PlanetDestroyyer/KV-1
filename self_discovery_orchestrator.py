@@ -135,6 +135,145 @@ class SelfDiscoveryOrchestrator:
         self.current_depth = 0
         self.attempts = 0
 
+        # Detect goal domain for focused learning
+        self.goal_domain = self._detect_goal_domain(goal)
+        self.goal_keywords = self._extract_goal_keywords(goal)
+        print(f"[i] Detected goal domain: {self.goal_domain}")
+        print(f"[i] Goal keywords: {', '.join(self.goal_keywords)}")
+
+    def _detect_goal_domain(self, goal: str) -> str:
+        """Detect the domain of the goal for focused learning."""
+        goal_lower = goal.lower()
+
+        # Domain indicators
+        math_indicators = [
+            "solve", "equation", "calculate", "add", "subtract", "multiply", "divide",
+            "algebra", "calculus", "geometry", "trigonometry", "quadratic", "polynomial",
+            "derivative", "integral", "matrix", "vector", "function", "graph",
+            "x =", "y =", "2x", "3x", "squared", "cubed", "pi", "area", "volume",
+            "radius", "diameter", "perimeter", "percentage", "ratio", "fraction"
+        ]
+
+        science_indicators = [
+            "energy", "force", "mass", "velocity", "acceleration", "thermodynamics",
+            "physics", "chemistry", "biology", "atom", "molecule", "electron",
+            "gravity", "motion", "temperature", "pressure", "density", "element",
+            "compound", "reaction", "cell", "organism", "photosynthesis", "evolution"
+        ]
+
+        programming_indicators = [
+            "code", "function", "variable", "loop", "array", "class", "object",
+            "algorithm", "data structure", "programming", "python", "javascript",
+            "api", "database", "debug", "compile", "execute"
+        ]
+
+        language_indicators = [
+            "word", "sentence", "paragraph", "grammar", "spell", "write",
+            "noun", "verb", "adjective", "subject", "predicate", "alphabet",
+            "letter", "definition", "meaning", "synonym", "antonym"
+        ]
+
+        literature_indicators = [
+            "book", "novel", "story", "poem", "author", "character", "plot",
+            "theme", "literature", "reading", "writing", "shakespeare"
+        ]
+
+        # Count matches
+        math_score = sum(1 for indicator in math_indicators if indicator in goal_lower)
+        science_score = sum(1 for indicator in science_indicators if indicator in goal_lower)
+        programming_score = sum(1 for indicator in programming_indicators if indicator in goal_lower)
+        language_score = sum(1 for indicator in language_indicators if indicator in goal_lower)
+        literature_score = sum(1 for indicator in literature_indicators if indicator in goal_lower)
+
+        # Determine domain
+        scores = {
+            "mathematics": math_score,
+            "science": science_score,
+            "programming": programming_score,
+            "language": language_score,
+            "literature": literature_score
+        }
+
+        max_score = max(scores.values())
+        if max_score == 0:
+            return "general"
+
+        return max(scores, key=scores.get)
+
+    def _extract_goal_keywords(self, goal: str) -> List[str]:
+        """Extract important keywords from the goal."""
+        # Remove common words
+        stop_words = {"a", "an", "the", "is", "are", "was", "were", "what", "how", "why", "when", "where"}
+
+        words = goal.lower().split()
+        keywords = [w.strip("?.,!") for w in words if w.strip("?.,!") not in stop_words and len(w) > 2]
+
+        return keywords[:5]  # Top 5 keywords
+
+    def _is_relevant_to_goal(self, concept: str) -> bool:
+        """Check if a concept is relevant to the goal domain."""
+        concept_lower = concept.lower()
+
+        # Domain-specific concept patterns
+        domain_patterns = {
+            "mathematics": [
+                "equation", "algebra", "number", "digit", "calculate", "solve",
+                "add", "subtract", "multiply", "divide", "variable", "coefficient",
+                "quadratic", "polynomial", "factor", "root", "solution", "formula",
+                "arithmetic", "operation", "mathematical", "numeric", "quantity"
+            ],
+            "science": [
+                "energy", "force", "mass", "atom", "molecule", "element",
+                "physics", "chemistry", "biology", "reaction", "compound",
+                "temperature", "pressure", "density", "motion", "velocity"
+            ],
+            "programming": [
+                "code", "function", "variable", "loop", "array", "algorithm",
+                "data", "program", "software", "computer", "syntax"
+            ],
+            "language": [
+                "word", "letter", "sentence", "grammar", "noun", "verb",
+                "alphabet", "linguistic", "language", "writing", "reading"
+            ],
+            "literature": [
+                "book", "novel", "story", "author", "character", "literature",
+                "poem", "writing", "reading"
+            ]
+        }
+
+        # Check if concept contains domain-specific keywords
+        if self.goal_domain in domain_patterns:
+            patterns = domain_patterns[self.goal_domain]
+            for pattern in patterns:
+                if pattern in concept_lower:
+                    return True
+
+        # Check if concept relates to goal keywords
+        for keyword in self.goal_keywords:
+            if keyword in concept_lower:
+                return True
+
+        # Exclude concepts from irrelevant domains
+        irrelevant_patterns = {
+            "mathematics": ["plant", "animal", "cell", "organism", "photosynthesis", "eukaryote",
+                           "bond (finance)", "interest rate", "investment", "cash flow",
+                           "tcp/ip", "network", "protocol", "domain name",
+                           "drum", "music", "percussion", "instrument"],
+            "science": ["novel", "story", "character", "literature"],
+            "programming": ["photosynthesis", "cell", "organism"],
+            "language": ["equation", "solve", "calculate"],
+            "literature": ["equation", "solve", "physics"]
+        }
+
+        if self.goal_domain in irrelevant_patterns:
+            patterns = irrelevant_patterns[self.goal_domain]
+            for pattern in patterns:
+                if pattern in concept_lower:
+                    return False
+
+        # General domain check
+        return self.goal_domain == "general"
+
     def _get_knowledge_summary(self) -> str:
         """Generate summary of current knowledge for LLM context."""
         if not self.ltm.knowledge:
@@ -247,6 +386,59 @@ REASONING: [brief explanation]"""
 
         return True
 
+    def _build_search_query(self, concept: str) -> str:
+        """Build a domain-aware search query for a concept."""
+        # Add domain context to queries to avoid ambiguity
+        domain_prefixes = {
+            "mathematics": "mathematical",
+            "science": "scientific",
+            "programming": "programming",
+            "language": "linguistic",
+            "literature": "literary"
+        }
+
+        # Special handling for ambiguous terms
+        ambiguous_terms = {
+            "root": {
+                "mathematics": "mathematical root of equation",
+                "science": "root in biology",
+                "general": "root definition"
+            },
+            "variable": {
+                "mathematics": "mathematical variable in algebra",
+                "programming": "programming variable",
+                "science": "variable in science",
+                "general": "variable definition"
+            },
+            "function": {
+                "mathematics": "mathematical function",
+                "programming": "programming function",
+                "general": "function definition"
+            },
+            "cell": {
+                "mathematics": "cell in mathematics",
+                "science": "biological cell",
+                "programming": "cell in data structures",
+                "general": "cell definition"
+            }
+        }
+
+        concept_lower = concept.lower()
+
+        # Check if concept is ambiguous
+        for term, domain_queries in ambiguous_terms.items():
+            if term in concept_lower:
+                if self.goal_domain in domain_queries:
+                    return domain_queries[self.goal_domain]
+                return domain_queries["general"]
+
+        # Add domain prefix for general queries
+        if self.goal_domain in domain_prefixes and self.goal_domain != "general":
+            prefix = domain_prefixes[self.goal_domain]
+            return f"{prefix} {concept}"
+
+        return f"what is {concept}"
+
     async def discover_concept(self, concept: str, needed_for: str) -> bool:
         """
         Autonomously discover and learn a concept.
@@ -255,6 +447,11 @@ REASONING: [brief explanation]"""
         # Validate concept first
         if not self._is_valid_concept(concept):
             print(f"[!] Skipping invalid concept: {concept}")
+            return False
+
+        # Check relevance to goal domain
+        if not self._is_relevant_to_goal(concept):
+            print(f"[!] Skipping irrelevant concept: {concept} (not related to {self.goal_domain})")
             return False
 
         self.current_depth += 1
@@ -287,9 +484,10 @@ REASONING: [brief explanation]"""
             self.current_depth -= 1
             return True
 
-        # Search web for concept
+        # Search web for concept with domain context
         print(f"{indent}    [i] Searching web...")
-        search_query = f"what is {concept}"
+        search_query = self._build_search_query(concept)
+        print(f"{indent}    [i] Query: {search_query}")
         result = self.web_researcher.fetch(search_query, mode="scrape")
 
         if not result or not result.text:
@@ -301,27 +499,32 @@ REASONING: [brief explanation]"""
         print(f"{indent}    [+] Retrieved {len(result.text)} chars from web")
 
         # Ask LLM to understand and explain
-        understanding_prompt = f"""Based on this information about '{concept}':
+        domain_context = f" in {self.goal_domain}" if self.goal_domain != "general" else ""
+        understanding_prompt = f"""Based on this information about '{concept}'{domain_context}:
 
 {web_content}
 
+CONTEXT: This concept is needed for the goal: "{self.goal}" (domain: {self.goal_domain})
+
 Please provide:
-1. A concise definition (1-2 sentences)
-2. What concrete prerequisite concepts are needed
+1. A concise definition (1-2 sentences) focusing on the {self.goal_domain} perspective
+2. What concrete prerequisite concepts are needed in {self.goal_domain}
 
 Format:
 DEFINITION: [your definition]
 PREREQUISITES: [comma-separated list of concrete concepts, or "none"]
 
 IMPORTANT:
+- Only list prerequisites relevant to {self.goal_domain}
 - Only list actual concepts (like "addition", "variables", "numbers")
 - Do NOT include meta-concepts like "basic understanding" or "familiarity"
 - Do NOT include explanations or parenthetical notes
 - Keep each prerequisite to 1-3 words maximum
+- Focus ONLY on {self.goal_domain} prerequisites, ignore other domains
 """
 
         response = self.llm.generate(
-            system_prompt="You are learning a new concept. Extract the key definition and identify only concrete prerequisite concepts, not meta-descriptions.",
+            system_prompt=f"You are learning a new concept in {self.goal_domain}. Extract the key definition and identify only concrete prerequisite concepts related to {self.goal_domain}, not meta-descriptions or concepts from other domains.",
             user_input=understanding_prompt
         )
 
@@ -339,8 +542,11 @@ IMPORTANT:
                 if prereq_str.lower() not in ["none", "n/a", ""]:
                     # Split and clean prerequisites
                     raw_prereqs = [p.strip() for p in prereq_str.split(",")]
-                    # Filter out invalid concepts
-                    prerequisites = [p for p in raw_prereqs if self._is_valid_concept(p)]
+                    # Filter out invalid concepts AND irrelevant ones
+                    prerequisites = [
+                        p for p in raw_prereqs
+                        if self._is_valid_concept(p) and self._is_relevant_to_goal(p)
+                    ]
 
         if not definition:
             # Fallback: use first substantial line
@@ -350,9 +556,16 @@ IMPORTANT:
 
         # Recursively learn prerequisites
         if prerequisites:
-            # Show only valid prerequisites
-            valid_prereqs = prerequisites[:3]  # Limit to top 3
-            print(f"{indent}    [i] Prerequisites: {', '.join(valid_prereqs)}")
+            # Limit to top 3 relevant prerequisites
+            valid_prereqs = prerequisites[:3]
+            print(f"{indent}    [i] Relevant prerequisites: {', '.join(valid_prereqs)}")
+
+            # Show if any were filtered
+            total_before = len([p.strip() for p in text.split("PREREQUISITES:")[-1].split(",") if p.strip()]) if "PREREQUISITES:" in text else 0
+            filtered_count = total_before - len(prerequisites)
+            if filtered_count > 0:
+                print(f"{indent}    [i] Filtered {filtered_count} irrelevant prerequisites")
+
             for prereq in valid_prereqs:
                 if not self.ltm.has(prereq):
                     await self.discover_concept(prereq, needed_for=concept)
