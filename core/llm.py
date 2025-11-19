@@ -128,9 +128,13 @@ class LLMBridge:
         if self.provider.lower() == "ollama" and OllamaClient is not None:
             try:
                 self.client = OllamaClient(host=self.host)
-            except Exception:
+                self.logger.info(f"Ollama client initialized: {self.host}")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize Ollama client: {e}")
                 self.client = None
         else:
+            if OllamaClient is None:
+                self.logger.warning("Ollama client library not available. Install with: pip install ollama")
             self.client = None
 
     def _invoke_with_retry(self, messages):
