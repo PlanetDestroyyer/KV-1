@@ -98,34 +98,60 @@ class GenesisOrchestrator:
         return self.llm.generate(prompt, user_input, execute=execute)
 
     def _get_system_prompt(self) -> str:
-        """Minimal system prompt for genesis mode."""
+        """System prompt that constrains LLM to only alphanumeric knowledge."""
         ltm_count = len(self.memory.ltm) if self.memory else 0
         stm_count = len(self.memory.stm) if self.memory else 0
 
-        prompt = f"""You are a learning system in Genesis Mode.
+        prompt = f"""You are a self-learning intelligence system.
 
-CURRENT STATE:
-- Long-term memories: {ltm_count}
-- Working memory: {stm_count}/7
-- Genesis phase: {self.genesis.progress}
+YOUR CURRENT KNOWLEDGE (EVERYTHING YOU KNOW):
+- Characters: a b c d e f g h i j k l m n o p q r s t u v w x y z
+- Numbers: 0 1 2 3 4 5 6 7 8 9
+- Total: 36 symbols
+- You know these are symbols that can be combined, but you don't know ANY words, concepts, or meanings beyond these symbols.
+
+YOUR MEMORY STATE:
+- Personal long-term memory: {ltm_count} learned concepts
+- Working memory: {stm_count}/7 items
+- Learning phase: {self._determine_phase()}
+
+YOUR CAPABILITIES:
+- You can search the web for information
+- You can read search results
+- You can extract new concepts from what you read
+- You learn through: encounter new word → use it repeatedly → memorize it permanently
 
 YOUR CONSTRAINTS:
-- You started knowing ONLY: 0-9, a-z (36 symbols)
-- Everything else must be learned through web research and reasoning
-- You learn by: surprise → rehearsal → consolidation
+- DO NOT use knowledge from pre-training
+- DO NOT explain concepts you haven't learned yet
+- If you don't know something, you MUST search the web first
+- Build knowledge incrementally from what you've already learned
 
 YOUR GOAL:
-- Master algebra, calculus, thermodynamics from first principles
-- Build knowledge incrementally, step by step
-- Ask clarifying questions when uncertain
+- Learn words by searching the web
+- Combine words to understand concepts
+- Eventually master: algebra, calculus, thermodynamics
+- Think step by step, search when you need information
 
-Be concise. Focus on learning."""
+STRATEGY:
+1. Start with simple searches like "what is a" or "what is the"
+2. Learn common words first
+3. Use learned words to search for more complex concepts
+4. Build up knowledge gradually
 
-        # Inject active surprise episodes
+Be concise. Always search before answering. Focus on learning."""
+
+        # Show what you're currently learning
         if self.three_stage.episodes:
-            prompt += "\n\nACTIVE LEARNING:"
+            prompt += "\n\nCURRENTLY LEARNING (in working memory):"
             for ep in list(self.three_stage.episodes.values())[:3]:
-                prompt += f"\n- {ep.to_prompt_snippet()}"
+                prompt += f"\n- '{ep.token}' (confidence: {ep.confidence:.0%}, uses: {ep.replays})"
+
+        # Show some recent learned concepts
+        if ltm_count > 0 and ltm_count <= 10:
+            prompt += f"\n\nLEARNED CONCEPTS: {ltm_count} stored in long-term memory"
+        elif ltm_count > 10:
+            prompt += f"\n\nLEARNED CONCEPTS: {ltm_count} stored (building knowledge base...)"
 
         return prompt
 
@@ -180,49 +206,101 @@ Be concise. Focus on learning."""
             return "mastery"
 
     async def autonomous_learning_cycle(self):
-        """One autonomous learning iteration."""
+        """One autonomous learning iteration - self-directed discovery."""
         self.iteration_count += 1
 
-        print(f"\n[Iteration {self.iteration_count}] Starting learning cycle...")
+        print(f"\n{'='*60}")
+        print(f"[Iteration {self.iteration_count}] Self-Learning Cycle")
+        print(f"{'='*60}")
 
-        # 1. Self-probe STM for low-confidence items
+        # 1. Ask the LLM what it should learn next (self-directed)
+        if self.iteration_count % 3 == 1:  # Every 3 iterations
+            print(f"🤔 Deciding what to learn next...")
+            ltm_count = len(self.memory.ltm) if self.memory else 0
+
+            if ltm_count < 50:
+                prompt = "You know only a-z and 0-9. What basic concepts should you learn first? Suggest 1-2 simple searches."
+            elif ltm_count < 200:
+                prompt = "What fundamental concepts do you need to build toward understanding mathematics?"
+            else:
+                prompt = "What should you learn next to progress toward algebra and calculus mastery?"
+
+            response = self.generate_with_llm(prompt)
+            decision = response.get("text", "")
+            print(f"💡 Decision: {decision[:200]}...")
+
+            # Extract search queries from decision
+            if decision:
+                # Trigger a web search based on decision
+                search_terms = decision.lower().split()[:5]  # First few words
+                if len(search_terms) > 0:
+                    query = " ".join(search_terms)
+                    print(f"🔍 Searching based on decision: '{query}'")
+                    await self.three_stage.surf_and_learn(query, mode="scrape")
+
+        # 2. Self-probe STM for low-confidence items
+        print(f"🧠 Reviewing working memory...")
         await self.three_stage._self_probe()
-        print(f"  ✓ Self-probe complete (STM: {len(self.three_stage.episodes)})")
+        print(f"  ✓ Working memory: {len(self.three_stage.episodes)} active concepts")
 
-        # 2. Research next curiosity item
+        # 3. Research next curiosity item from queue
         curiosity = self.three_stage.next_curiosity_query()
         if curiosity:
-            print(f"  🔍 Researching: {curiosity['query']}")
+            print(f"🔍 Researching curiosity: '{curiosity['query']}'")
             await self.three_stage.surf_and_learn(curiosity['query'], mode="scrape")
 
-        # 3. Probe genesis domains
+        # 4. Show what was just learned
+        if self.three_stage.episodes:
+            print(f"\n📚 Currently Learning:")
+            for ep in list(self.three_stage.episodes.values())[:5]:
+                print(f"  - '{ep.token}' (conf: {ep.confidence:.0%}, uses: {ep.replays}/4)")
+
+        # 5. Probe genesis domains periodically
         if self.genesis.should_trigger_learning():
-            print(f"  📊 Running domain evaluation...")
+            print(f"\n📊 Evaluating domain knowledge...")
             results = self.genesis.daily_probe()
-            print(f"  📈 Scores: {results}")
+            for domain, score in results.items():
+                print(f"  {domain}: {score*100:.1f}%")
 
-        # 4. Run evaluation cycle
+        # 6. Run comprehensive evaluation
         if self.iteration_count % 5 == 0:  # Every 5 iterations
-            print(f"  🎯 Evaluation cycle...")
+            print(f"\n🎯 Running evaluation tasks...")
             scores = self.evaluator.run_cycle()
-            print(f"  📊 Eval: {scores}")
+            for domain, score in scores.items():
+                status = "✅" if score >= 0.8 else "📈"
+                print(f"  {status} {domain}: {score*100:.1f}%")
 
-        # 5. Periodic consolidation (like sleep)
+        # 7. Periodic consolidation (like sleep)
         if self.iteration_count % 10 == 0:  # Every 10 iterations
-            print(f"  💤 Consolidating memories...")
+            print(f"\n💤 Consolidating memories (sleep cycle)...")
             self.three_stage.sleep_replay()
             if self.memory:
+                before_ltm = len(self.memory.ltm)
                 self.memory.sleep()  # Consolidate STM → LTM
+                after_ltm = len(self.memory.ltm)
+                transferred = after_ltm - before_ltm
+                if transferred > 0:
+                    print(f"  ✓ Transferred {transferred} concepts to long-term memory")
 
-        # 6. Daily snapshot
+        # 8. Daily snapshot
         if self.iteration_count % 20 == 0:  # Every 20 iterations (~1 hour at 3min/iter)
             snapshot = self.log_daily_snapshot()
-            print(f"\n📸 Daily Snapshot:")
-            print(f"   Phase: {snapshot['genesis_phase']}")
-            print(f"   LTM size: {snapshot['ltm_size']}")
-            print(f"   Surprises: {snapshot['total_surprises']}")
-            print(f"   Transfers: {snapshot['total_transfers']}")
-            print(f"   Progress: {snapshot['genesis_progress']}")
+            print(f"\n{'='*60}")
+            print(f"📸 HOURLY SNAPSHOT")
+            print(f"{'='*60}")
+            print(f"⏱️  Hours elapsed: {snapshot['hours_elapsed']:.1f}")
+            print(f"🧠 Phase: {snapshot['genesis_phase'].upper()}")
+            print(f"📚 LTM size: {snapshot['ltm_size']} learned concepts")
+            print(f"🔄 STM size: {snapshot['stm_size']}/7")
+            print(f"⚡ Total surprises: {snapshot['total_surprises']}")
+            print(f"✅ Total transfers: {snapshot['total_transfers']}")
+            print(f"🌐 Web requests today: {snapshot['web_requests_today']}")
+            print(f"\n🎯 Domain Progress:")
+            for domain, score in snapshot['genesis_progress'].items():
+                bar_length = int(score * 20)
+                bar = "█" * bar_length + "░" * (20 - bar_length)
+                print(f"  {domain:15s} [{bar}] {score*100:.1f}%")
+            print(f"{'='*60}")
 
     async def run_genesis_experiment(self, iterations: int = 1000, interval_seconds: int = 180):
         """
