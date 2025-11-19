@@ -315,16 +315,22 @@ GOAL: {self.goal}
 INSTRUCTIONS:
 1. Try to achieve the goal using ONLY the concepts you know
 2. If you can complete it, provide the answer
-3. If you cannot, identify EXACTLY what concepts you don't understand
+3. If you cannot, identify EXACTLY and SPECIFICALLY what concepts or RULES you don't understand
+
+IMPORTANT - Be SPECIFIC about what's missing:
+- If you know WHAT something is but not HOW to calculate it, say "how to calculate [X]" or "[X] rule"
+- Example: Instead of "derivatives", say "power rule for derivatives" or "how to differentiate polynomials"
+- Example: Instead of "integration", say "integration by parts" or "fundamental theorem of calculus"
+- Focus on the SPECIFIC PROCEDURES, FORMULAS, or RULES you need
 
 Respond in this format:
 SUCCESS: [yes/no]
 ANSWER: [your answer if successful, or "cannot complete" if not]
-MISSING: [comma-separated list of concepts you need to learn, or "none" if successful]
-REASONING: [brief explanation]"""
+MISSING: [comma-separated list of SPECIFIC concepts/rules you need to learn, or "none" if successful]
+REASONING: [brief explanation of what specific knowledge gap prevents you from solving this]"""
 
         response = self.llm.generate(
-            system_prompt="You are a self-learning AI that honestly assesses what you know and don't know.",
+            system_prompt="You are a self-learning AI that honestly assesses what you know and don't know. When identifying missing knowledge, be VERY SPECIFIC about what procedures, formulas, or rules you need - not just general concepts.",
             user_input=prompt
         )
 
@@ -649,19 +655,34 @@ IMPORTANT:
 
         return False
 
-    async def pursue_goal(self, max_attempts: int = 10) -> bool:
+    async def pursue_goal(self, max_attempts: int = None) -> bool:
         """
         Autonomously pursue the goal through self-discovery.
         Returns True if goal achieved.
+
+        Args:
+            max_attempts: Maximum attempts before giving up (None = unlimited)
         """
         print("\n" + "="*60)
         print("[G] SELF-DISCOVERY LEARNING")
         print("="*60)
         print(f"Goal: {self.goal}")
         print(f"Starting LTM size: {len(self.ltm.knowledge)} concepts")
+        if max_attempts:
+            print(f"Max attempts: {max_attempts}")
+        else:
+            print("Max attempts: UNLIMITED (will run until success)")
         print("="*60)
 
-        for attempt_num in range(max_attempts):
+        attempt_num = 0
+        while True:
+            attempt_num += 1
+
+            # Check if we've hit max attempts
+            if max_attempts and attempt_num > max_attempts:
+                print("\n[X] Max attempts reached without achieving goal")
+                return False
+
             # Attempt goal
             attempt = await self.attempt_goal()
 
@@ -690,9 +711,6 @@ IMPORTANT:
 
             # Brief delay before retry
             await asyncio.sleep(1)
-
-        print("\n[X] Max attempts reached without achieving goal")
-        return False
 
     def print_learning_journal(self):
         """Print the learning journey."""
@@ -723,14 +741,20 @@ IMPORTANT:
         print("="*60)
 
 
-async def main_self_discovery(goal: str, ltm_path: str = "./ltm_memory.json"):
-    """Run self-discovery learning experiment."""
+async def main_self_discovery(goal: str, ltm_path: str = "./ltm_memory.json", max_attempts: int = None):
+    """Run self-discovery learning experiment.
+
+    Args:
+        goal: The goal to achieve
+        ltm_path: Path to LTM storage file
+        max_attempts: Maximum attempts (None = unlimited, will run until success)
+    """
     orchestrator = SelfDiscoveryOrchestrator(
         goal=goal,
         ltm_path=ltm_path
     )
 
-    success = await orchestrator.pursue_goal(max_attempts=10)
+    success = await orchestrator.pursue_goal(max_attempts=max_attempts)
 
     # Print learning journal
     orchestrator.print_learning_journal()
