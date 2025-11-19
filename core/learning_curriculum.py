@@ -1,7 +1,7 @@
 """
 Concept-based curriculum for guided self-discovery learning.
 
-Defines progression through language ’ numbers ’ mathematics ’ physics.
+Defines progression through language -> numbers -> mathematics -> physics.
 """
 
 from __future__ import annotations
