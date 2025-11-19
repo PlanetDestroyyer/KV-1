@@ -59,33 +59,31 @@ class WebResearcher:
         return result
 
     def _scrape(self, query: str) -> str:
-        # First try Wikipedia API for better educational content
-        wiki_result = self._wiki(query)
-        if wiki_result and len(wiki_result) > 100:  # Got meaningful Wikipedia content
-            return wiki_result
+        # Try multiple free API sources in order (no API keys required)
+        sources = [
+            ("Wikipedia", self._wiki),
+            ("Simple Wikipedia", self._simple_wiki),
+            ("Wikidata", self._wikidata),
+            ("StackExchange", self._stackexchange),
+            ("ArXiv", self._arxiv),
+            ("OpenLibrary", self._openlibrary),
+            ("Hacker News", self._hackernews),
+            ("Britannica", self._britannica),
+            ("DuckDuckGo API", self._web_search),
+        ]
 
-        # Fallback to DuckDuckGo scraping with better filtering
-        url = f"https://duckduckgo.com/?q={requests.utils.quote(query)}&ia=web"
-        try:
-            resp = self.session.get(url, headers={"User-Agent": self.user_agent}, timeout=10)
-            resp.raise_for_status()
-            soup = BeautifulSoup(resp.text, "html.parser")
+        for source_name, source_func in sources:
+            try:
+                result = source_func(query)
+                if result and len(result) > 100:
+                    self.logger.info(f"Content found from {source_name}", extra={"query": query})
+                    return result
+            except Exception as exc:
+                self.logger.debug(f"{source_name} failed", exc_info=True, extra={"query": query})
+                continue
 
-            # Remove script and style elements
-            for script in soup(["script", "style", "nav", "header", "footer"]):
-                script.decompose()
-
-            paragraphs = []
-            for p in soup.find_all("p"):
-                text = p.get_text(strip=True)
-                # Filter out common garbage
-                if self._is_clean_content(text):
-                    paragraphs.append(text)
-
-            return "\n".join(paragraphs)[:5000]
-        except Exception as exc:
-            self.logger.error("Scrape failed", exc_info=True, extra={"query": query})
-            return ""
+        self.logger.warning("All sources failed", extra={"query": query})
+        return ""
 
     def _is_clean_content(self, text: str) -> bool:
         """Filter out garbage content like JavaScript warnings, redirects, etc."""
@@ -190,6 +188,411 @@ class WebResearcher:
                 continue  # Try next slug
 
         self.logger.error("Wiki fetch failed for all attempts", extra={"query": query, "slugs": slugs_to_try})
+        return ""
+
+    def _simple_wiki(self, query: str) -> str:
+        """Try Simple English Wikipedia for easier-to-understand content."""
+        api = "https://simple.wikipedia.org/api/rest_v1/page/summary/"
+
+        # Use same query extraction logic
+        query_lower = query.lower().strip()
+
+        # Remove question words
+        for prefix in ["what is a ", "what is an ", "what is the ", "what is ", "what are "]:
+            if query_lower.startswith(prefix):
+                query_lower = query_lower[len(prefix):]
+                break
+
+        # Remove qualifiers
+        for suffix in [" in language", " in mathematics", " in math", " in physics",
+                       " in algebra", " in calculus", " of thermodynamics",
+                       " thermodynamics", " algebra", " calculus", " mathematics"]:
+            if query_lower.endswith(suffix):
+                query_lower = query_lower[:-len(suffix)]
+                break
+
+        slug = query_lower.strip().replace(" ", "_")
+
+        try:
+            resp = self.session.get(
+                api + slug,
+                headers={"User-Agent": self.user_agent},
+                timeout=10,
+            )
+            if resp.ok:
+                extract = resp.json().get("extract", "")
+                if extract and len(extract) > 100:
+                    return extract[:5000]
+        except Exception:
+            pass
+        return ""
+
+    def _britannica(self, query: str) -> str:
+        """Try Britannica for educational content."""
+        # Extract main concept
+        query_lower = query.lower().strip()
+
+        for prefix in ["what is a ", "what is an ", "what is the ", "what is ", "what are "]:
+            if query_lower.startswith(prefix):
+                query_lower = query_lower[len(prefix):]
+                break
+
+        for suffix in [" in language", " in mathematics", " in math", " in physics",
+                       " in algebra", " in calculus", " of thermodynamics",
+                       " thermodynamics", " algebra", " calculus", " mathematics"]:
+            if query_lower.endswith(suffix):
+                query_lower = query_lower[:-len(suffix)]
+                break
+
+        # Try Britannica URL
+        slug = query_lower.strip().replace(" ", "-")
+        url = f"https://www.britannica.com/topic/{slug}"
+
+        try:
+            resp = self.session.get(url, headers={"User-Agent": self.user_agent}, timeout=10)
+            if resp.ok:
+                soup = BeautifulSoup(resp.text, "html.parser")
+
+                # Find first paragraph
+                paragraphs = []
+                for p in soup.find_all("p", limit=5):
+                    text = p.get_text(strip=True)
+                    if len(text) > 50 and self._is_clean_content(text):
+                        paragraphs.append(text)
+
+                if paragraphs:
+                    return "\n".join(paragraphs)[:3000]
+        except Exception:
+            pass
+        return ""
+
+    def _web_search(self, query: str) -> str:
+        """Fallback to general web search."""
+        # Try DuckDuckGo instant answer API first
+        try:
+            url = f"https://api.duckduckgo.com/?q={requests.utils.quote(query)}&format=json&no_html=1"
+            resp = self.session.get(url, headers={"User-Agent": self.user_agent}, timeout=10)
+            if resp.ok:
+                data = resp.json()
+                abstract = data.get("AbstractText", "")
+                if abstract and len(abstract) > 100:
+                    return abstract[:3000]
+
+                # Try related topics
+                topics = data.get("RelatedTopics", [])
+                texts = []
+                for topic in topics[:3]:
+                    if isinstance(topic, dict) and "Text" in topic:
+                        text = topic["Text"]
+                        if len(text) > 50:
+                            texts.append(text)
+                if texts:
+                    return "\n".join(texts)[:3000]
+        except Exception:
+            pass
+
+        # Last resort: scrape DuckDuckGo results page
+        try:
+            url = f"https://duckduckgo.com/?q={requests.utils.quote(query)}&ia=web"
+            resp = self.session.get(url, headers={"User-Agent": self.user_agent}, timeout=10)
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, "html.parser")
+
+            # Remove scripts
+            for script in soup(["script", "style", "nav", "header", "footer"]):
+                script.decompose()
+
+            paragraphs = []
+            for p in soup.find_all("p"):
+                text = p.get_text(strip=True)
+                if self._is_clean_content(text):
+                    paragraphs.append(text)
+
+            return "\n".join(paragraphs)[:5000]
+        except Exception:
+            pass
+
+        return ""
+
+    def _wikidata(self, query: str) -> str:
+        """Try Wikidata for structured knowledge."""
+        # Extract main concept
+        query_lower = query.lower().strip()
+
+        for prefix in ["what is a ", "what is an ", "what is the ", "what is ", "what are "]:
+            if query_lower.startswith(prefix):
+                query_lower = query_lower[len(prefix):]
+                break
+
+        for suffix in [" in language", " in mathematics", " in math", " in physics",
+                       " in algebra", " in calculus", " of thermodynamics",
+                       " thermodynamics", " algebra", " calculus", " mathematics"]:
+            if query_lower.endswith(suffix):
+                query_lower = query_lower[:-len(suffix)]
+                break
+
+        # Search Wikidata
+        try:
+            search_url = f"https://www.wikidata.org/w/api.php?action=wbsearchentities&search={requests.utils.quote(query_lower)}&language=en&format=json&limit=1"
+            resp = self.session.get(search_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+            if resp.ok:
+                data = resp.json()
+                results = data.get("search", [])
+
+                if results:
+                    entity = results[0]
+                    description = entity.get("description", "")
+                    label = entity.get("label", "")
+
+                    if description and len(description) > 20:
+                        # Get full description from entity
+                        entity_id = entity.get("id", "")
+                        if entity_id:
+                            entity_url = f"https://www.wikidata.org/w/api.php?action=wbgetentities&ids={entity_id}&languages=en&format=json"
+                            entity_resp = self.session.get(entity_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+                            if entity_resp.ok:
+                                entity_data = entity_resp.json()
+                                entities = entity_data.get("entities", {})
+
+                                if entity_id in entities:
+                                    claims = entities[entity_id].get("claims", {})
+                                    desc = entities[entity_id].get("descriptions", {}).get("en", {}).get("value", description)
+
+                                    # Build description from label + description
+                                    result = f"{label} is {desc}."
+
+                                    # Add instance of if available
+                                    if "P31" in claims:  # instance of
+                                        instance_claims = claims["P31"]
+                                        if instance_claims:
+                                            return result[:3000]
+
+                                    return result[:3000] if len(result) > 100 else ""
+        except Exception:
+            pass
+
+        return ""
+
+    def _stackexchange(self, query: str) -> str:
+        """Try StackExchange network for educational Q&A (Math, Physics, etc)."""
+        # Try multiple StackExchange sites relevant to learning
+        sites = ["math", "physics", "english", "chemistry", "biology"]
+
+        try:
+            # Search across sites
+            for site in sites:
+                search_url = f"https://api.stackexchange.com/2.3/search/advanced?order=desc&sort=relevance&q={requests.utils.quote(query)}&site={site}"
+                resp = self.session.get(search_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+                if resp.ok:
+                    data = resp.json()
+                    items = data.get("items", [])
+
+                    if items:
+                        # Get the top answer
+                        question = items[0]
+                        question_id = question.get("question_id")
+
+                        if question.get("is_answered") and question_id:
+                            # Fetch the question with answers
+                            answer_url = f"https://api.stackexchange.com/2.3/questions/{question_id}/answers?order=desc&sort=votes&site={site}&filter=withbody"
+                            answer_resp = self.session.get(answer_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+                            if answer_resp.ok:
+                                answer_data = answer_resp.json()
+                                answers = answer_data.get("items", [])
+
+                                if answers:
+                                    # Get top voted answer body
+                                    body = answers[0].get("body", "")
+
+                                    # Strip HTML
+                                    soup = BeautifulSoup(body, "html.parser")
+                                    text = soup.get_text(strip=True, separator=" ")
+
+                                    if len(text) > 100:
+                                        return text[:3000]
+        except Exception:
+            pass
+
+        return ""
+
+    def _arxiv(self, query: str) -> str:
+        """Try ArXiv for scientific concepts (abstracts only)."""
+        try:
+            # ArXiv API search
+            search_url = f"http://export.arxiv.org/api/query?search_query=all:{requests.utils.quote(query)}&start=0&max_results=3"
+            resp = self.session.get(search_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+            if resp.ok:
+                # Parse XML response
+                from xml.etree import ElementTree as ET
+                root = ET.fromstring(resp.content)
+
+                # Find entries
+                namespace = {'atom': 'http://www.w3.org/2005/Atom'}
+                entries = root.findall('atom:entry', namespace)
+
+                if entries:
+                    abstracts = []
+                    for entry in entries[:2]:  # Top 2 papers
+                        abstract = entry.find('atom:summary', namespace)
+                        if abstract is not None and abstract.text:
+                            clean_abstract = abstract.text.strip().replace('\n', ' ')
+                            if len(clean_abstract) > 100:
+                                abstracts.append(clean_abstract)
+
+                    if abstracts:
+                        return " ".join(abstracts)[:3000]
+        except Exception:
+            pass
+
+        return ""
+
+    def _openlibrary(self, query: str) -> str:
+        """Try OpenLibrary for books, authors, literary concepts."""
+        # Extract main concept
+        query_lower = query.lower().strip()
+
+        for prefix in ["what is a ", "what is an ", "what is the ", "what is ", "what are ", "who is ", "who was "]:
+            if query_lower.startswith(prefix):
+                query_lower = query_lower[len(prefix):]
+                break
+
+        try:
+            # Search for works/authors
+            search_url = f"https://openlibrary.org/search.json?q={requests.utils.quote(query_lower)}&limit=3"
+            resp = self.session.get(search_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+            if resp.ok:
+                data = resp.json()
+                docs = data.get("docs", [])
+
+                if docs:
+                    # Build description from available fields
+                    parts = []
+
+                    for doc in docs[:2]:
+                        title = doc.get("title", "")
+                        authors = doc.get("author_name", [])
+                        year = doc.get("first_publish_year", "")
+                        subject = doc.get("subject", [])
+
+                        if title:
+                            info = f'"{title}"'
+                            if authors:
+                                author_str = ", ".join(authors[:2])
+                                info += f" by {author_str}"
+                            if year:
+                                info += f" (published {year})"
+
+                            # Add subjects if available
+                            if subject and len(subject) > 0:
+                                subjects_str = ", ".join(subject[:3])
+                                info += f". Topics: {subjects_str}"
+
+                            parts.append(info)
+
+                    if parts:
+                        result = ". ".join(parts)
+                        if len(result) > 100:
+                            return result[:2000]
+
+            # Try dedicated author search
+            author_url = f"https://openlibrary.org/search/authors.json?q={requests.utils.quote(query_lower)}&limit=1"
+            author_resp = self.session.get(author_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+            if author_resp.ok:
+                author_data = author_resp.json()
+                authors = author_data.get("docs", [])
+
+                if authors:
+                    author = authors[0]
+                    name = author.get("name", "")
+                    birth = author.get("birth_date", "")
+                    top_work = author.get("top_work", "")
+
+                    if name:
+                        result = f"{name}"
+                        if birth:
+                            result += f" (born {birth})"
+                        result += " is an author."
+                        if top_work:
+                            result += f" Known for: {top_work}."
+
+                        if len(result) > 100:
+                            return result[:2000]
+
+        except Exception:
+            pass
+
+        return ""
+
+    def _hackernews(self, query: str) -> str:
+        """Try Hacker News for programming/tech concepts via Algolia API."""
+        try:
+            # Hacker News uses Algolia search API (free, no key)
+            search_url = f"https://hn.algolia.com/api/v1/search?query={requests.utils.quote(query)}&tags=story&hitsPerPage=5"
+            resp = self.session.get(search_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+            if resp.ok:
+                data = resp.json()
+                hits = data.get("hits", [])
+
+                if hits:
+                    # Collect titles and text snippets
+                    contents = []
+
+                    for hit in hits[:3]:
+                        title = hit.get("title", "")
+
+                        # Try to get story text if available
+                        story_text = hit.get("story_text", "")
+
+                        if title:
+                            content = title
+                            if story_text and len(story_text) > 50:
+                                # Clean HTML from story text
+                                soup = BeautifulSoup(story_text, "html.parser")
+                                clean_text = soup.get_text(strip=True, separator=" ")
+                                content += f": {clean_text}"
+
+                            if len(content) > 50:
+                                contents.append(content)
+
+                    if contents:
+                        return " | ".join(contents)[:2000]
+
+            # Try comments search for more detailed discussions
+            comments_url = f"https://hn.algolia.com/api/v1/search?query={requests.utils.quote(query)}&tags=comment&hitsPerPage=5"
+            comments_resp = self.session.get(comments_url, headers={"User-Agent": self.user_agent}, timeout=10)
+
+            if comments_resp.ok:
+                comments_data = comments_resp.json()
+                comment_hits = comments_data.get("hits", [])
+
+                if comment_hits:
+                    comments = []
+
+                    for comment in comment_hits[:3]:
+                        comment_text = comment.get("comment_text", "")
+
+                        if comment_text:
+                            # Clean HTML
+                            soup = BeautifulSoup(comment_text, "html.parser")
+                            clean = soup.get_text(strip=True, separator=" ")
+
+                            if len(clean) > 100:
+                                comments.append(clean)
+
+                    if comments:
+                        return " ".join(comments)[:2000]
+
+        except Exception:
+            pass
+
         return ""
 
     def _cache_path(self, query: str, mode: str) -> str:

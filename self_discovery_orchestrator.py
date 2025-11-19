@@ -214,11 +214,49 @@ REASONING: [brief explanation]"""
             missing_concepts=missing
         )
 
+    def _is_valid_concept(self, concept: str) -> bool:
+        """Check if concept is valid and worth learning."""
+        if not concept or len(concept) < 2:
+            return False
+
+        # Skip if too long (probably garbage)
+        if len(concept) > 60:
+            return False
+
+        concept_lower = concept.lower().strip()
+
+        # Skip meta-concepts
+        skip_patterns = [
+            "none",
+            "n/a",
+            "null",
+            "undefined",
+            "this definition",
+            "prior knowledge",
+            "general understanding",
+            "foundational",
+            "doesn't require",
+            "beyond that",
+            ")",  # Truncated prerequisite
+            "(",  # Truncated prerequisite
+        ]
+
+        for pattern in skip_patterns:
+            if pattern in concept_lower:
+                return False
+
+        return True
+
     async def discover_concept(self, concept: str, needed_for: str) -> bool:
         """
         Autonomously discover and learn a concept.
         Returns True if successfully learned.
         """
+        # Validate concept first
+        if not self._is_valid_concept(concept):
+            print(f"[!] Skipping invalid concept: {concept}")
+            return False
+
         self.current_depth += 1
 
         if self.current_depth > self.max_learning_depth:
@@ -269,14 +307,21 @@ REASONING: [brief explanation]"""
 
 Please provide:
 1. A concise definition (1-2 sentences)
-2. What prerequisites are needed to understand this concept
+2. What concrete prerequisite concepts are needed
 
 Format:
 DEFINITION: [your definition]
-PREREQUISITES: [comma-separated list, or "none"]"""
+PREREQUISITES: [comma-separated list of concrete concepts, or "none"]
+
+IMPORTANT:
+- Only list actual concepts (like "addition", "variables", "numbers")
+- Do NOT include meta-concepts like "basic understanding" or "familiarity"
+- Do NOT include explanations or parenthetical notes
+- Keep each prerequisite to 1-3 words maximum
+"""
 
         response = self.llm.generate(
-            system_prompt="You are learning a new concept. Extract the key definition and identify prerequisites.",
+            system_prompt="You are learning a new concept. Extract the key definition and identify only concrete prerequisite concepts, not meta-descriptions.",
             user_input=understanding_prompt
         )
 
@@ -292,7 +337,10 @@ PREREQUISITES: [comma-separated list, or "none"]"""
             elif line.startswith("PREREQUISITES:"):
                 prereq_str = line.split(":", 1)[1].strip()
                 if prereq_str.lower() not in ["none", "n/a", ""]:
-                    prerequisites = [p.strip() for p in prereq_str.split(",")]
+                    # Split and clean prerequisites
+                    raw_prereqs = [p.strip() for p in prereq_str.split(",")]
+                    # Filter out invalid concepts
+                    prerequisites = [p for p in raw_prereqs if self._is_valid_concept(p)]
 
         if not definition:
             # Fallback: use first substantial line
@@ -302,8 +350,10 @@ PREREQUISITES: [comma-separated list, or "none"]"""
 
         # Recursively learn prerequisites
         if prerequisites:
-            print(f"{indent}    [i] Prerequisites: {', '.join(prerequisites)}")
-            for prereq in prerequisites[:3]:  # Limit to avoid infinite recursion
+            # Show only valid prerequisites
+            valid_prereqs = prerequisites[:3]  # Limit to top 3
+            print(f"{indent}    [i] Prerequisites: {', '.join(valid_prereqs)}")
+            for prereq in valid_prereqs:
                 if not self.ltm.has(prereq):
                     await self.discover_concept(prereq, needed_for=concept)
 
