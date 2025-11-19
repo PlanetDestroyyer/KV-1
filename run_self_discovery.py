@@ -1,0 +1,110 @@
+#!/usr/bin/env python3
+"""
+Self-Discovery Learning Runner
+
+Run goal-driven autonomous learning experiments.
+
+Example usage:
+  python run_self_discovery.py "solve 2x + 5 = 15"
+  python run_self_discovery.py "count from 1 to 10"
+  python run_self_discovery.py "what is the area of a circle with radius 5"
+
+With custom LTM file:
+  python run_self_discovery.py "solve 3x - 7 = 20" --ltm my_memory.json
+
+Reset LTM and start fresh:
+  python run_self_discovery.py "solve x + 3 = 7" --reset
+"""
+
+import asyncio
+import argparse
+import os
+from self_discovery_orchestrator import main_self_discovery
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Run self-discovery learning with a goal",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Example goals:
+  Beginner:
+    "Count from 1 to 10"
+    "What are the letters from A to E"
+    "Add 5 and 3"
+
+  Intermediate:
+    "Solve 2x + 5 = 15"
+    "Calculate 25% of 80"
+    "What is 3 squared"
+
+  Advanced:
+    "Solve the quadratic equation x^2 - 5x + 6 = 0"
+    "Calculate the area of a circle with radius 5"
+    "Explain why ice floats on water"
+    "What is escape velocity"
+        """
+    )
+
+    parser.add_argument(
+        "goal",
+        type=str,
+        help="The goal to achieve through self-discovery learning"
+    )
+
+    parser.add_argument(
+        "--ltm",
+        type=str,
+        default="./ltm_memory.json",
+        help="Path to long-term memory file (default: ./ltm_memory.json)"
+    )
+
+    parser.add_argument(
+        "--reset",
+        action="store_true",
+        help="Reset LTM and start with blank memory"
+    )
+
+    parser.add_argument(
+        "--max-attempts",
+        type=int,
+        default=10,
+        help="Maximum attempts to achieve goal (default: 10)"
+    )
+
+    return parser.parse_args()
+
+
+def main():
+    args = parse_args()
+
+    # Reset LTM if requested
+    if args.reset and os.path.exists(args.ltm):
+        print(f"[!] Resetting LTM: {args.ltm}")
+        os.remove(args.ltm)
+
+    print("\n" + "="*60)
+    print("SELF-DISCOVERY LEARNING SYSTEM")
+    print("="*60)
+    print(f"Goal: {args.goal}")
+    print(f"LTM file: {args.ltm}")
+    print(f"Max attempts: {args.max_attempts}")
+    print("="*60)
+
+    # Run self-discovery learning
+    success = asyncio.run(main_self_discovery(
+        goal=args.goal,
+        ltm_path=args.ltm
+    ))
+
+    if success:
+        print("\n[OK] Next time you run with a similar goal, I'll use this knowledge!")
+        print(f"[i] Try: python run_self_discovery.py 'solve 3x - 7 = 20' --ltm {args.ltm}")
+    else:
+        print("\n[X] Goal not achieved. The system may need more capabilities or better web content.")
+
+    return 0 if success else 1
+
+
+if __name__ == "__main__":
+    exit(main())
