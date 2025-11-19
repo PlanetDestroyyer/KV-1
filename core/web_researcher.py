@@ -127,17 +127,61 @@ class WebResearcher:
 
     def _wiki(self, query: str) -> str:
         api = "https://en.wikipedia.org/api/rest_v1/page/summary/"
-        slug = query.strip().replace(" ", "_")
-        try:
-            resp = self.session.get(
-                api + slug,
-                headers={"User-Agent": self.user_agent},
-                timeout=10,
-            )
-            if resp.ok:
-                return resp.json().get("extract", "")[:5000]
-        except Exception as exc:
-            self.logger.error("Wiki fetch failed", exc_info=True, extra={"query": query})
+
+        # Extract main concept from question-style queries
+        # e.g., "what is a word in language" -> "word"
+        query_lower = query.lower().strip()
+
+        # Save context clues for disambiguation
+        context_qualifier = None
+        if "grammar" in query_lower or "sentence" in query_lower or "paragraph" in query_lower:
+            context_qualifier = "linguistics"
+        elif "number" in query_lower or "counting" in query_lower or "arithmetic" in query_lower:
+            context_qualifier = "mathematics"
+
+        # Remove common question words
+        for prefix in ["what is a ", "what is an ", "what is the ", "what is ",
+                      "what are ", "explain ", "define "]:
+            if query_lower.startswith(prefix):
+                query_lower = query_lower[len(prefix):]
+                break
+
+        # Remove trailing qualifiers
+        for suffix in [" in language", " in mathematics", " in math", " in physics",
+                       " in algebra", " in calculus", " grammar", " writing", " mathematics"]:
+            if query_lower.endswith(suffix):
+                query_lower = query_lower[:-len(suffix)]
+                break
+
+        # Clean up and use first significant word if it's still a phrase
+        words = query_lower.strip().split()
+        if len(words) > 3:
+            # For long phrases, take the main noun (usually after "a/an/the")
+            query_lower = words[0] if words[0] not in ["a", "an", "the"] else words[1] if len(words) > 1 else words[0]
+
+        # Try multiple slugs in order
+        slugs_to_try = [query_lower.strip().replace(" ", "_")]
+
+        # Add disambiguation variant if we have context
+        if context_qualifier:
+            slugs_to_try.append(f"{query_lower.strip().replace(' ', '_')}_({context_qualifier})")
+
+        for slug in slugs_to_try:
+            try:
+                resp = self.session.get(
+                    api + slug,
+                    headers={"User-Agent": self.user_agent},
+                    timeout=10,
+                )
+                if resp.ok:
+                    extract = resp.json().get("extract", "")
+                    # Check if this is a real article (not a disambiguation page)
+                    if extract and len(extract) > 100:
+                        return extract[:5000]
+            except Exception as exc:
+                continue  # Try next slug
+
+        self.logger.error("Wiki fetch failed for all attempts", extra={"query": query, "slugs": slugs_to_try})
         return ""
 
     def _cache_path(self, query: str, mode: str) -> str:
