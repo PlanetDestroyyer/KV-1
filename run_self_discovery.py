@@ -68,8 +68,8 @@ Example goals:
     parser.add_argument(
         "--max-attempts",
         type=int,
-        default=10,
-        help="Maximum attempts to achieve goal (default: 10)"
+        default=None,
+        help="Maximum attempts to achieve goal (default: None = unlimited, will run until success)"
     )
 
     return parser.parse_args()
@@ -88,13 +88,17 @@ def main():
     print("="*60)
     print(f"Goal: {args.goal}")
     print(f"LTM file: {args.ltm}")
-    print(f"Max attempts: {args.max_attempts}")
+    if args.max_attempts:
+        print(f"Max attempts: {args.max_attempts}")
+    else:
+        print("Max attempts: UNLIMITED (will run until success)")
     print("="*60)
 
     # Run self-discovery learning
     success = asyncio.run(main_self_discovery(
         goal=args.goal,
-        ltm_path=args.ltm
+        ltm_path=args.ltm,
+        max_attempts=args.max_attempts
     ))
 
     if success:
