@@ -129,7 +129,7 @@ class SelfDiscoveryOrchestrator:
 
         # Initialize components
         self.ltm = PersistentLTM(ltm_path)
-        self.llm = LLMBridge(provider="ollama", default_model="gemma3:4b")
+        self.llm = LLMBridge(provider="ollama", default_model="qwen3:4b")
         self.web_researcher = WebResearcher(
             cache_dir=os.path.join(data_dir, "web_cache"),
             daily_cap=100

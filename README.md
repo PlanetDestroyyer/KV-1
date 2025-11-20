@@ -98,7 +98,7 @@ KV-1 is not just another AI assistant app. It's an operating system where AI run
 ### 8. **Telemetry & Safe LLM Calls**
 - Structured event logging (`logs/events.jsonl`) captures surprise episodes, web research, transfers
 - Ollama client uses retry/backoff with full error telemetry; run in `execute=False` mode for dry runs
-- Default model: `gemma3:4b` (requires Ollama daemon + `ollama pull gemma3:4b`)
+- Default model: `qwen3:4b` (requires Ollama daemon + `ollama pull qwen3:4b`)
 
 ### 9. **Autonomy Scheduler + Curiosity Queue**
 - Background scheduler (`AutonomyScheduler`) can continuously run self-learning probes, curiosity research, nightly reflections, and genesis checks (`kv1.start_autonomy()`)
@@ -135,9 +135,9 @@ cd KV-1
 pip install -r requirements.txt
 # Optional: configure Ollama host/port (defaults to http://localhost:11434)
 echo 'OLLAMA_HOST="http://localhost:11434"' > .env
-# Make sure the Ollama daemon is installed and pull the Gemma model:
+# Make sure the Ollama daemon is installed and pull the Qwen model:
 #   curl -fsSL https://ollama.com/install.sh | sh
-#   ollama pull gemma3:4b
+#   ollama pull qwen3:4b
 ```
 
 ---
