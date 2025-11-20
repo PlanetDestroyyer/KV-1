@@ -251,10 +251,7 @@ Bootstrap intelligence from scratch:
 - **Progress logging**: Tracks emergence journey
 - **Web-driven**: Learns everything from web research
 
-**Try it:**
-```bash
-python run_genesis_experiment.py --days 7
-```
+*Note: Genesis mode is available via `core/genesis_mode.py` for research purposes*
 
 ### 9. 🤖 LLM Integration
 **Status**: ✅ **FULLY IMPLEMENTED**
@@ -401,29 +398,6 @@ kv1.start_autonomy()  # Runs self-learning, curiosity, probes
 triggered = kv1.monitor.check_triggers_sync()
 if triggered:
     print(f"Interventions needed: {triggered}")
-```
-
-### Genesis Mode (Bootstrap from Scratch)
-
-```python
-from genesis_orchestrator import GenesisOrchestrator
-
-# Initialize with genesis mode
-genesis = GenesisOrchestrator(
-    data_dir="./genesis_data",
-    use_hsokv=True
-)
-
-# Starting knowledge: only 0-9, a-z (36 symbols)
-
-# Daily probe (tests algebra, calculus, thermodynamics)
-results = genesis.genesis.daily_probe()
-print(results)
-
-# Run evaluation cycle
-scores = genesis.evaluator.run_evaluation_cycle()
-print(f"Algebra: {scores['algebra']}%")
-print(f"Calculus: {scores['calculus']}%")
 ```
 
 ---
@@ -696,18 +670,10 @@ KV-1/
 │   ├── web_researcher.py          # 9-source web scraper (600 lines)
 │   ├── llm.py                     # Ollama integration (160 lines)
 │   ├── mcp.py                     # MCP connectors (202 lines)
-│   ├── evaluation.py              # Evaluation harness (77 lines)
-│   ├── scheduler.py               # Background jobs (86 lines)
-│   ├── curriculum.py              # Learning curriculum (52 lines)
-│   └── learning_curriculum.py     # Detailed curriculum (272 lines)
+│   └── evaluation.py              # Evaluation harness (77 lines)
 │
 ├── self_discovery_orchestrator.py # Self-discovery system (846 lines) ⭐
-├── genesis_orchestrator.py        # Genesis experiments (355 lines)
-├── curriculum_orchestrator.py     # Curriculum runner (259 lines)
-│
 ├── run_self_discovery.py          # CLI for self-discovery ⭐
-├── run_genesis_experiment.py      # CLI for genesis mode
-├── run_curriculum_experiment.py   # CLI for curriculum
 │
 ├── hsokv/                         # HSOKV memory library
 │   ├── hsokv/                     # Core library code
