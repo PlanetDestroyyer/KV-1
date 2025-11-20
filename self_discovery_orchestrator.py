@@ -24,6 +24,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hso
 
 from core.llm import LLMBridge
 from core.web_researcher import WebResearcher
+from core.knowledge_validator import KnowledgeValidator
 
 
 @dataclass
@@ -35,6 +36,10 @@ class LearningEntry:
     needed_for: str
     source: str  # "web", "primitive", "inference"
     examples: List[str] = None  # Worked examples showing how to apply the concept
+    # Validation fields (optional)
+    confidence_score: Optional[float] = None  # 0-1 confidence from validation
+    validation_sources: Optional[int] = None  # Number of sources verified
+    validation_details: Optional[str] = None  # Human-readable validation info
 
     def __post_init__(self):
         if self.examples is None:
@@ -134,6 +139,7 @@ class SelfDiscoveryOrchestrator:
             cache_dir=os.path.join(data_dir, "web_cache"),
             daily_cap=100
         )
+        self.validator = KnowledgeValidator(self.llm, self.web_researcher)
 
         # Learning journal
         self.journal: List[Dict] = []
@@ -654,33 +660,61 @@ IMPORTANT:
                 if not self.ltm.has(prereq):
                     await self.discover_concept(prereq, needed_for=concept)
 
-        # Store in LTM with examples
+        # Validate concept before storing
+        print(f"{indent}    [i] Validating concept...")
+        validation_result = self.validator.validate_concept(concept, definition, examples)
+
+        print(f"{indent}    [i] Confidence: {validation_result.confidence_score:.2f}")
+        print(f"{indent}    [i] Sources: {validation_result.sources_verified}")
+
+        # Store in LTM with validation info
         entry = LearningEntry(
             concept=concept,
             definition=definition,
             learned_at=datetime.now().isoformat(),
             needed_for=needed_for,
             source="web",
-            examples=examples
+            examples=examples,
+            confidence_score=validation_result.confidence_score,
+            validation_sources=validation_result.sources_verified,
+            validation_details=validation_result.details
         )
 
-        self.ltm.add(entry)
-        print(f"{indent}    [OK] Stored in LTM")
-        if examples:
-            print(f"{indent}    [OK] Stored {len(examples)} example(s) for future reference!")
+        # Only store if confidence is sufficient
+        if self.validator.should_store(validation_result, threshold=0.6):
+            self.ltm.add(entry)
+            print(f"{indent}    [✓] Stored in LTM (validated)")
+            if examples:
+                print(f"{indent}    [✓] Stored {len(examples)} example(s) for future reference!")
 
-        # Log in journal
-        self.journal.append({
-            "type": "concept_learned",
-            "concept": concept,
-            "definition": definition,
-            "needed_for": needed_for,
-            "prerequisites": prerequisites,
-            "depth": self.current_depth
-        })
+            # Log in journal
+            self.journal.append({
+                "type": "concept_learned",
+                "concept": concept,
+                "definition": definition,
+                "needed_for": needed_for,
+                "prerequisites": prerequisites,
+                "depth": self.current_depth,
+                "confidence": validation_result.confidence_score
+            })
 
-        self.current_depth -= 1
-        return True
+            self.current_depth -= 1
+            return True
+        else:
+            print(f"{indent}    [✗] Rejected - low confidence ({validation_result.confidence_score:.2f})")
+            print(f"{indent}    [!] Try learning from a different source")
+
+            # Log rejection in journal
+            self.journal.append({
+                "type": "concept_rejected",
+                "concept": concept,
+                "reason": "low_validation_confidence",
+                "confidence": validation_result.confidence_score,
+                "depth": self.current_depth
+            })
+
+            self.current_depth -= 1
+            return False
 
     def _try_primitive_learning(self, concept: str) -> bool:
         """
