@@ -23,6 +23,19 @@ KV-1 is the world's first AI system that **truly learns autonomously** through f
 
 **Success Rate: 95%** (18/19 solved) on problems designed to break AI systems.
 
+### ✅ Validate It Yourself
+
+Want to verify these results? Run the full benchmark suite:
+
+```bash
+python test_self_discovery.py              # Run all 19 problems
+python test_self_discovery.py --problem 5  # Test Collatz sequence
+python test_self_discovery.py --problem 6  # Test Chinese Remainder Theorem
+python test_self_discovery.py --list       # List all problems
+```
+
+The test file includes all 19 problems with expected answers, difficulty ratings, and detailed notes. Transparent and reproducible.
+
 ### 💡 Example: Learning From Scratch
 
 **Goal**: "Express 100 as the sum of two prime numbers in all possible ways"
@@ -674,6 +687,7 @@ KV-1/
 │
 ├── self_discovery_orchestrator.py # Self-discovery system (846 lines) ⭐
 ├── run_self_discovery.py          # CLI for self-discovery ⭐
+├── test_self_discovery.py         # Benchmark test suite (19 problems) ⭐
 │
 ├── hsokv/                         # HSOKV memory library
 │   ├── hsokv/                     # Core library code
