@@ -17,7 +17,13 @@ try:
 except ImportError:  # pragma: no cover
     OllamaClient = None
 
+try:
+    import google.generativeai as genai
+except ImportError:  # pragma: no cover
+    genai = None
+
 DEFAULT_OLLAMA_MODEL = "gemma3:4b"
+DEFAULT_GEMINI_MODEL = "gemini-1.5-flash"
 
 
 class LLMBridge:
@@ -27,15 +33,23 @@ class LLMBridge:
         self,
         provider: str = "ollama",
         api_key: Optional[str] = None,
-        default_model: str = DEFAULT_OLLAMA_MODEL,
+        default_model: str = None,
         *,
         host: Optional[str] = None,
         max_retries: int = 3,
         backoff_seconds: float = 2.0,
     ):
-        self.provider = provider
-        self.api_key = api_key  # unused for Ollama but kept for API parity
-        self.default_model = default_model
+        self.provider = provider.lower()
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+
+        # Set default model based on provider
+        if default_model:
+            self.default_model = default_model
+        elif self.provider == "gemini":
+            self.default_model = DEFAULT_GEMINI_MODEL
+        else:
+            self.default_model = DEFAULT_OLLAMA_MODEL
+
         self.host = host or os.getenv("OLLAMA_HOST", "http://localhost:11434")
         self.max_retries = max_retries
         self.backoff_seconds = backoff_seconds
@@ -97,13 +111,19 @@ class LLMBridge:
             try:
                 start = time.time()
                 response = self._invoke_with_retry(messages)
-                # Extract text from Pydantic model or dict
-                if hasattr(response, 'message') and hasattr(response.message, 'content'):
+
+                # Extract text based on provider
+                if self.provider == "gemini":
+                    # Gemini response format
+                    text = response.text if hasattr(response, 'text') else str(response)
+                elif hasattr(response, 'message') and hasattr(response.message, 'content'):
+                    # Ollama response format
                     text = response.message.content
                 elif isinstance(response, dict):
                     text = response.get("message", {}).get("content", "")
                 else:
                     text = str(response)
+
                 result["response"] = response
                 result["text"] = text
                 result["executed"] = True
@@ -125,29 +145,49 @@ class LLMBridge:
                     extra={"provider": self.provider, "model": self.default_model},
                 )
         else:
-            result["error"] = "Ollama client unavailable"
+            result["error"] = f"{self.provider} client unavailable"
             result["text"] = f"[offline fallback] {user_input}"
 
         return result
 
     def _build_client(self):
-        if self.provider.lower() == "ollama" and OllamaClient is not None:
+        if self.provider == "ollama" and OllamaClient is not None:
             try:
                 self.client = OllamaClient(host=self.host)
                 self.logger.info(f"Ollama client initialized: {self.host}")
             except Exception as e:
                 self.logger.error(f"Failed to initialize Ollama client: {e}")
                 self.client = None
+        elif self.provider == "gemini" and genai is not None:
+            if self.api_key:
+                try:
+                    genai.configure(api_key=self.api_key)
+                    self.client = genai.GenerativeModel(self.default_model)
+                    self.logger.info(f"Gemini client initialized: {self.default_model}")
+                except Exception as e:
+                    self.logger.error(f"Failed to initialize Gemini client: {e}")
+                    self.client = None
+            else:
+                self.logger.error("Gemini API key not provided. Set GEMINI_API_KEY env var or pass api_key parameter")
+                self.client = None
         else:
-            if OllamaClient is None:
+            if self.provider == "ollama" and OllamaClient is None:
                 self.logger.warning("Ollama client library not available. Install with: pip install ollama")
+            elif self.provider == "gemini" and genai is None:
+                self.logger.warning("Gemini client library not available. Install with: pip install google-generativeai")
             self.client = None
 
     def _invoke_with_retry(self, messages):
         last_exc: Optional[Exception] = None
         for attempt in range(1, self.max_retries + 1):
             try:
-                return self.client.chat(model=self.default_model, messages=messages)
+                if self.provider == "gemini":
+                    # Gemini format: combine system + user messages
+                    prompt = "\n\n".join([msg["content"] for msg in messages])
+                    return self.client.generate_content(prompt)
+                else:
+                    # Ollama format
+                    return self.client.chat(model=self.default_model, messages=messages)
             except Exception as exc:
                 last_exc = exc
                 wait = self.backoff_seconds * attempt
