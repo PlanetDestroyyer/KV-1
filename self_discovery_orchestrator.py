@@ -363,6 +363,57 @@ REASONING: [brief explanation of what specific knowledge gap prevents you from s
                 if missing_str.lower() not in ["none", "n/a", ""]:
                     missing = [m.strip() for m in missing_str.split(",")]
 
+        # Fallback: Smart detection for natural language responses
+        # If no explicit SUCCESS: was found, try to detect success from the response
+        if not success and text:
+            text_lower = text.lower()
+
+            # Check for explicit answer indicators
+            answer_indicators = [
+                "the answer is",
+                "answer:",
+                "solution:",
+                "result:",
+                "\\boxed{",  # LaTeX boxed answer
+                "**answer:**",
+            ]
+
+            has_answer = any(indicator in text_lower for indicator in answer_indicators)
+
+            # Check for negative indicators (missing knowledge)
+            missing_indicators = [
+                "cannot complete",
+                "don't know",
+                "missing",
+                "need to know",
+                "requires",
+                "lack",
+            ]
+
+            has_missing = any(indicator in text_lower for indicator in missing_indicators)
+
+            # If has clear answer and no missing indicators, likely succeeded
+            if has_answer and not has_missing:
+                success = True
+                # Try to extract the answer
+                if not result:
+                    # Look for answers in common formats
+                    import re
+                    # Look for boxed answers
+                    boxed = re.search(r'\$\\boxed\{([^}]+)\}\$', text)
+                    if boxed:
+                        result = boxed.group(1)
+                    # Look for "Answer: X" or "The answer is X"
+                    elif "answer:" in text_lower:
+                        for line in lines:
+                            if "answer:" in line.lower():
+                                result = line.split(":", 1)[1].strip()
+                                break
+                    # Look for numbered answers
+                    elif re.search(r'answer.*?(\d+)', text_lower):
+                        match = re.search(r'answer.*?(\d+)', text_lower)
+                        result = match.group(1)
+
         return GoalAttempt(
             success=success,
             result=result,
