@@ -25,9 +25,10 @@ from .llm import LLMBridge
 from .three_stage_learner import ThreeStageLearner
 from .genesis_mode import GenesisController
 from .web_researcher import WebResearcher
-from .scheduler import AutonomyScheduler
 from .evaluation import EvaluationHarness
-from .curriculum import CurriculumManager
+# Note: scheduler and curriculum were removed - use self_discovery_orchestrator.py for learning
+# from .scheduler import AutonomyScheduler
+# from .curriculum import CurriculumManager
 
 
 class KV1Orchestrator:
@@ -94,9 +95,11 @@ class KV1Orchestrator:
         self.web = WebResearcher(cache_dir=cache_dir)
         self.three_stage = ThreeStageLearner(self, researcher=self.web)
         self.genesis = GenesisController(self, enabled=genesis_mode)
-        self.scheduler = AutonomyScheduler(self)
+        # self.scheduler = AutonomyScheduler(self)  # Removed - use self_discovery_orchestrator.py
+        self.scheduler = None
         self.evaluator = EvaluationHarness(self)
-        self.curriculum = CurriculumManager()
+        # self.curriculum = CurriculumManager()  # Removed - use self_discovery_orchestrator.py
+        self.curriculum = None
 
         # Track app usage
         self.app_usage = {}  # package_name -> usage_count
@@ -257,7 +260,7 @@ YOUR CAPABILITIES:
             "traumas": self.traumas.get_trauma_summary(),
             "curiosity": self.three_stage.summarize_active_episodes(),
             "eval_scores": getattr(self.evaluator, "last_scores", {}),
-            "curriculum": self.curriculum.progress,
+            "curriculum": self.curriculum.progress if self.curriculum else {},
         }
         goals = self._derive_goals(reflection)
         self.log_event("reflection", {"summary": reflection, "goals": goals})
@@ -269,11 +272,12 @@ YOUR CAPABILITIES:
     def _derive_goals(self, reflection: Dict) -> List[str]:
         goals = []
         eval_scores = reflection.get("eval_scores", {})
-        for domain, score in eval_scores.items():
-            if score < 1.0:
-                level = self.curriculum.current_stage(domain).level
-                resources = self.curriculum.get_resources(domain)
-                goals.append(f"Study {domain} [{level}] via {resources[0] if resources else 'curriculum pack'}")
+        if self.curriculum:
+            for domain, score in eval_scores.items():
+                if score < 1.0:
+                    level = self.curriculum.current_stage(domain).level
+                    resources = self.curriculum.get_resources(domain)
+                    goals.append(f"Study {domain} [{level}] via {resources[0] if resources else 'curriculum pack'}")
         if reflection.get("curiosity"):
             goals.append("Review active surprise episodes")
         return goals
@@ -292,10 +296,16 @@ YOUR CAPABILITIES:
             print(f"[KV-1] Event log failure: {exc}")
 
     def start_autonomy(self):
-        self.scheduler.start()
+        if self.scheduler:
+            self.scheduler.start()
+        else:
+            print("[KV-1] ⚠ Autonomy scheduler not available. Use self_discovery_orchestrator.py for learning.")
 
     def stop_autonomy(self):
-        self.scheduler.stop()
+        if self.scheduler:
+            self.scheduler.stop()
+        else:
+            print("[KV-1] ⚠ Autonomy scheduler not available.")
 
     def run_evaluation_cycle(self):
         """Run domain evaluation tasks."""
