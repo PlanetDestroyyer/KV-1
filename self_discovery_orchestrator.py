@@ -34,6 +34,11 @@ class LearningEntry:
     learned_at: str
     needed_for: str
     source: str  # "web", "primitive", "inference"
+    examples: List[str] = None  # Worked examples showing how to apply the concept
+
+    def __post_init__(self):
+        if self.examples is None:
+            self.examples = []
 
 
 @dataclass
@@ -220,7 +225,8 @@ class SelfDiscoveryOrchestrator:
                 "equation", "algebra", "number", "digit", "calculate", "solve",
                 "add", "subtract", "multiply", "divide", "variable", "coefficient",
                 "quadratic", "polynomial", "factor", "root", "solution", "formula",
-                "arithmetic", "operation", "mathematical", "numeric", "quantity"
+                "arithmetic", "operation", "mathematical", "numeric", "quantity",
+                "distributive", "property", "exponent", "power", "derivative", "integral"
             ],
             "science": [
                 "energy", "force", "mass", "atom", "molecule", "element",
@@ -284,6 +290,10 @@ class SelfDiscoveryOrchestrator:
         for concept in sorted(concepts)[:20]:  # Limit to avoid context overflow
             entry = self.ltm.get(concept)
             summary += f"- {concept}: {entry.definition[:100]}...\n"
+            # Include examples if available - these are CRITICAL for learning HOW to apply concepts
+            if entry.examples:
+                for ex in entry.examples[:2]:  # Show up to 2 examples
+                    summary += f"  Example: {ex}\n"
 
         if len(concepts) > 20:
             summary += f"... and {len(concepts) - 20} more concepts\n"
@@ -515,10 +525,19 @@ CONTEXT: This concept is needed for the goal: "{self.goal}" (domain: {self.goal_
 Please provide:
 1. A concise definition (1-2 sentences) focusing on the {self.goal_domain} perspective
 2. What concrete prerequisite concepts are needed in {self.goal_domain}
+3. IMPORTANT: Extract any WORKED EXAMPLES showing step-by-step HOW to apply this concept
 
 Format:
 DEFINITION: [your definition]
 PREREQUISITES: [comma-separated list of concrete concepts, or "none"]
+EXAMPLES: [worked examples with step-by-step solutions, or "none" if no examples found]
+
+CRITICAL - EXAMPLES are the most important part:
+- Look for step-by-step solutions showing HOW to apply the concept
+- Example for "solving linear equations": "2x + 3 = 7 → subtract 3: 2x = 4 → divide by 2: x = 2"
+- Example for "derivative": "d/dx(x^2) = 2x"
+- Include multiple examples if available
+- If no examples, write "none"
 
 IMPORTANT:
 - Only list prerequisites relevant to {self.goal_domain}
@@ -530,7 +549,7 @@ IMPORTANT:
 """
 
         response = self.llm.generate(
-            system_prompt=f"You are learning a new concept in {self.goal_domain}. Extract the key definition and identify only concrete prerequisite concepts related to {self.goal_domain}, not meta-descriptions or concepts from other domains.",
+            system_prompt=f"You are learning a new concept in {self.goal_domain}. Extract the key definition, identify concrete prerequisite concepts, and MOST IMPORTANTLY extract any worked examples showing step-by-step procedures. Examples are critical for learning HOW to apply concepts.",
             user_input=understanding_prompt
         )
 
@@ -539,6 +558,7 @@ IMPORTANT:
         # Parse response
         definition = ""
         prerequisites = []
+        examples = []
 
         for line in text.split('\n'):
             if line.startswith("DEFINITION:"):
@@ -553,12 +573,19 @@ IMPORTANT:
                         p for p in raw_prereqs
                         if self._is_valid_concept(p) and self._is_relevant_to_goal(p)
                     ]
+            elif line.startswith("EXAMPLES:"):
+                examples_str = line.split(":", 1)[1].strip()
+                if examples_str.lower() not in ["none", "n/a", ""]:
+                    # Store the examples
+                    examples.append(examples_str)
 
         if not definition:
             # Fallback: use first substantial line
             definition = text.strip().split('\n')[0]
 
         print(f"{indent}    [i] Definition: {definition[:100]}...")
+        if examples:
+            print(f"{indent}    [i] Found {len(examples)} worked example(s)!")
 
         # Recursively learn prerequisites
         if prerequisites:
@@ -576,17 +603,20 @@ IMPORTANT:
                 if not self.ltm.has(prereq):
                     await self.discover_concept(prereq, needed_for=concept)
 
-        # Store in LTM
+        # Store in LTM with examples
         entry = LearningEntry(
             concept=concept,
             definition=definition,
             learned_at=datetime.now().isoformat(),
             needed_for=needed_for,
-            source="web"
+            source="web",
+            examples=examples
         )
 
         self.ltm.add(entry)
         print(f"{indent}    [OK] Stored in LTM")
+        if examples:
+            print(f"{indent}    [OK] Stored {len(examples)} example(s) for future reference!")
 
         # Log in journal
         self.journal.append({
@@ -675,6 +705,9 @@ IMPORTANT:
         print("="*60)
 
         attempt_num = 0
+        last_missing = set()
+        stuck_count = 0
+
         while True:
             attempt_num += 1
 
@@ -702,6 +735,26 @@ IMPORTANT:
                 return False
 
             print(f"\n[i] Missing concepts: {', '.join(attempt.missing_concepts)}")
+
+            # Loop detection: check if we're stuck requesting the same concepts
+            current_missing = set(attempt.missing_concepts)
+            if current_missing == last_missing:
+                stuck_count += 1
+                print(f"[!] Warning: Requesting same concepts again (stuck count: {stuck_count}/5)")
+                if stuck_count >= 5:
+                    print("\n" + "="*60)
+                    print("[X] STUCK IN LEARNING LOOP")
+                    print("="*60)
+                    print("The system is repeatedly requesting the same concepts but cannot apply them.")
+                    print("This suggests:")
+                    print("  1. LLM lacks reasoning capability for this goal")
+                    print("  2. Web content has definitions but no worked examples")
+                    print("  3. Concepts are too abstract without procedural knowledge")
+                    print(f"\nRepeated concepts: {', '.join(sorted(current_missing))}")
+                    return False
+            else:
+                stuck_count = 0
+                last_missing = current_missing
 
             # Learn each missing concept
             for concept in attempt.missing_concepts:
