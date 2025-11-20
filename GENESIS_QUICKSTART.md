@@ -43,8 +43,8 @@ curl -fsSL https://ollama.com/install.sh | sh
 # Start Ollama service
 ollama serve
 
-# Pull Gemma3 model (in another terminal)
-ollama pull gemma3:4b
+# Pull Qwen3 model (in another terminal)
+ollama pull qwen3:4b
 ```
 
 ## Running the Experiment
@@ -134,7 +134,7 @@ cd hsokv && pip install -e . && cd ..
 **"Ollama connection failed"**
 ```bash
 ollama serve  # Start Ollama in background
-ollama pull gemma3:4b  # Download model
+ollama pull qwen3:4b  # Download model
 ```
 
 **"ModuleNotFoundError: No module named 'bs4'"**
