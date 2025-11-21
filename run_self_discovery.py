@@ -78,6 +78,19 @@ Example goals:
         help="Enable multi-source validation (slower but more accurate). Default: OFF for speed"
     )
 
+    parser.add_argument(
+        "--no-rehearsal",
+        action="store_true",
+        help="Disable 3-stage learning rehearsal (faster but lower quality). Default: ON for quality"
+    )
+
+    parser.add_argument(
+        "--target-confidence",
+        type=float,
+        default=0.85,
+        help="Mastery threshold for 3-stage learning (0.0-1.0). Default: 0.85"
+    )
+
     return parser.parse_args()
 
 
@@ -98,6 +111,8 @@ def main():
         print(f"Max attempts: {args.max_attempts}")
     else:
         print("Max attempts: UNLIMITED (will run until success)")
+    print(f"3-Stage Learning: {'OFF (fast mode)' if args.no_rehearsal else f'ON (target confidence: {args.target_confidence:.2f})'}")
+    print(f"Validation: {'ON (multi-source)' if args.validate else 'OFF (fast mode)'}")
     print("="*60)
 
     # Run self-discovery learning
@@ -105,7 +120,9 @@ def main():
         goal=args.goal,
         ltm_path=args.ltm,
         max_attempts=args.max_attempts,
-        enable_validation=args.validate
+        enable_validation=args.validate,
+        enable_rehearsal=not args.no_rehearsal,  # Inverted logic
+        target_confidence=args.target_confidence
     ))
 
     if success:
