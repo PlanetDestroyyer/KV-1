@@ -26,6 +26,20 @@ from core.llm import LLMBridge
 from core.web_researcher import WebResearcher
 from core.knowledge_validator import KnowledgeValidator
 
+try:
+    from core.hybrid_memory import HybridMemory
+    HYBRID_MEMORY_AVAILABLE = True
+except ImportError:
+    HYBRID_MEMORY_AVAILABLE = False
+    print("[!] Hybrid memory not available, using fallback")
+
+try:
+    from core.math_connect import MathConnect
+    MATHCONNECT_AVAILABLE = True
+except ImportError:
+    MATHCONNECT_AVAILABLE = False
+    print("[!] MathConnect not available, symbolic math reasoning disabled")
+
 
 @dataclass
 class LearningEntry:
@@ -125,7 +139,8 @@ class SelfDiscoveryOrchestrator:
         goal: str,
         ltm_path: str = "./ltm_memory.json",
         data_dir: str = "./self_discovery_data",
-        max_depth: int = 10
+        max_depth: int = 10,
+        use_hybrid_memory: bool = True  # NEW: Use STM+LTM+GPU by default!
     ):
         self.goal = goal
         self.max_learning_depth = max_depth
@@ -133,13 +148,30 @@ class SelfDiscoveryOrchestrator:
         os.makedirs(data_dir, exist_ok=True)
 
         # Initialize components
-        self.ltm = PersistentLTM(ltm_path)
+        if use_hybrid_memory and HYBRID_MEMORY_AVAILABLE:
+            print("[+] Using Hybrid Memory (STM + LTM + GPU Tensors)")
+            self.ltm = HybridMemory(stm_capacity=7, use_gpu=True)
+            self.using_hybrid = True
+        else:
+            print("[+] Using legacy PersistentLTM (string storage)")
+            self.ltm = PersistentLTM(ltm_path)
+            self.using_hybrid = False
+
         self.llm = LLMBridge(provider="ollama", default_model="qwen3:4b")
         self.web_researcher = WebResearcher(
             cache_dir=os.path.join(data_dir, "web_cache"),
             daily_cap=100
         )
         self.validator = KnowledgeValidator(self.llm, self.web_researcher)
+
+        # Initialize MathConnect for symbolic math reasoning
+        if MATHCONNECT_AVAILABLE:
+            print("[+] MathConnect enabled (symbolic math reasoning)")
+            self.math_connect = MathConnect(llm=self.llm, web=self.web_researcher)
+            self.using_mathconnect = True
+        else:
+            self.math_connect = None
+            self.using_mathconnect = False
 
         # Learning journal
         self.journal: List[Dict] = []
@@ -220,6 +252,42 @@ class SelfDiscoveryOrchestrator:
         keywords = [w.strip("?.,!") for w in words if w.strip("?.,!") not in stop_words and len(w) > 2]
 
         return keywords[:5]  # Top 5 keywords
+
+    def _is_mathematical_concept(self, concept: str, definition: str = "") -> bool:
+        """
+        Detect if a concept is mathematical (theorem, formula, equation).
+
+        Returns True if it should be learned symbolically with MathConnect.
+        """
+        concept_lower = concept.lower()
+        definition_lower = definition.lower()
+
+        # Mathematical keywords in concept name
+        math_keywords = [
+            "theorem", "formula", "equation", "identity", "law",
+            "principle", "rule", "property", "proof",
+            "pythagorean", "quadratic", "trigonometric", "calculus",
+            "derivative", "integral", "limit", "series", "sum",
+            "product", "factorial", "matrix", "vector", "eigenvalue"
+        ]
+
+        # Check concept name
+        for keyword in math_keywords:
+            if keyword in concept_lower:
+                return True
+
+        # Check definition for mathematical patterns
+        math_patterns = [
+            "equals", "=", "squared", "cubed", "times", "plus", "minus",
+            "sin", "cos", "tan", "log", "exp", "sqrt",
+            "∑", "∫", "∂", "π", "∞"
+        ]
+
+        for pattern in math_patterns:
+            if pattern in definition_lower:
+                return True
+
+        return False
 
     def _is_relevant_to_goal(self, concept: str) -> bool:
         """Check if a concept is relevant to the goal domain."""
@@ -687,6 +755,33 @@ IMPORTANT:
             if examples:
                 print(f"{indent}    [✓] Stored {len(examples)} example(s) for future reference!")
 
+            # If it's a mathematical concept, also learn it symbolically with MathConnect
+            if self.using_mathconnect and self._is_mathematical_concept(concept, definition):
+                print(f"{indent}    [🧮] Mathematical concept detected!")
+                print(f"{indent}    [🧮] Learning symbolically with MathConnect...")
+
+                # Try to learn as symbolic equation
+                success = self.math_connect.learn_theorem_from_text(
+                    name=concept,
+                    text=definition,
+                    domain=self.goal_domain
+                )
+
+                if success:
+                    print(f"{indent}    [✓] Learned as symbolic equation!")
+
+                    # Check if MathConnect found connections
+                    connections = self.math_connect.get_graph().get(concept, [])
+                    if connections:
+                        print(f"{indent}    [✓] Found {len(connections)} connection(s) to other theorems!")
+                        print(f"{indent}        Connected to: {', '.join(list(connections)[:3])}")
+
+                    # Check if new theorems were derived
+                    total_theorems = len(self.math_connect.connection_finder.theorems)
+                    print(f"{indent}    [i] Total theorems in graph: {total_theorems}")
+                else:
+                    print(f"{indent}    [i] Could not parse as symbolic equation (text-based learning only)")
+
             # Log in journal
             self.journal.append({
                 "type": "concept_learned",
@@ -878,6 +973,34 @@ IMPORTANT:
         print(f"Final LTM size: {len(self.ltm.knowledge)}")
         print("="*60)
 
+    def print_math_knowledge_graph(self):
+        """Print the mathematical knowledge graph built by MathConnect."""
+        if not self.using_mathconnect:
+            return
+
+        print("\n" + "="*60)
+        print("[🧮] MATHEMATICAL KNOWLEDGE GRAPH")
+        print("="*60)
+
+        summary = self.math_connect.summarize()
+        print("\n" + summary)
+
+        # Show connection graph
+        graph = self.math_connect.get_graph()
+        if graph:
+            print("\n" + "="*60)
+            print("THEOREM CONNECTIONS")
+            print("="*60)
+
+            for theorem, connections in sorted(graph.items()):
+                if connections:
+                    print(f"\n{theorem}")
+                    print(f"  ↔ {', '.join(list(connections)[:5])}")
+                    if len(connections) > 5:
+                        print(f"  ... and {len(connections) - 5} more")
+
+        print("\n" + "="*60)
+
 
 async def main_self_discovery(goal: str, ltm_path: str = "./ltm_memory.json", max_attempts: int = None):
     """Run self-discovery learning experiment.
@@ -896,6 +1019,9 @@ async def main_self_discovery(goal: str, ltm_path: str = "./ltm_memory.json", ma
 
     # Print learning journal
     orchestrator.print_learning_journal()
+
+    # Print mathematical knowledge graph (if MathConnect was used)
+    orchestrator.print_math_knowledge_graph()
 
     # Print final LTM summary
     print("\n" + "="*60)
