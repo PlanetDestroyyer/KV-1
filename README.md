@@ -882,12 +882,6 @@ KV-1 is in active research development. Contributions welcome!
 
 ---
 
-## 📄 License
-
-MIT License - See LICENSE file for details
-
----
-
 ## ⚠️ Important Notes
 
 **Current Status**: KV-1 is a research prototype demonstrating autonomous learning. The OS integration layer is designed but not yet implemented.
