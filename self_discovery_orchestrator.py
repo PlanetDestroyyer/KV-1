@@ -184,6 +184,24 @@ class SelfDiscoveryOrchestrator:
         print(f"[i] Detected goal domain: {self.goal_domain}")
         print(f"[i] Goal keywords: {', '.join(self.goal_keywords)}")
 
+    def _get_ltm_size(self) -> int:
+        """Get number of concepts in LTM (works for both HybridMemory and PersistentLTM)."""
+        if self.using_hybrid:
+            # HybridMemory stores concepts in LTM's concept_map
+            return len(self.ltm.ltm.concept_map) if self.ltm.ltm else 0
+        else:
+            # PersistentLTM stores in knowledge dict
+            return len(self.ltm.knowledge)
+
+    def _get_all_concepts(self) -> List[str]:
+        """Get all concept names (works for both HybridMemory and PersistentLTM)."""
+        if self.using_hybrid:
+            # HybridMemory stores concepts in LTM's concept_map
+            return list(self.ltm.ltm.concept_map.keys()) if self.ltm.ltm else []
+        else:
+            # PersistentLTM has get_all_concepts method
+            return self.ltm.get_all_concepts()
+
     def _detect_goal_domain(self, goal: str) -> str:
         """Detect the domain of the goal for focused learning."""
         goal_lower = goal.lower()
@@ -356,10 +374,10 @@ class SelfDiscoveryOrchestrator:
 
     def _get_knowledge_summary(self) -> str:
         """Generate summary of current knowledge for LLM context."""
-        if not self.ltm.knowledge:
+        if self._get_ltm_size() == 0:
             return "You have no prior knowledge. You are starting from zero."
 
-        concepts = self.ltm.get_all_concepts()
+        concepts = self._get_all_concepts()
         summary = f"You currently know these {len(concepts)} concepts:\n"
         for concept in sorted(concepts)[:20]:  # Limit to avoid context overflow
             entry = self.ltm.get(concept)
@@ -384,7 +402,7 @@ class SelfDiscoveryOrchestrator:
         print(f"[Attempt {self.attempts}] Trying to achieve goal")
         print(f"{'='*60}")
         print(f"Goal: {self.goal}")
-        print(f"Known concepts: {len(self.ltm.knowledge)}")
+        print(f"Known concepts: {self._get_ltm_size()}")
 
         # Build prompt with current knowledge
         knowledge_summary = self._get_knowledge_summary()
@@ -877,7 +895,7 @@ IMPORTANT:
         print("[G] SELF-DISCOVERY LEARNING")
         print("="*60)
         print(f"Goal: {self.goal}")
-        print(f"Starting LTM size: {len(self.ltm.knowledge)} concepts")
+        print(f"Starting LTM size: {self._get_ltm_size()} concepts")
         if max_attempts:
             print(f"Max attempts: {max_attempts}")
         else:
@@ -970,7 +988,7 @@ IMPORTANT:
 
         print("\n" + "="*60)
         print(f"Total concepts learned: {len(self.journal)}")
-        print(f"Final LTM size: {len(self.ltm.knowledge)}")
+        print(f"Final LTM size: {self._get_ltm_size()}")
         print("="*60)
 
     def print_math_knowledge_graph(self):
@@ -1028,7 +1046,7 @@ async def main_self_discovery(goal: str, ltm_path: str = "./ltm_memory.json", ma
     print("[#] LONG-TERM MEMORY")
     print("="*60)
 
-    concepts = sorted(orchestrator.ltm.get_all_concepts())
+    concepts = sorted(orchestrator._get_all_concepts())
     for concept in concepts:
         entry = orchestrator.ltm.get(concept)
         print(f"\n{concept}:")
@@ -1037,7 +1055,8 @@ async def main_self_discovery(goal: str, ltm_path: str = "./ltm_memory.json", ma
 
     print("\n" + "="*60)
     print(f"[{'OK' if success else 'X'}] Goal {'achieved' if success else 'not achieved'}")
-    print(f"LTM saved to: {orchestrator.ltm.storage_path}")
+    if hasattr(orchestrator.ltm, 'storage_path'):
+        print(f"LTM saved to: {orchestrator.ltm.storage_path}")
     print("="*60)
 
     return success
