@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hso
 
 from core.llm import LLMBridge
 from core.web_researcher import WebResearcher
-from core.knowledge_validator import KnowledgeValidator
+from core.knowledge_validator import KnowledgeValidator, ValidationResult
 
 try:
     from core.hybrid_memory import HybridMemory
@@ -700,6 +700,12 @@ IMPORTANT:
 
         text = response.get("text", "")
 
+        # Check if LLM failed (offline fallback or error)
+        if "[offline fallback]" in text or "error" in response or not text.strip():
+            print(f"{indent}    [X] LLM unavailable or failed to respond")
+            self.current_depth -= 1
+            return False
+
         # Parse response
         definition = ""
         prerequisites = []
@@ -758,7 +764,6 @@ IMPORTANT:
         else:
             # Skip validation for SPEED - assume high confidence
             print(f"{indent}    [i] Validation disabled (fast mode)")
-            from core.knowledge_validator import ValidationResult
             validation_result = ValidationResult(
                 concept=concept,
                 confidence_score=0.95,  # High default confidence
