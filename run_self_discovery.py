@@ -72,6 +72,12 @@ Example goals:
         help="Maximum attempts to achieve goal (default: None = unlimited, will run until success)"
     )
 
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="Enable multi-source validation (slower but more accurate). Default: OFF for speed"
+    )
+
     return parser.parse_args()
 
 
@@ -98,7 +104,8 @@ def main():
     success = asyncio.run(main_self_discovery(
         goal=args.goal,
         ltm_path=args.ltm,
-        max_attempts=args.max_attempts
+        max_attempts=args.max_attempts,
+        enable_validation=args.validate
     ))
 
     if success:

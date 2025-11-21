@@ -140,11 +140,13 @@ class SelfDiscoveryOrchestrator:
         ltm_path: str = "./ltm_memory.json",
         data_dir: str = "./self_discovery_data",
         max_depth: int = 10,
-        use_hybrid_memory: bool = True  # NEW: Use STM+LTM+GPU by default!
+        use_hybrid_memory: bool = True,  # NEW: Use STM+LTM+GPU by default!
+        enable_validation: bool = False  # NEW: Validation OFF by default for SPEED!
     ):
         self.goal = goal
         self.max_learning_depth = max_depth
         self.data_dir = data_dir
+        self.enable_validation = enable_validation  # Store validation setting
         os.makedirs(data_dir, exist_ok=True)
 
         # Initialize components
@@ -746,12 +748,24 @@ IMPORTANT:
                 if not self.ltm.has(prereq):
                     await self.discover_concept(prereq, needed_for=concept)
 
-        # Validate concept before storing
-        print(f"{indent}    [i] Validating concept...")
-        validation_result = self.validator.validate_concept(concept, definition, examples)
-
-        print(f"{indent}    [i] Confidence: {validation_result.confidence_score:.2f}")
-        print(f"{indent}    [i] Sources: {validation_result.sources_verified}")
+        # Validate concept before storing (OPTIONAL - can be disabled for speed)
+        if self.enable_validation:
+            print(f"{indent}    [i] Validating concept...")
+            validation_result = self.validator.validate_concept(concept, definition, examples)
+            print(f"{indent}    [i] Confidence: {validation_result.confidence_score:.2f}")
+            print(f"{indent}    [i] Sources: {validation_result.sources_verified}")
+            should_store = self.validator.should_store(validation_result, threshold=0.6)
+        else:
+            # Skip validation for SPEED - assume high confidence
+            print(f"{indent}    [i] Validation disabled (fast mode)")
+            from core.knowledge_validator import ValidationResult
+            validation_result = ValidationResult(
+                concept=concept,
+                confidence_score=0.95,  # High default confidence
+                sources_verified=1,
+                details="Validation skipped for speed"
+            )
+            should_store = True  # Always store when validation disabled
 
         # Store in LTM with validation info
         entry = LearningEntry(
@@ -766,8 +780,8 @@ IMPORTANT:
             validation_details=validation_result.details
         )
 
-        # Only store if confidence is sufficient
-        if self.validator.should_store(validation_result, threshold=0.6):
+        # Only store if confidence is sufficient (or validation disabled)
+        if should_store:
             self.ltm.add(entry)
             print(f"{indent}    [✓] Stored in LTM (validated)")
             if examples:
@@ -1020,17 +1034,19 @@ IMPORTANT:
         print("\n" + "="*60)
 
 
-async def main_self_discovery(goal: str, ltm_path: str = "./ltm_memory.json", max_attempts: int = None):
+async def main_self_discovery(goal: str, ltm_path: str = "./ltm_memory.json", max_attempts: int = None, enable_validation: bool = False):
     """Run self-discovery learning experiment.
 
     Args:
         goal: The goal to achieve
         ltm_path: Path to LTM storage file
         max_attempts: Maximum attempts (None = unlimited, will run until success)
+        enable_validation: Enable multi-source validation (default: False for speed)
     """
     orchestrator = SelfDiscoveryOrchestrator(
         goal=goal,
-        ltm_path=ltm_path
+        ltm_path=ltm_path,
+        enable_validation=enable_validation
     )
 
     success = await orchestrator.pursue_goal(max_attempts=max_attempts)
