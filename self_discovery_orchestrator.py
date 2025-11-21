@@ -141,12 +141,16 @@ class SelfDiscoveryOrchestrator:
         data_dir: str = "./self_discovery_data",
         max_depth: int = 10,
         use_hybrid_memory: bool = True,  # NEW: Use STM+LTM+GPU by default!
-        enable_validation: bool = False  # NEW: Validation OFF by default for SPEED!
+        enable_validation: bool = False,  # NEW: Validation OFF by default for SPEED!
+        enable_rehearsal: bool = True,  # NEW: 3-stage learning for quality control!
+        target_confidence: float = 0.85  # NEW: Mastery threshold (0.0-1.0)
     ):
         self.goal = goal
         self.max_learning_depth = max_depth
         self.data_dir = data_dir
         self.enable_validation = enable_validation  # Store validation setting
+        self.enable_rehearsal = enable_rehearsal  # Store rehearsal setting
+        self.target_confidence = target_confidence  # Store confidence threshold
         os.makedirs(data_dir, exist_ok=True)
 
         # Initialize components
@@ -600,9 +604,145 @@ REASONING: [brief explanation of what specific knowledge gap prevents you from s
 
         return f"what is {concept}"
 
+    def _test_concept_understanding(self, concept: str, definition: str, examples: List[str], indent: str = "") -> float:
+        """
+        SURPRISE EPISODE: Test if LLM actually understood the concept.
+        Returns confidence score (0.0-1.0).
+        """
+        print(f"{indent}    [?] Testing initial understanding (Surprise Episode)...")
+
+        test_prompt = f"""I just learned about "{concept}".
+
+Definition: {definition}
+
+Examples: {', '.join(examples) if examples else 'none provided'}
+
+Test my understanding by asking me 3 questions:
+1. Explain "{concept}" in your own words (1 sentence)
+2. Give a simple NEW example (not from above)
+3. What prerequisite knowledge do you need to understand this?
+
+Be HONEST - if you're not confident, say "I'm not sure" or "I need more examples"."""
+
+        response = self.llm.generate(
+            system_prompt="You are testing your understanding of a new concept. Be honest about your confidence level.",
+            user_input=test_prompt
+        )
+
+        text = response.get("text", "").lower()
+
+        # Calculate confidence based on response quality
+        confidence = 0.0
+
+        # Negative indicators (reduce confidence)
+        if any(phrase in text for phrase in ["not sure", "don't know", "need more", "unclear", "confused"]):
+            confidence = 0.2
+        # Too short = didn't understand
+        elif len(text) < 50:
+            confidence = 0.3
+        # No example provided = weak understanding
+        elif "example" not in text or text.count(':') < 2:
+            confidence = 0.4
+        # Missing explanation = incomplete understanding
+        elif "explain" not in text and len(text) < 100:
+            confidence = 0.5
+        # Good response with all components
+        else:
+            confidence = 0.6
+            # Bonus for showing understanding
+            if len(text) > 150:
+                confidence += 0.1
+            if examples and any(ex_word in text for ex_word in ["for example", "such as", "like"]):
+                confidence += 0.1
+
+        print(f"{indent}        → Initial confidence: {confidence:.2f}")
+        return confidence
+
+    def _rehearse_concept(self, concept: str, definition: str, examples: List[str], current_confidence: float, indent: str = "") -> float:
+        """
+        REHEARSAL: Practice applying the concept to improve understanding.
+        Returns updated confidence score.
+        """
+        print(f"{indent}    [R] Rehearsal: Practicing application...")
+
+        # Generate a practice problem
+        practice_prompt = f"""You learned about "{concept}": {definition}
+
+Examples: {', '.join(examples) if examples else 'none'}
+
+Now demonstrate your understanding by:
+1. Solving a NEW problem using this concept
+2. Explaining each step
+3. Stating why each step is necessary
+
+If you can't solve it, explain what's blocking you."""
+
+        response = self.llm.generate(
+            system_prompt="You are practicing a new concept. Show your work step-by-step.",
+            user_input=practice_prompt
+        )
+
+        text = response.get("text", "").lower()
+
+        # Grade the practice attempt
+        new_confidence = current_confidence
+
+        # Check for improvement indicators
+        if "step 1" in text or "first" in text:
+            new_confidence += 0.1  # Showed step-by-step thinking
+        if "because" in text or "therefore" in text or "since" in text:
+            new_confidence += 0.1  # Explained reasoning
+        if len(text) > 200:
+            new_confidence += 0.05  # Detailed response
+        if any(word in text for word in ["solve", "calculate", "apply", "use"]):
+            new_confidence += 0.05  # Active application
+
+        # Check for struggle indicators (don't increase much)
+        if any(phrase in text for phrase in ["can't", "unable", "don't know how", "stuck"]):
+            new_confidence = min(new_confidence, current_confidence + 0.05)
+
+        # Cap at 1.0
+        new_confidence = min(1.0, new_confidence)
+
+        improvement = new_confidence - current_confidence
+        print(f"{indent}        → Confidence: {current_confidence:.2f} → {new_confidence:.2f} (+{improvement:.2f})")
+
+        return new_confidence
+
+    def _generate_additional_examples(self, concept: str, definition: str, indent: str = "") -> List[str]:
+        """Generate additional examples to aid learning."""
+        print(f"{indent}        [+] Generating additional examples...")
+
+        prompt = f"""Generate 2-3 simple, clear examples demonstrating "{concept}".
+
+Definition: {definition}
+
+Provide SHORT, CONCRETE examples with step-by-step solutions.
+Format each as: "Example: [problem] → [solution steps]"
+
+Keep it simple and educational."""
+
+        response = self.llm.generate(
+            system_prompt="You are an educational tutor providing clear examples.",
+            user_input=prompt
+        )
+
+        text = response.get("text", "")
+
+        # Extract examples from response
+        examples = []
+        for line in text.split('\n'):
+            if line.strip() and ('example' in line.lower() or '→' in line or '->' in line):
+                examples.append(line.strip())
+
+        if examples:
+            print(f"{indent}            Added {len(examples)} practice example(s)")
+
+        return examples
+
     async def discover_concept(self, concept: str, needed_for: str) -> bool:
         """
-        Autonomously discover and learn a concept.
+        Autonomously discover and learn a concept with 3-stage learning integration.
         Returns True if successfully learned.
         """
         # Validate concept first
@@ -754,25 +894,88 @@ IMPORTANT:
                 if not self.ltm.has(prereq):
                     await self.discover_concept(prereq, needed_for=concept)
 
+        # ============================================================================
+        # 3-STAGE LEARNING: Surprise → Rehearsal → Transfer (OPTIONAL for quality)
+        # ============================================================================
+        final_confidence = 0.95  # Default confidence (used if rehearsal disabled)
+
+        if self.enable_rehearsal:
+            print(f"{indent}    [~] 3-Stage Learning enabled (quality control)")
+
+            # STAGE 1: SURPRISE EPISODE - Test initial understanding
+            confidence = self._test_concept_understanding(concept, definition, examples, indent)
+
+            if confidence < 0.30:
+                print(f"{indent}        [!] Genuine surprise (new/difficult concept)")
+            elif confidence < 0.70:
+                print(f"{indent}        [i] Partial understanding (needs practice)")
+            else:
+                print(f"{indent}        [✓] Good initial understanding")
+
+            # STAGE 2: REHEARSAL LOOP - Practice until mastery
+            rehearsal_count = 0
+            max_rehearsals = 4
+
+            while confidence < self.target_confidence and rehearsal_count < max_rehearsals:
+                rehearsal_count += 1
+                print(f"{indent}    [R] Rehearsal {rehearsal_count}/{max_rehearsals}...")
+
+                # If struggling, generate additional examples
+                if confidence < 0.50 and rehearsal_count == 2:
+                    additional_examples = self._generate_additional_examples(concept, definition, indent)
+                    examples.extend(additional_examples)
+
+                # Practice applying the concept
+                confidence = self._rehearse_concept(concept, definition, examples, confidence, indent)
+
+                # Check if mastered
+                if confidence >= self.target_confidence:
+                    print(f"{indent}        [✓] Mastered! (confidence: {confidence:.2f})")
+                    break
+                elif rehearsal_count >= max_rehearsals:
+                    print(f"{indent}        [!] Max rehearsals reached (confidence: {confidence:.2f})")
+
+            # STAGE 3: CORTICAL TRANSFER - Store only if confident enough
+            final_confidence = confidence
+
+            if final_confidence >= self.target_confidence:
+                print(f"{indent}    [✓] Transferring to LTM (cortical transfer)")
+                print(f"{indent}        Final confidence: {final_confidence:.2f}")
+            else:
+                print(f"{indent}    [!] Concept not fully mastered")
+                print(f"{indent}        Confidence: {final_confidence:.2f} < Target: {self.target_confidence:.2f}")
+                print(f"{indent}        Storing anyway (will reinforce if needed later)")
+        else:
+            print(f"{indent}    [i] 3-Stage Learning disabled (fast mode)")
+
         # Validate concept before storing (OPTIONAL - can be disabled for speed)
         if self.enable_validation:
             print(f"{indent}    [i] Validating concept...")
             validation_result = self.validator.validate_concept(concept, definition, examples)
-            print(f"{indent}    [i] Confidence: {validation_result.confidence_score:.2f}")
+            print(f"{indent}    [i] Validation confidence: {validation_result.confidence_score:.2f}")
             print(f"{indent}    [i] Sources: {validation_result.sources_verified}")
-            should_store = self.validator.should_store(validation_result, threshold=0.6)
+
+            # Combine rehearsal confidence with validation confidence (average)
+            if self.enable_rehearsal:
+                combined_confidence = (final_confidence + validation_result.confidence_score) / 2
+                print(f"{indent}    [i] Combined confidence: {combined_confidence:.2f} (rehearsal: {final_confidence:.2f}, validation: {validation_result.confidence_score:.2f})")
+            else:
+                combined_confidence = validation_result.confidence_score
+
+            should_store = combined_confidence >= 0.6
         else:
-            # Skip validation for SPEED - assume high confidence
+            # Skip validation for SPEED
             print(f"{indent}    [i] Validation disabled (fast mode)")
             validation_result = ValidationResult(
                 concept=concept,
-                confidence_score=0.95,  # High default confidence
+                confidence_score=final_confidence,  # Use rehearsal confidence
                 sources_verified=1,
-                details="Validation skipped for speed"
+                details=f"Rehearsal confidence: {final_confidence:.2f}" if self.enable_rehearsal else "Fast mode"
             )
+            combined_confidence = final_confidence
             should_store = True  # Always store when validation disabled
 
-        # Store in LTM with validation info
+        # Store in LTM with combined confidence
         entry = LearningEntry(
             concept=concept,
             definition=definition,
@@ -780,7 +983,7 @@ IMPORTANT:
             needed_for=needed_for,
             source="web",
             examples=examples,
-            confidence_score=validation_result.confidence_score,
+            confidence_score=combined_confidence,
             validation_sources=validation_result.sources_verified,
             validation_details=validation_result.details
         )
@@ -819,29 +1022,41 @@ IMPORTANT:
                 else:
                     print(f"{indent}    [i] Could not parse as symbolic equation (text-based learning only)")
 
-            # Log in journal
-            self.journal.append({
+            # Log in journal with confidence breakdown
+            journal_entry = {
                 "type": "concept_learned",
                 "concept": concept,
                 "definition": definition,
                 "needed_for": needed_for,
                 "prerequisites": prerequisites,
                 "depth": self.current_depth,
-                "confidence": validation_result.confidence_score
-            })
+                "confidence": combined_confidence
+            }
+
+            # Add 3-stage learning details if enabled
+            if self.enable_rehearsal:
+                journal_entry["rehearsal_confidence"] = final_confidence
+                journal_entry["rehearsal_enabled"] = True
+
+            if self.enable_validation:
+                journal_entry["validation_confidence"] = validation_result.confidence_score
+
+            self.journal.append(journal_entry)
 
             self.current_depth -= 1
             return True
         else:
-            print(f"{indent}    [✗] Rejected - low confidence ({validation_result.confidence_score:.2f})")
+            print(f"{indent}    [✗] Rejected - low confidence ({combined_confidence:.2f})")
             print(f"{indent}    [!] Try learning from a different source")
 
             # Log rejection in journal
             self.journal.append({
                 "type": "concept_rejected",
                 "concept": concept,
-                "reason": "low_validation_confidence",
-                "confidence": validation_result.confidence_score,
+                "reason": "low_confidence",
+                "confidence": combined_confidence,
+                "rehearsal_confidence": final_confidence if self.enable_rehearsal else None,
+                "validation_confidence": validation_result.confidence_score if self.enable_validation else None,
                 "depth": self.current_depth
             })
 
@@ -1039,7 +1254,14 @@ IMPORTANT:
         print("\n" + "="*60)
 
 
-async def main_self_discovery(goal: str, ltm_path: str = "./ltm_memory.json", max_attempts: int = None, enable_validation: bool = False):
+async def main_self_discovery(
+    goal: str,
+    ltm_path: str = "./ltm_memory.json",
+    max_attempts: int = None,
+    enable_validation: bool = False,
+    enable_rehearsal: bool = True,
+    target_confidence: float = 0.85
+):
     """Run self-discovery learning experiment.
 
     Args:
@@ -1047,11 +1269,15 @@ async def main_self_discovery(goal: str, ltm_path: str = "./ltm_memory.json", ma
         ltm_path: Path to LTM storage file
         max_attempts: Maximum attempts (None = unlimited, will run until success)
         enable_validation: Enable multi-source validation (default: False for speed)
+        enable_rehearsal: Enable 3-stage learning rehearsal (default: True for quality)
+        target_confidence: Mastery threshold for 3-stage learning 0.0-1.0 (default: 0.85)
     """
     orchestrator = SelfDiscoveryOrchestrator(
         goal=goal,
         ltm_path=ltm_path,
-        enable_validation=enable_validation
+        enable_validation=enable_validation,
+        enable_rehearsal=enable_rehearsal,
+        target_confidence=target_confidence
     )
 
     success = await orchestrator.pursue_goal(max_attempts=max_attempts)
