@@ -187,8 +187,8 @@ class SelfDiscoveryOrchestrator:
     def _get_ltm_size(self) -> int:
         """Get number of concepts in LTM (works for both HybridMemory and PersistentLTM)."""
         if self.using_hybrid:
-            # HybridMemory stores concepts in LTM's concept_map
-            return len(self.ltm.ltm.concept_map) if self.ltm.ltm else 0
+            # HybridMemory stores concepts in self.concepts dict
+            return len(self.ltm.concepts)
         else:
             # PersistentLTM stores in knowledge dict
             return len(self.ltm.knowledge)
@@ -196,8 +196,8 @@ class SelfDiscoveryOrchestrator:
     def _get_all_concepts(self) -> List[str]:
         """Get all concept names (works for both HybridMemory and PersistentLTM)."""
         if self.using_hybrid:
-            # HybridMemory stores concepts in LTM's concept_map
-            return list(self.ltm.ltm.concept_map.keys()) if self.ltm.ltm else []
+            # HybridMemory stores concepts in self.concepts dict
+            return list(self.ltm.concepts.keys())
         else:
             # PersistentLTM has get_all_concepts method
             return self.ltm.get_all_concepts()
