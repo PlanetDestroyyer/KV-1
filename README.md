@@ -755,13 +755,7 @@ git push origin feature/amazing-feature
 
 ---
 
-## 📄 License
-
-MIT License - See LICENSE file for details
-
----
-
-## ⚡ Quick Start (TL;DR)
+## ⚠️ Important Notes
 
 ```bash
 # Install
