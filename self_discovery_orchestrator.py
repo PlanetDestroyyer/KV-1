@@ -150,7 +150,7 @@ class SelfDiscoveryOrchestrator:
         # Initialize components
         if use_hybrid_memory and HYBRID_MEMORY_AVAILABLE:
             print("[+] Using Hybrid Memory (STM + LTM + GPU Tensors)")
-            self.ltm = HybridMemory(stm_capacity=7, use_gpu=True)
+            self.ltm = HybridMemory(stm_capacity=7, use_gpu=True, storage_path=ltm_path)
             self.using_hybrid = True
         else:
             print("[+] Using legacy PersistentLTM (string storage)")
