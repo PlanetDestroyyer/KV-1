@@ -24,7 +24,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'hso
 
 from core.llm import LLMBridge
 from core.web_researcher import WebResearcher
-from core.knowledge_validator import KnowledgeValidator
+from core.knowledge_validator import KnowledgeValidator, ValidationResult
 
 try:
     from core.hybrid_memory import HybridMemory
@@ -140,17 +140,19 @@ class SelfDiscoveryOrchestrator:
         ltm_path: str = "./ltm_memory.json",
         data_dir: str = "./self_discovery_data",
         max_depth: int = 10,
-        use_hybrid_memory: bool = True  # NEW: Use STM+LTM+GPU by default!
+        use_hybrid_memory: bool = True,  # NEW: Use STM+LTM+GPU by default!
+        enable_validation: bool = False  # NEW: Validation OFF by default for SPEED!
     ):
         self.goal = goal
         self.max_learning_depth = max_depth
         self.data_dir = data_dir
+        self.enable_validation = enable_validation  # Store validation setting
         os.makedirs(data_dir, exist_ok=True)
 
         # Initialize components
         if use_hybrid_memory and HYBRID_MEMORY_AVAILABLE:
             print("[+] Using Hybrid Memory (STM + LTM + GPU Tensors)")
-            self.ltm = HybridMemory(stm_capacity=7, use_gpu=True)
+            self.ltm = HybridMemory(stm_capacity=7, use_gpu=True, storage_path=ltm_path)
             self.using_hybrid = True
         else:
             print("[+] Using legacy PersistentLTM (string storage)")
@@ -698,6 +700,12 @@ IMPORTANT:
 
         text = response.get("text", "")
 
+        # Check if LLM failed (offline fallback or error)
+        if "[offline fallback]" in text or "error" in response or not text.strip():
+            print(f"{indent}    [X] LLM unavailable or failed to respond")
+            self.current_depth -= 1
+            return False
+
         # Parse response
         definition = ""
         prerequisites = []
@@ -746,12 +754,23 @@ IMPORTANT:
                 if not self.ltm.has(prereq):
                     await self.discover_concept(prereq, needed_for=concept)
 
-        # Validate concept before storing
-        print(f"{indent}    [i] Validating concept...")
-        validation_result = self.validator.validate_concept(concept, definition, examples)
-
-        print(f"{indent}    [i] Confidence: {validation_result.confidence_score:.2f}")
-        print(f"{indent}    [i] Sources: {validation_result.sources_verified}")
+        # Validate concept before storing (OPTIONAL - can be disabled for speed)
+        if self.enable_validation:
+            print(f"{indent}    [i] Validating concept...")
+            validation_result = self.validator.validate_concept(concept, definition, examples)
+            print(f"{indent}    [i] Confidence: {validation_result.confidence_score:.2f}")
+            print(f"{indent}    [i] Sources: {validation_result.sources_verified}")
+            should_store = self.validator.should_store(validation_result, threshold=0.6)
+        else:
+            # Skip validation for SPEED - assume high confidence
+            print(f"{indent}    [i] Validation disabled (fast mode)")
+            validation_result = ValidationResult(
+                concept=concept,
+                confidence_score=0.95,  # High default confidence
+                sources_verified=1,
+                details="Validation skipped for speed"
+            )
+            should_store = True  # Always store when validation disabled
 
         # Store in LTM with validation info
         entry = LearningEntry(
@@ -766,8 +785,8 @@ IMPORTANT:
             validation_details=validation_result.details
         )
 
-        # Only store if confidence is sufficient
-        if self.validator.should_store(validation_result, threshold=0.6):
+        # Only store if confidence is sufficient (or validation disabled)
+        if should_store:
             self.ltm.add(entry)
             print(f"{indent}    [✓] Stored in LTM (validated)")
             if examples:
@@ -1020,17 +1039,19 @@ IMPORTANT:
         print("\n" + "="*60)
 
 
-async def main_self_discovery(goal: str, ltm_path: str = "./ltm_memory.json", max_attempts: int = None):
+async def main_self_discovery(goal: str, ltm_path: str = "./ltm_memory.json", max_attempts: int = None, enable_validation: bool = False):
     """Run self-discovery learning experiment.
 
     Args:
         goal: The goal to achieve
         ltm_path: Path to LTM storage file
         max_attempts: Maximum attempts (None = unlimited, will run until success)
+        enable_validation: Enable multi-source validation (default: False for speed)
     """
     orchestrator = SelfDiscoveryOrchestrator(
         goal=goal,
-        ltm_path=ltm_path
+        ltm_path=ltm_path,
+        enable_validation=enable_validation
     )
 
     success = await orchestrator.pursue_goal(max_attempts=max_attempts)

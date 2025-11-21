@@ -86,7 +86,8 @@ class HybridMemory:
         self,
         stm_capacity: int = 7,
         stm_decay_seconds: float = 300.0,  # 5 minutes (longer than HSOKV default)
-        use_gpu: bool = True
+        use_gpu: bool = True,
+        storage_path: str = "./ltm_memory.json"  # NEW: Persistent storage
     ):
         """
         Initialize hybrid memory.
@@ -95,7 +96,10 @@ class HybridMemory:
             stm_capacity: How many concepts in STM (default: 7 = Miller's number)
             stm_decay_seconds: How long STM items last without access
             use_gpu: Whether to use GPU for LTM (if available)
+            storage_path: Path to save/load concepts from disk
         """
+        self.storage_path = storage_path
+
         # Short-term memory (fast key-value store)
         if HSOKV_AVAILABLE:
             self.stm = ShortTermMemory(
@@ -116,9 +120,13 @@ class HybridMemory:
         # Concept storage (for compatibility)
         self.concepts: Dict[str, ConceptGPU] = {}
 
+        # Load existing concepts from disk
+        self.load()
+
         print(f"[+] Hybrid Memory initialized")
         print(f"    STM: {stm_capacity} slots (O(1) lookup)")
         print(f"    LTM: GPU semantic search" if self.ltm else "    LTM: Disabled")
+        print(f"    Storage: {storage_path}")
 
     def learn(
         self,
@@ -165,6 +173,9 @@ class HybridMemory:
             self.stm[name] = definition
 
         print(f"[Hybrid] Learned '{name}' → STM + LTM")
+
+        # Save to disk for persistence
+        self.save()
 
         return concept
 
@@ -358,6 +369,81 @@ class HybridMemory:
                 self.confidence_score = concept_obj.confidence
 
         return LearningEntryCompat(concept_obj)
+
+    def save(self):
+        """Save all concepts to disk for persistence."""
+        import json
+        try:
+            # Convert concepts to JSON-serializable format
+            data = {}
+            for name, concept in self.concepts.items():
+                data[name] = {
+                    "name": concept.name,
+                    "definition": f"Concept with {len(concept.formulas)} formulas",
+                    "formulas": concept.formulas,
+                    "examples": concept.examples,
+                    "learned_at": concept.learned_at,
+                    "confidence": concept.confidence,
+                    # Store tensor as list for JSON
+                    "tensor": concept.tensor.cpu().numpy().tolist() if TORCH_AVAILABLE else []
+                }
+
+            os.makedirs(os.path.dirname(self.storage_path) or ".", exist_ok=True)
+            with open(self.storage_path, 'w') as f:
+                json.dump(data, f, indent=2)
+
+            print(f"[+] Saved {len(data)} concepts to {self.storage_path}")
+        except Exception as e:
+            print(f"[!] Failed to save concepts: {e}")
+
+    def load(self):
+        """Load concepts from disk."""
+        import json
+        if not os.path.exists(self.storage_path):
+            print(f"[i] No existing memory found at {self.storage_path}, starting fresh")
+            return
+
+        try:
+            with open(self.storage_path, 'r') as f:
+                data = json.load(f)
+
+            loaded_count = 0
+            for name, concept_data in data.items():
+                # Reconstruct concept from saved data
+                if TORCH_AVAILABLE:
+                    import torch
+                    tensor = torch.tensor(concept_data.get("tensor", []))
+                else:
+                    tensor = None
+
+                # Create ConceptGPU object
+                concept = ConceptGPU(
+                    name=concept_data["name"],
+                    tensor=tensor,
+                    formulas=concept_data.get("formulas", []),
+                    examples=concept_data.get("examples", []),
+                    learned_at=concept_data.get("learned_at", ""),
+                    confidence=concept_data.get("confidence", 1.0)
+                )
+
+                self.concepts[name] = concept
+
+                # Also add to LTM if available
+                if self.ltm and tensor is not None:
+                    self.ltm.concepts[name] = concept
+                    if self.ltm.concept_matrix is None:
+                        self.ltm.concept_matrix = tensor.unsqueeze(0)
+                        self.ltm.concept_names = [name]
+                    else:
+                        self.ltm.concept_matrix = torch.cat([self.ltm.concept_matrix, tensor.unsqueeze(0)], dim=0)
+                        self.ltm.concept_names.append(name)
+
+                loaded_count += 1
+
+            print(f"[+] Loaded {loaded_count} concepts from {self.storage_path}")
+        except Exception as e:
+            print(f"[!] Failed to load concepts: {e}")
+            self.concepts = {}
 
     # ===== End compatibility methods =====
 
