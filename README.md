@@ -83,7 +83,43 @@ Then it:
 
 **Demo**: Started with 5 base theorems → Derived 22 new theorems → Found 279 connections
 
-### 4. 💾 Hybrid Memory (Fast + Persistent)
+### 4. 🔄 3-Stage Learning (Quality Control)
+
+**NEW!** Integrates biological learning principles to verify understanding before storing:
+
+```
+STAGE 1: Surprise Episode (Test Understanding)
+   ↓
+   Read concept from web
+   ↓
+   Test: "Can you explain this in your own words?"
+   ↓
+   Confidence: 0.60 (partial understanding)
+
+STAGE 2: Rehearsal Loop (Practice Until Mastery)
+   ↓
+   Rehearsal 1: Practice problem → Confidence: 0.75 (+0.15)
+   ↓
+   Rehearsal 2: Practice problem → Confidence: 0.87 (+0.12)
+   ↓
+   Target reached! (0.87 ≥ 0.85)
+
+STAGE 3: Cortical Transfer (Store When Confident)
+   ↓
+   Final confidence: 0.87
+   ↓
+   Store in LTM ✓
+```
+
+**Why this matters:**
+- ✅ **Quality Control**: Only stores concepts LLM can actually APPLY
+- ✅ **Catches Misunderstandings**: Tests before storing, not after failing
+- ✅ **Adaptive Practice**: More rehearsal for difficult concepts
+- ✅ **Fewer Loops**: Higher first-attempt success rate
+
+**Default**: ON (target confidence: 0.85)
+
+### 5. 💾 Hybrid Memory (Fast + Persistent)
 
 ```
 ┌─────────────┐
@@ -111,7 +147,7 @@ Then it:
 
 **Persistence**: All learned concepts saved to disk after every learn() call
 
-### 5. ✅ Knowledge Validation (Optional)
+### 6. ✅ Knowledge Validation (Optional)
 
 Before storing a concept, KV-1 can:
 - ✅ Search 3+ web sources
@@ -267,6 +303,15 @@ python run_self_discovery.py "express 50 as sum of two primes"
 
 # With validation (slower but more confident)
 python run_self_discovery.py "what is calculus" --validate
+
+# Fast mode (disable 3-stage learning)
+python run_self_discovery.py "solve 3x + 5 = 20" --no-rehearsal
+
+# High quality mode (stricter confidence threshold)
+python run_self_discovery.py "what is a derivative" --target-confidence 0.90
+
+# Maximum quality (validation + 3-stage learning)
+python run_self_discovery.py "explain integration" --validate --target-confidence 0.90
 
 # Use Gemini instead of Ollama
 python run_self_discovery.py "solve x² = 16" \
@@ -536,14 +581,27 @@ export LTM_PATH="./ltm_memory.json"
 python run_self_discovery.py --help
 
 Options:
-  --ltm PATH           Path to LTM storage (default: ./ltm_memory.json)
-  --reset              Reset memory (start fresh)
-  --validate           Enable validation (slower, more confident)
-  --max-attempts N     Max learning attempts (default: unlimited)
-  --provider NAME      LLM provider (ollama/gemini)
-  --model NAME         Model name (qwen3:4b / gemini-2.0-flash-exp)
-  --api-key KEY        API key for cloud provider
+  --ltm PATH              Path to LTM storage (default: ./ltm_memory.json)
+  --reset                 Reset memory (start fresh)
+  --validate              Enable validation (slower, more confident)
+  --no-rehearsal          Disable 3-stage learning (faster, lower quality)
+  --target-confidence N   Mastery threshold 0.0-1.0 (default: 0.85)
+  --max-attempts N        Max learning attempts (default: unlimited)
+  --provider NAME         LLM provider (ollama/gemini)
+  --model NAME            Model name (qwen3:4b / gemini-2.0-flash-exp)
+  --api-key KEY           API key for cloud provider
 ```
+
+### Quality vs Speed Modes
+
+| Mode | Command | Validation | 3-Stage | Speed | Quality |
+|------|---------|-----------|---------|-------|---------|
+| **Fast** | `--no-rehearsal` | OFF | OFF | ⚡⚡⚡ | ⭐⭐ |
+| **Balanced** ✅ | _(default)_ | OFF | ON | ⚡⚡ | ⭐⭐⭐⭐ |
+| **Quality** | `--validate` | ON | ON | ⚡ | ⭐⭐⭐⭐⭐ |
+| **Maximum** | `--validate --target-confidence 0.90` | ON | ON (strict) | ⚡ | ⭐⭐⭐⭐⭐+ |
+
+**Recommended**: Use default (Balanced mode) for best results!
 
 ---
 
@@ -613,6 +671,7 @@ See [CRITICAL_ISSUES_FOUND.md](CRITICAL_ISSUES_FOUND.md) for complete list.
 
 ### ✅ Phase 1: Core Learning System (COMPLETE)
 - [x] Self-discovery learning loop
+- [x] 3-stage learning integration (surprise → rehearsal → transfer)
 - [x] Hybrid memory (STM + LTM + Disk)
 - [x] Neurosymbolic storage (tensors + formulas)
 - [x] MathConnect (symbolic reasoning)
@@ -653,13 +712,15 @@ See [CRITICAL_ISSUES_FOUND.md](CRITICAL_ISSUES_FOUND.md) for complete list.
 
 1. **Goal-Driven Autonomous Learning**: First system to learn ONLY what's needed for current goal
 
-2. **Neurosymbolic Memory**: Stores concepts as text + tensors + symbolic formulas simultaneously
+2. **3-Stage Learning Integration**: Combines self-discovery with biological rehearsal loops for quality control
 
-3. **Symbolic Mathematical Reasoning**: AI that manipulates equations, not just describes them
+3. **Neurosymbolic Memory**: Stores concepts as text + tensors + symbolic formulas simultaneously
 
-4. **Worked Example Extraction**: Learns procedures (HOW), not just definitions (WHAT)
+4. **Symbolic Mathematical Reasoning**: AI that manipulates equations, not just describes them
 
-5. **Persistent Cross-Session Knowledge**: True knowledge accumulation, not ephemeral context
+5. **Worked Example Extraction**: Learns procedures (HOW), not just definitions (WHAT)
+
+6. **Persistent Cross-Session Knowledge**: True knowledge accumulation, not ephemeral context
 
 ### Why This Matters
 
