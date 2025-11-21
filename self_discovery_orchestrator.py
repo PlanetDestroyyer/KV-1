@@ -26,6 +26,13 @@ from core.llm import LLMBridge
 from core.web_researcher import WebResearcher
 from core.knowledge_validator import KnowledgeValidator
 
+try:
+    from core.hybrid_memory import HybridMemory
+    HYBRID_MEMORY_AVAILABLE = True
+except ImportError:
+    HYBRID_MEMORY_AVAILABLE = False
+    print("[!] Hybrid memory not available, using fallback")
+
 
 @dataclass
 class LearningEntry:
@@ -125,7 +132,8 @@ class SelfDiscoveryOrchestrator:
         goal: str,
         ltm_path: str = "./ltm_memory.json",
         data_dir: str = "./self_discovery_data",
-        max_depth: int = 10
+        max_depth: int = 10,
+        use_hybrid_memory: bool = True  # NEW: Use STM+LTM+GPU by default!
     ):
         self.goal = goal
         self.max_learning_depth = max_depth
@@ -133,7 +141,15 @@ class SelfDiscoveryOrchestrator:
         os.makedirs(data_dir, exist_ok=True)
 
         # Initialize components
-        self.ltm = PersistentLTM(ltm_path)
+        if use_hybrid_memory and HYBRID_MEMORY_AVAILABLE:
+            print("[+] Using Hybrid Memory (STM + LTM + GPU Tensors)")
+            self.ltm = HybridMemory(stm_capacity=7, use_gpu=True)
+            self.using_hybrid = True
+        else:
+            print("[+] Using legacy PersistentLTM (string storage)")
+            self.ltm = PersistentLTM(ltm_path)
+            self.using_hybrid = False
+
         self.llm = LLMBridge(provider="ollama", default_model="qwen3:4b")
         self.web_researcher = WebResearcher(
             cache_dir=os.path.join(data_dir, "web_cache"),
