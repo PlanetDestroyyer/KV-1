@@ -63,6 +63,19 @@ except ImportError as e:
     UNIFIED_AGI_AVAILABLE = False
     print(f"[!] Unified AGI learner not available: {e}")
 
+# NEXT-LEVEL AGI MODULES (Self-Improving AI!)
+try:
+    from core.transfer_learning import TransferLearner
+    from core.analogical_reasoning import AnalogyEngine
+    from core.self_prompt_optimizer import SelfPromptOptimizer
+    from core.explainable_reasoning import ExplainableReasoner
+    from core.advanced_reasoning import AdvancedReasoner
+    ADVANCED_AGI_AVAILABLE = True
+    print("[+] ✨ ADVANCED AGI MODULES LOADED ✨")
+except ImportError as e:
+    ADVANCED_AGI_AVAILABLE = False
+    print(f"[!] Advanced AGI modules not available: {e}")
+
 
 @dataclass
 class LearningEntry:
@@ -241,6 +254,45 @@ class SelfDiscoveryOrchestrator:
         else:
             self.unified_learner = None
             self.using_unified_agi = False
+
+        # Initialize ADVANCED AGI modules (Next-Level Intelligence!)
+        if ADVANCED_AGI_AVAILABLE:
+            print("[+] Initializing ADVANCED AGI modules...")
+
+            # Get embedder from memory if available
+            embedder = getattr(self.ltm, 'embedder', None) if self.using_hybrid else None
+
+            # Transfer Learning - Apply knowledge across domains
+            self.transfer_learner = TransferLearner(self.ltm, embedder)
+            print("[+] ✨ Transfer Learning: Cross-domain knowledge transfer")
+
+            # Analogical Reasoning - Solve by analogy
+            self.analogy_engine = AnalogyEngine(self.ltm, self.llm)
+            print("[+] ✨ Analogical Reasoning: A:B :: C:? problem solving")
+
+            # Self-Prompt Optimizer - SYSTEM IMPROVES ITSELF!
+            self.prompt_optimizer = SelfPromptOptimizer(
+                storage_path=os.path.join(data_dir, "prompt_optimization.json")
+            )
+            print("[+] ✨ Self-Prompt Optimization: System evolves its own prompts!")
+
+            # Explainable Reasoning + Active Learning
+            self.explainer = ExplainableReasoner(self.llm)
+            print("[+] ✨ Explainable Reasoning: Clear step-by-step explanations")
+
+            # Advanced Reasoning (Common Sense + Hypothesis + Continual Learning)
+            self.advanced_reasoner = AdvancedReasoner(self.llm, self.ltm)
+            print("[+] ✨ Advanced Reasoning: Common sense, hypothesis testing, continual learning")
+
+            self.using_advanced_agi = True
+            print("[+] ✅ ADVANCED AGI READY: Self-improving, explainable, cross-domain intelligence!")
+        else:
+            self.transfer_learner = None
+            self.analogy_engine = None
+            self.prompt_optimizer = None
+            self.explainer = None
+            self.advanced_reasoner = None
+            self.using_advanced_agi = False
 
         # Learning journal
         self.journal: List[Dict] = []
