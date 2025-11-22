@@ -246,8 +246,8 @@ async def ask_question(question, max_attempts=3):
     cmd = [
         "python", "run_self_discovery.py",
         question,
-        "--max-attempts", str(max_attempts),
-        "--no-rehearsal"  # Faster mode for curriculum
+        "--max-attempts", str(max_attempts)
+        # 3-stage learning ENABLED for better quality and depth
     ]
 
     try:
