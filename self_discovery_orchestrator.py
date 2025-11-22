@@ -560,31 +560,37 @@ CURRENT KNOWLEDGE BASE (concepts you have learned):
 GOAL: {self.goal}
 
 INSTRUCTIONS:
-1. Try to solve the problem using the concepts in your KNOWLEDGE BASE
-2. If you can solve it, provide the answer with your reasoning
-3. If you're missing ANY required concepts to solve this, report them as MISSING
+1. Try to solve the problem using ONLY the concepts in your KNOWLEDGE BASE above
+2. If your knowledge base is empty or missing required concepts, you MUST report what's missing
+3. If you can solve it with available knowledge, provide the answer
 
 IMPORTANT - Be SPECIFIC about what's missing:
 - If you know WHAT something is but not HOW to calculate/apply it, say "how to [action]" or "[specific rule/formula]"
-- Example: Instead of "derivatives", say "power rule for derivatives" or "how to differentiate polynomials"
-- Example: Instead of "sequences", say "Collatz sequence generation rule" or "sequence formula"
+- Example: Instead of "derivatives", say "power rule for derivatives"
+- Example: Instead of "sequences", say "Collatz sequence generation rule"
 - Focus on the SPECIFIC PROCEDURES, FORMULAS, or RULES needed
 
-Respond in this format:
-SUCCESS: [yes/no]
-ANSWER: [your answer if successful, or "cannot complete" if not]
-MISSING: [comma-separated list of SPECIFIC concepts/rules/formulas you need, or "none" if successful]
-REASONING: [brief explanation]"""
+YOU MUST respond in this EXACT format (not JSON, not other format):
+SUCCESS: yes
+ANSWER: [your answer]
+MISSING: [concepts needed, or "none"]
+REASONING: [brief explanation]
+
+Example when knowledge is missing:
+SUCCESS: no
+ANSWER: cannot complete
+MISSING: exponential growth formula, division
+REASONING: I need to know exponential decay to work backward from current population"""
 
         response = self.llm.generate(
-            system_prompt="You are a self-learning AI with a knowledge base of learned concepts. Try to solve problems using your knowledge base. If you're missing required concepts, report them specifically so they can be learned. Be intelligent about applying what you know.",
+            system_prompt="You are a self-learning AI. You MUST respond in the exact format requested (SUCCESS:/ANSWER:/MISSING:/REASONING:). DO NOT use JSON format. If your knowledge base is empty, you MUST report missing concepts.",
             user_input=prompt
         )
 
         text = response.get("text", "")
         print(f"\n[i] Response:\n{text}\n")
 
-        # Parse response
+        # Parse response - try standard format first
         lines = text.split('\n')
         success = False
         result = ""
@@ -602,6 +608,53 @@ REASONING: [brief explanation]"""
                     missing = [self._clean_concept_name(m.strip()) for m in missing_str.split(",")]
                     # Filter out empty/invalid concepts after cleaning
                     missing = [m for m in missing if m and len(m) >= 2]
+
+        # FALLBACK: Try JSON parsing if standard format not found
+        if not any(line.startswith("SUCCESS:") for line in lines):
+            print("[!] LLM didn't follow format, trying JSON parsing...")
+            try:
+                import json
+                # Try to parse as JSON
+                json_data = json.loads(text)
+                if "solution" in json_data:
+                    result = str(json_data["solution"])
+                if "missing_concepts" in json_data:
+                    if json_data["missing_concepts"]:
+                        missing = json_data["missing_concepts"]
+                    success = len(json_data["missing_concepts"]) == 0
+                elif "answer" in json_data:
+                    result = str(json_data["answer"])
+                    success = True
+                print(f"[i] Parsed JSON: success={success}, answer={result}, missing={missing}")
+            except:
+                print("[!] JSON parsing also failed, using fallback detection...")
+
+        # CRITICAL FIX: Override if LLM claims success with empty knowledge base
+        # This prevents the LLM from bypassing the learning system by using pre-trained knowledge
+        ltm_size = self._get_ltm_size()
+        if success and ltm_size == 0 and not missing:
+            print("[!] OVERRIDE: Knowledge base is empty but LLM claims success")
+            print("[!] LLM is using pre-trained knowledge - forcing learning mode")
+            success = False
+            # Extract what concepts would be needed from the goal
+            goal_lower = self.goal.lower()
+            # Infer missing concepts from the problem domain
+            if "bacteria" in goal_lower or "double" in goal_lower or "exponential" in goal_lower:
+                missing = ["exponential growth and decay", "division", "working backward in time"]
+            elif "collatz" in goal_lower or "sequence" in goal_lower:
+                missing = ["Collatz sequence generation rule", "recursive sequence application"]
+            elif "derivative" in goal_lower or "calculus" in goal_lower:
+                missing = ["power rule for derivatives", "chain rule", "differentiation"]
+            elif "factor" in goal_lower or "polynomial" in goal_lower:
+                missing = ["polynomial factorization", "quadratic formula", "algebraic manipulation"]
+            else:
+                # Generic: try to extract concepts from goal
+                # Look for mathematical operations
+                if any(op in goal_lower for op in ["add", "subtract", "multiply", "divide", "calculate"]):
+                    missing = ["arithmetic operations", "mathematical reasoning"]
+                else:
+                    missing = ["problem solving strategy", "domain-specific knowledge"]
+            print(f"[i] Forced missing concepts: {missing}")
 
         # Fallback: Smart detection for natural language responses
         # If no explicit SUCCESS: was found, try to detect success from the response
