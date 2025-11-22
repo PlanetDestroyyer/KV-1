@@ -253,18 +253,16 @@ async def ask_question(question):
 
     try:
         # DON'T capture output - let it print in real-time so you see the learning process!
+        # NO TIMEOUT - will run forever until goal is achieved (like a real human!)
         result = subprocess.run(
             cmd,
             capture_output=False,  # Show all output in real-time!
-            text=True,
-            timeout=600  # 10 minute timeout (increased from 5)
+            text=True
+            # No timeout! Will run until success, no matter how long it takes
         )
 
         success = result.returncode == 0
         return success, "Completed"
-    except subprocess.TimeoutExpired:
-        print("[!] Timeout after 10 minutes - question too complex")
-        return False, "Timeout after 10 minutes"
     except Exception as e:
         import traceback
         traceback.print_exc()
