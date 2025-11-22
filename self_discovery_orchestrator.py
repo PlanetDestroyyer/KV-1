@@ -635,11 +635,7 @@ CONCEPTS: concept1, concept2, concept3"""
         Attempt to achieve the goal with current knowledge.
         Returns success status and what concepts are missing.
 
-        NEW FLOW:
-        1. Extract concepts from goal (BEFORE attempting)
-        2. Check which exist in LTM
-        3. Report missing concepts for learning
-        4. Attempt with available knowledge
+        The LLM will try to solve AND report what concepts it needs.
         """
         self.attempts += 1
         print(f"\n{'='*60}")
@@ -648,33 +644,6 @@ CONCEPTS: concept1, concept2, concept3"""
         print(f"Goal: {self.goal}")
         print(f"Known concepts: {self._get_ltm_size()}")
 
-        # STEP 1: Extract what concepts are needed (NEW!)
-        print(f"\n[→] Extracting required concepts from goal...")
-        needed_concepts = self._extract_concepts_from_goal(self.goal)
-        if needed_concepts:
-            print(f"[i] Needed concepts: {', '.join(needed_concepts)}")
-
-            # STEP 2: Check which concepts exist in LTM (NEW!)
-            known = []
-            missing = []
-            for concept in needed_concepts:
-                if self._concept_exists_in_ltm(concept):
-                    known.append(concept)
-                else:
-                    missing.append(concept)
-
-            if known:
-                print(f"[✓] Known: {', '.join(known)}")
-            if missing:
-                print(f"[!] Missing: {', '.join(missing)}")
-                # Return early with missing concepts for learning
-                return GoalAttempt(
-                    success=False,
-                    result="",
-                    missing_concepts=missing
-                )
-
-        # STEP 3: Attempt with available knowledge
         # Build prompt with current knowledge
         knowledge_summary = self._get_knowledge_summary()
 
