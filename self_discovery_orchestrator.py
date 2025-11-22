@@ -163,7 +163,7 @@ class SelfDiscoveryOrchestrator:
             self.ltm = PersistentLTM(ltm_path)
             self.using_hybrid = False
 
-        self.llm = LLMBridge(provider="ollama", default_model="qwen2.5:3b")
+        self.llm = LLMBridge(provider="ollama", default_model="qwen3:4b")
         self.web_researcher = WebResearcher(
             cache_dir=os.path.join(data_dir, "web_cache"),
             daily_cap=100
