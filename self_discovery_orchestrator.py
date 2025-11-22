@@ -982,9 +982,10 @@ IMPORTANT:
             # Skip validation for SPEED
             print(f"{indent}    [i] Validation disabled (fast mode)")
             validation_result = ValidationResult(
-                concept=concept,
                 confidence_score=final_confidence,  # Use rehearsal confidence
                 sources_verified=1,
+                examples_valid=True,  # Assume valid in fast mode
+                self_test_passed=True,  # Assume passed in fast mode
                 details=f"Rehearsal confidence: {final_confidence:.2f}" if self.enable_rehearsal else "Fast mode"
             )
             combined_confidence = final_confidence
