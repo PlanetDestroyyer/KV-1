@@ -1,0 +1,30 @@
+# ============================================================
+# KV-1 AGI System - Minimal Core Dependencies
+# ============================================================
+# Install core only: pip install -r requirements-minimal.txt
+# This installs ONLY what's needed for basic functionality
+# ============================================================
+
+# Core Tensor & Math
+torch>=2.0.0
+numpy>=1.24.0
+sympy>=1.12
+
+# Semantic Embeddings
+sentence-transformers>=2.2.0
+
+# Web Research
+beautifulsoup4>=4.12.0
+requests>=2.31.0
+lxml>=4.9.0
+
+# LLM Integration
+ollama>=0.3.0
+
+# Utilities
+python-dotenv>=1.0.0
+
+# ============================================================
+# Total: 10 core packages for full KV-1 functionality
+# For full feature set, use: pip install -r requirements.txt
+# ============================================================

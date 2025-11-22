@@ -1,20 +1,104 @@
-# KV-1 Core Dependencies
+# ============================================================
+# KV-1 AGI System - Complete Dependency List
+# ============================================================
+# Install all: pip install -r requirements.txt
+# ============================================================
 
-# Note: HSOKV is required for memory system
-# Install from: https://github.com/PlanetDestroyyer/hsokv
-# Will be added as git submodule or installed separately
+# ============================================================
+# CORE TENSOR & MATHEMATICAL REASONING
+# ============================================================
+torch>=2.0.0                    # PyTorch for GPU-accelerated tensors & neural operations
+numpy>=1.24.0                   # Array operations & numerical computing
+sympy>=1.12                     # Symbolic mathematics (MathConnect + Tensor Reasoning)
+scipy>=1.10.0                   # Scientific computing & optimization
 
-# Core Libraries
-torch>=2.0.0                    # PyTorch for GPU-accelerated tensors
-sentence-transformers>=2.2.0    # Semantic embeddings (384-D vectors)
-sympy>=1.12                     # Symbolic mathematics (MathConnect)
-numpy>=1.24.0                   # Array operations
+# ============================================================
+# SEMANTIC EMBEDDINGS & NLP
+# ============================================================
+sentence-transformers>=2.2.0    # Semantic embeddings (384-D vectors for knowledge space)
+transformers>=4.30.0            # Hugging Face transformers (for embeddings)
 
-# Web & API
+# ============================================================
+# WEB RESEARCH & DATA FETCHING
+# ============================================================
 requests>=2.31.0                # HTTP requests for web research
 beautifulsoup4>=4.12.0          # HTML parsing for web scraping
-ollama>=0.3.0                   # Local LLM (qwen3:4b thinking model)
-google-generativeai>=0.3.0      # Optional: Gemini API support
+lxml>=4.9.0                     # Fast XML/HTML parser (used by BeautifulSoup)
+urllib3>=2.0.0                  # HTTP client library
 
-# Utilities
-python-dotenv>=1.0.0            # Environment variable management
+# ============================================================
+# LLM INTEGRATION
+# ============================================================
+ollama>=0.3.0                   # Local LLM integration (primary: qwen2.5:7b-instruct)
+google-generativeai>=0.3.0      # Optional: Google Gemini API support
+openai>=1.0.0                   # Optional: OpenAI API support
+
+# ============================================================
+# DATA STRUCTURES & UTILITIES
+# ============================================================
+pydantic>=2.0.0                 # Data validation and settings management
+python-dotenv>=1.0.0            # Environment variable management (.env files)
+dataclasses-json>=0.6.0         # JSON serialization for dataclasses
+
+# ============================================================
+# ASYNC & PARALLEL PROCESSING
+# ============================================================
+asyncio-pool>=0.6.0             # Async task pool management
+aiohttp>=3.9.0                  # Async HTTP client/server
+
+# ============================================================
+# LOGGING & MONITORING
+# ============================================================
+colorlog>=6.7.0                 # Colored logging output
+tqdm>=4.65.0                    # Progress bars
+
+# ============================================================
+# TESTING & DEVELOPMENT (Optional)
+# ============================================================
+pytest>=7.0.0                   # Testing framework
+pytest-asyncio>=0.21.0          # Async test support
+pytest-cov>=4.0.0               # Test coverage reporting
+black>=23.0.0                   # Code formatting
+mypy>=1.0.0                     # Static type checking
+
+# ============================================================
+# VISUALIZATION & BENCHMARKING (Optional)
+# ============================================================
+matplotlib>=3.5.0               # Plotting and visualization
+seaborn>=0.12.0                 # Statistical data visualization
+plotly>=5.14.0                  # Interactive plots
+pandas>=2.0.0                   # Data analysis
+
+# ============================================================
+# SPECIALIZED ML LIBRARIES (Optional)
+# ============================================================
+datasets>=2.14.0                # Hugging Face datasets (for benchmarks)
+accelerate>=0.20.0              # Training acceleration (multi-GPU, mixed precision)
+safetensors>=0.3.0              # Safe tensor serialization
+
+# ============================================================
+# HSOKV MEMORY SYSTEM
+# ============================================================
+# Note: HSOKV (High-Speed O(1) Knowledge Vault) is a custom module
+# Install separately from: https://github.com/PlanetDestroyyer/hsokv
+# Or it's included as a submodule in this repository at ./hsokv/
+#
+# HSOKV Dependencies (if not installing HSOKV separately):
+# - Already included above: torch, numpy, sentence-transformers, transformers
+
+# ============================================================
+# SYSTEM-SPECIFIC NOTES
+# ============================================================
+#
+# GPU Support:
+# - For CUDA 11.8: pip install torch --index-url https://download.pytorch.org/whl/cu118
+# - For CUDA 12.1: pip install torch --index-url https://download.pytorch.org/whl/cu121
+# - For CPU only: pip install torch --index-url https://download.pytorch.org/whl/cpu
+#
+# Minimal Install (Core only):
+#   torch numpy sympy sentence-transformers beautifulsoup4 requests ollama python-dotenv
+#
+# Full Install (All features):
+#   pip install -r requirements.txt
+#
+# ============================================================
