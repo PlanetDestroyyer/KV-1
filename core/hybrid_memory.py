@@ -352,6 +352,30 @@ class HybridMemory:
 
         Returns LearningEntry-like object or None.
         """
+        # BUG FIX: Try exact match FIRST before semantic search
+        # This prevents the issue where concepts in the dict can't be retrieved
+        # due to low semantic similarity threshold
+        if name in self.concepts:
+            concept_obj = self.concepts[name]
+            if concept_obj:
+                # Create LearningEntry-compatible object
+                class LearningEntryCompat:
+                    def __init__(self, concept_obj):
+                        self.concept = concept_obj.name
+                        self.definition = f"Tensor concept with {len(concept_obj.formulas)} formulas"
+                        self.learned_at = concept_obj.learned_at
+                        self.needed_for = ""
+                        self.source = "neurosymbolic"
+                        self.examples = concept_obj.examples
+                        self.confidence_score = concept_obj.confidence
+
+                        # BUG FIX: Add actual text definition if available
+                        if hasattr(concept_obj, 'definition') and concept_obj.definition:
+                            self.definition = concept_obj.definition
+
+                return LearningEntryCompat(concept_obj)
+
+        # Fall back to semantic search if exact match not found
         result = self.recall(name, threshold=0.7)
         if not result:
             return None
@@ -423,7 +447,7 @@ class HybridMemory:
 
                 data[name] = {
                     "name": concept.name,
-                    "definition": f"Concept with {len(concept.formulas)} formulas",
+                    "definition": concept.definition if hasattr(concept, 'definition') and concept.definition else f"Concept with {len(concept.formulas)} formulas",  # BUG FIX: Save actual definition
                     "formulas": concept.formulas,
                     "examples": concept.examples,
                     "learned_at": concept.learned_at,
@@ -484,7 +508,8 @@ class HybridMemory:
                     formulas=concept_data.get("formulas", []),
                     examples=concept_data.get("examples", []),
                     learned_at=concept_data.get("learned_at", ""),
-                    confidence=concept_data.get("confidence", 1.0)
+                    confidence=concept_data.get("confidence", 1.0),
+                    definition=concept_data.get("definition", "")  # BUG FIX: Load definition
                 )
 
                 self.concepts[name] = concept

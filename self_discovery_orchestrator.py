@@ -387,9 +387,21 @@ class SelfDiscoveryOrchestrator:
         summary = f"You currently know these {len(concepts)} concepts:\n"
         for concept in sorted(concepts)[:20]:  # Limit to avoid context overflow
             entry = self.ltm.get(concept)
-            summary += f"- {concept}: {entry.definition[:100]}...\n"
+
+            # BUG FIX: Check if entry exists before accessing definition
+            if entry is None:
+                print(f"[!] Warning: Concept '{concept}' in list but not found in LTM")
+                continue
+
+            # Safely get definition with fallback
+            definition = getattr(entry, 'definition', 'No definition available')
+            if definition:
+                summary += f"- {concept}: {definition[:100]}...\n"
+            else:
+                summary += f"- {concept}: (concept learned)\n"
+
             # Include examples if available - these are CRITICAL for learning HOW to apply concepts
-            if entry.examples:
+            if hasattr(entry, 'examples') and entry.examples:
                 for ex in entry.examples[:2]:  # Show up to 2 examples
                     summary += f"  Example: {ex}\n"
 
@@ -887,7 +899,12 @@ IMPORTANT:
 
         if not definition:
             # Fallback: use first substantial line
-            definition = text.strip().split('\n')[0]
+            lines = text.strip().split('\n')
+            definition = lines[0] if lines else "No definition available"
+
+        # BUG FIX: Ensure definition is not empty
+        if not definition:
+            definition = "Concept learned (no definition extracted)"
 
         print(f"{indent}    [i] Definition: {definition[:100]}...")
         if examples:
