@@ -537,10 +537,109 @@ class SelfDiscoveryOrchestrator:
 
         return summary
 
+    def _extract_concepts_from_goal(self, goal: str) -> List[str]:
+        """
+        Extract what concepts are needed to solve this goal.
+        This happens BEFORE attempting, so we can check what exists in LTM.
+        """
+        prompt = f"""Analyze this problem and identify the SPECIFIC CONCEPTS needed to solve it.
+
+PROBLEM: {goal}
+
+List the specific mathematical/domain concepts, formulas, rules, or procedures needed.
+Be specific (e.g., "exponential growth formula" not just "exponential").
+
+Respond with ONLY a comma-separated list of concepts:
+CONCEPTS: concept1, concept2, concept3"""
+
+        response = self.llm.generate(
+            system_prompt="You are analyzing what knowledge is needed for a problem. List only the specific concepts required.",
+            user_input=prompt
+        )
+
+        text = response.get("text", "")
+
+        # Extract concepts from response
+        concepts = []
+        for line in text.split('\n'):
+            if line.startswith("CONCEPTS:"):
+                concept_str = line.split(":", 1)[1].strip()
+                concepts = [self._clean_concept_name(c.strip()) for c in concept_str.split(",")]
+                concepts = [c for c in concepts if c and len(c) >= 2]
+                break
+
+        # Fallback: try to extract any comma-separated list
+        if not concepts and "," in text:
+            concepts = [self._clean_concept_name(c.strip()) for c in text.split(",")]
+            concepts = [c for c in concepts if c and len(c) >= 2 and len(c) < 100]
+
+        return concepts[:10]  # Max 10 concepts per problem
+
+    def _concept_exists_in_ltm(self, concept: str, threshold: float = 0.85) -> bool:
+        """
+        Check if a concept exists in LTM using vector similarity search.
+        Returns True if a similar concept is found with similarity >= threshold.
+        """
+        if self._get_ltm_size() == 0:
+            return False
+
+        if self.using_hybrid:
+            # Use HybridMemory's semantic search
+            concept_lower = concept.lower()
+
+            # First try exact match (case-insensitive)
+            for stored_concept in self.ltm.concepts.keys():
+                if stored_concept.lower() == concept_lower:
+                    return True
+
+            # Then try vector similarity
+            if hasattr(self.ltm, 'embedder'):
+                query_embedding = self.ltm.embedder.encode(concept)
+
+                for stored_concept, concept_data in self.ltm.concepts.items():
+                    if hasattr(concept_data, 'tensor'):
+                        # Compute cosine similarity
+                        import torch
+                        similarity = torch.nn.functional.cosine_similarity(
+                            torch.tensor(query_embedding).unsqueeze(0),
+                            torch.tensor(concept_data.tensor).unsqueeze(0)
+                        ).item()
+
+                        if similarity >= threshold:
+                            return True
+
+            # Fallback: keyword matching
+            words = set(concept_lower.split())
+            for stored_concept in self.ltm.concepts.keys():
+                stored_words = set(stored_concept.lower().split())
+                overlap = len(words & stored_words) / min(len(words), len(stored_words)) if words and stored_words else 0
+                if overlap >= 0.7:
+                    return True
+        else:
+            # PersistentLTM - simple keyword check
+            concept_lower = concept.lower()
+            for stored_concept in self.ltm.knowledge.keys():
+                if stored_concept.lower() == concept_lower:
+                    return True
+                # Check word overlap
+                words = set(concept_lower.split())
+                stored_words = set(stored_concept.lower().split())
+                overlap = len(words & stored_words) / min(len(words), len(stored_words)) if words and stored_words else 0
+                if overlap >= 0.7:
+                    return True
+
+        return False
+
     async def attempt_goal(self) -> GoalAttempt:
         """
         Attempt to achieve the goal with current knowledge.
         Returns success status and what concepts are missing.
+
+        NEW FLOW:
+        1. Extract concepts from goal (BEFORE attempting)
+        2. Check which exist in LTM
+        3. Report missing concepts for learning
+        4. Attempt with available knowledge
         """
         self.attempts += 1
         print(f"\n{'='*60}")
@@ -549,6 +648,33 @@ class SelfDiscoveryOrchestrator:
         print(f"Goal: {self.goal}")
         print(f"Known concepts: {self._get_ltm_size()}")
 
+        # STEP 1: Extract what concepts are needed (NEW!)
+        print(f"\n[→] Extracting required concepts from goal...")
+        needed_concepts = self._extract_concepts_from_goal(self.goal)
+        if needed_concepts:
+            print(f"[i] Needed concepts: {', '.join(needed_concepts)}")
+
+            # STEP 2: Check which concepts exist in LTM (NEW!)
+            known = []
+            missing = []
+            for concept in needed_concepts:
+                if self._concept_exists_in_ltm(concept):
+                    known.append(concept)
+                else:
+                    missing.append(concept)
+
+            if known:
+                print(f"[✓] Known: {', '.join(known)}")
+            if missing:
+                print(f"[!] Missing: {', '.join(missing)}")
+                # Return early with missing concepts for learning
+                return GoalAttempt(
+                    success=False,
+                    result="",
+                    missing_concepts=missing
+                )
+
+        # STEP 3: Attempt with available knowledge
         # Build prompt with current knowledge
         knowledge_summary = self._get_knowledge_summary()
 
@@ -628,33 +754,6 @@ REASONING: I need to know exponential decay to work backward from current popula
                 print(f"[i] Parsed JSON: success={success}, answer={result}, missing={missing}")
             except:
                 print("[!] JSON parsing also failed, using fallback detection...")
-
-        # CRITICAL FIX: Override if LLM claims success with empty knowledge base
-        # This prevents the LLM from bypassing the learning system by using pre-trained knowledge
-        ltm_size = self._get_ltm_size()
-        if success and ltm_size == 0 and not missing:
-            print("[!] OVERRIDE: Knowledge base is empty but LLM claims success")
-            print("[!] LLM is using pre-trained knowledge - forcing learning mode")
-            success = False
-            # Extract what concepts would be needed from the goal
-            goal_lower = self.goal.lower()
-            # Infer missing concepts from the problem domain
-            if "bacteria" in goal_lower or "double" in goal_lower or "exponential" in goal_lower:
-                missing = ["exponential growth and decay", "division", "working backward in time"]
-            elif "collatz" in goal_lower or "sequence" in goal_lower:
-                missing = ["Collatz sequence generation rule", "recursive sequence application"]
-            elif "derivative" in goal_lower or "calculus" in goal_lower:
-                missing = ["power rule for derivatives", "chain rule", "differentiation"]
-            elif "factor" in goal_lower or "polynomial" in goal_lower:
-                missing = ["polynomial factorization", "quadratic formula", "algebraic manipulation"]
-            else:
-                # Generic: try to extract concepts from goal
-                # Look for mathematical operations
-                if any(op in goal_lower for op in ["add", "subtract", "multiply", "divide", "calculate"]):
-                    missing = ["arithmetic operations", "mathematical reasoning"]
-                else:
-                    missing = ["problem solving strategy", "domain-specific knowledge"]
-            print(f"[i] Forced missing concepts: {missing}")
 
         # Fallback: Smart detection for natural language responses
         # If no explicit SUCCESS: was found, try to detect success from the response
