@@ -73,16 +73,40 @@ class GoalPlanner:
         domain: str,
         max_depth: int,
         current_depth: int = 0,
-        visited: Optional[Set[str]] = None
+        visited: Optional[Set[str]] = None,
+        max_nodes: int = 50
     ):
         """
-        Recursively build dependency graph.
+        Recursively build dependency graph with circular dependency detection.
+
+        Args:
+            max_nodes: Maximum total nodes to prevent graph explosion (default: 50)
         """
         if visited is None:
             visited = set()
 
-        if concept in visited or current_depth > max_depth:
+        # CRITICAL FIX: Proper depth check (use >= not >)
+        if current_depth >= max_depth:
+            print(f"[!] Max depth {max_depth} reached for '{concept}', stopping recursion")
             return
+
+        # CRITICAL FIX: Prevent graph explosion
+        if len(self.graph) >= max_nodes:
+            print(f"[!] Max nodes ({max_nodes}) reached, stopping graph building to prevent memory explosion")
+            return
+
+        # CRITICAL FIX: Check for exact duplicates first
+        if concept in visited:
+            print(f"[!] Circular dependency detected: '{concept}' already in current path")
+            return
+
+        # CRITICAL FIX: Check for semantic duplicates (e.g., "sets" vs "set theory")
+        concept_lower = concept.lower()
+        for visited_concept in visited:
+            # Check if this is semantically the same concept
+            if self._are_concepts_similar(concept_lower, visited_concept.lower()):
+                print(f"[!] Semantic circular dependency: '{concept}' is similar to '{visited_concept}'")
+                return
 
         visited.add(concept)
 
@@ -96,19 +120,82 @@ class GoalPlanner:
             )
             prereqs = relevant
 
+        # CRITICAL FIX: Detect circular references in prerequisites
+        prereqs_clean = []
+        for prereq in prereqs:
+            prereq_lower = prereq.lower()
+            # Check if prerequisite is the concept itself or very similar
+            if self._are_concepts_similar(concept_lower, prereq_lower):
+                print(f"[!] Self-dependency detected: '{concept}' requires '{prereq}' (skipping)")
+                continue
+            # Check if prerequisite is already an ancestor (would create cycle)
+            is_ancestor = False
+            for ancestor in visited:
+                if self._are_concepts_similar(prereq_lower, ancestor.lower()):
+                    print(f"[!] Ancestor dependency detected: '{prereq}' would create cycle with '{ancestor}'")
+                    is_ancestor = True
+                    break
+            if not is_ancestor:
+                prereqs_clean.append(prereq)
+
         # Create node
         node = ConceptNode(
             name=concept,
-            prerequisites=prereqs,
+            prerequisites=prereqs_clean,
             level=current_depth
         )
         self.graph[concept] = node
 
         # Build adjacency list
-        for prereq in prereqs:
+        for prereq in prereqs_clean:
             self.adjacency[concept].append(prereq)
-            # Recurse
-            await self._build_graph(prereq, domain, max_depth, current_depth + 1, visited)
+            # Recurse with updated visited set
+            await self._build_graph(prereq, domain, max_depth, current_depth + 1, visited.copy(), max_nodes)
+
+    def _are_concepts_similar(self, concept1: str, concept2: str) -> bool:
+        """
+        Check if two concepts are semantically similar to detect circular dependencies.
+
+        Examples of similar concepts:
+        - "sets" vs "set theory" vs "set concepts"
+        - "variables" vs "variable" vs "algebraic variables"
+        - "equality" vs "equation" vs "equality properties"
+        """
+        # Exact match
+        if concept1 == concept2:
+            return True
+
+        # Remove common suffixes/prefixes
+        concept1_clean = concept1.replace(" theory", "").replace(" concepts", "").replace(" properties", "")
+        concept2_clean = concept2.replace(" theory", "").replace(" concepts", "").replace(" properties", "")
+
+        # Check if one is a substring of the other (with word boundaries)
+        words1 = set(concept1_clean.split())
+        words2 = set(concept2_clean.split())
+
+        # If they share most words, they're likely the same concept
+        if len(words1) > 0 and len(words2) > 0:
+            shared = words1 & words2
+            # If 80% of words overlap, consider similar
+            overlap_ratio = len(shared) / min(len(words1), len(words2))
+            if overlap_ratio >= 0.8:
+                return True
+
+        # Check singular/plural forms
+        import re
+        singular1 = re.sub(r's$', '', concept1_clean)
+        singular2 = re.sub(r's$', '', concept2_clean)
+        if singular1 == singular2:
+            return True
+
+        # Check if one contains the other (for cases like "set" vs "set theory")
+        if concept1_clean in concept2_clean or concept2_clean in concept1_clean:
+            # But only if the contained part is significant (>3 chars)
+            shorter = min(concept1_clean, concept2_clean, key=len)
+            if len(shorter) > 3:
+                return True
+
+        return False
 
     async def _get_prerequisites(self, concept: str, domain: str) -> List[str]:
         """

@@ -500,17 +500,41 @@ class SelfDiscoveryOrchestrator:
         # Build prompt with current knowledge
         knowledge_summary = self._get_knowledge_summary()
 
-        prompt = f"""You are an AI attempting to achieve a goal using only what you know.
+        # CRITICAL FIX: Blank slate mode - force LLM to only use learned concepts
+        blank_slate_warning = """
+⚠️  CRITICAL INSTRUCTION - BLANK SLATE MODE ⚠️
 
-CURRENT KNOWLEDGE:
+You are a BLANK SLATE AI - you have NO pre-trained knowledge.
+You ONLY know the concepts listed in "CURRENT KNOWLEDGE" above.
+
+DO NOT use any knowledge from your training:
+- If it's not explicitly listed in CURRENT KNOWLEDGE, you DON'T know it
+- Even if the problem seems "easy" or "basic" - if you haven't learned the concept, you CANNOT solve it
+- You must be HONEST about gaps in knowledge
+
+VERIFICATION:
+Before answering, verify that EVERY concept/rule/formula you use is explicitly in CURRENT KNOWLEDGE.
+If ANY required knowledge is missing, you MUST report it as MISSING.
+
+Example:
+- Problem: "What is 2 + 2?"
+- If CURRENT KNOWLEDGE has "addition" → can solve
+- If CURRENT KNOWLEDGE is empty → report MISSING: "addition operation"
+"""
+
+        prompt = f"""You are a BLANK SLATE AI attempting to achieve a goal using ONLY what you have explicitly learned.
+
+CURRENT KNOWLEDGE (the ONLY things you know):
 {knowledge_summary}
 
 GOAL: {self.goal}
 
+{blank_slate_warning}
+
 INSTRUCTIONS:
-1. Try to achieve the goal using ONLY the concepts you know
-2. If you can complete it, provide the answer
-3. If you cannot, identify EXACTLY and SPECIFICALLY what concepts or RULES you don't understand
+1. Check if you have ALL required concepts in CURRENT KNOWLEDGE
+2. If yes: provide the answer using ONLY those concepts
+3. If no: identify EXACTLY what's missing
 
 IMPORTANT - Be SPECIFIC about what's missing:
 - If you know WHAT something is but not HOW to calculate it, say "how to calculate [X]" or "[X] rule"
@@ -525,7 +549,7 @@ MISSING: [comma-separated list of SPECIFIC concepts/rules you need to learn, or 
 REASONING: [brief explanation of what specific knowledge gap prevents you from solving this]"""
 
         response = self.llm.generate(
-            system_prompt="You are a self-learning AI that honestly assesses what you know and don't know. When identifying missing knowledge, be VERY SPECIFIC about what procedures, formulas, or rules you need - not just general concepts.",
+            system_prompt="You are a BLANK SLATE AI with NO pre-trained knowledge. You ONLY know concepts explicitly listed in CURRENT KNOWLEDGE. You must be brutally honest about knowledge gaps. If a concept is not in your knowledge base, you CANNOT use it - even if it seems 'obvious' or 'basic'. This is CRITICAL for proper learning.",
             user_input=prompt
         )
 
@@ -1366,22 +1390,40 @@ IMPORTANT:
         learning_plan = None
         if self.using_agi_modules and self.goal_planner:
             print("\n[🎯] Creating learning plan with dependency graph...")
-            print("[i] Max planning time: 5 minutes (then will start learning)")
+            print("[i] Max planning time: 3 minutes (then will start learning)")
+            print("[i] Max depth: 2 levels | Max nodes: 50 concepts")
             try:
-                # Add timeout to prevent infinite prerequisite checking
+                # CRITICAL FIX: Reduced timeout from 5min → 3min for faster failure
                 import asyncio
-                learning_stages, graph = await asyncio.wait_for(
+
+                # Create the planning task
+                planning_task = asyncio.create_task(
                     self.goal_planner.create_learning_plan(
-                        self.goal, self.goal_domain, max_depth=2  # REDUCED: 4→2 to prevent circular dependencies
-                    ),
-                    timeout=300  # 5 minutes max for planning
+                        self.goal, self.goal_domain,
+                        max_depth=2  # REDUCED: 4→2 to prevent circular dependencies
+                    )
+                )
+
+                # Wait with strict timeout
+                learning_stages, graph = await asyncio.wait_for(
+                    planning_task,
+                    timeout=180  # CRITICAL FIX: 3 minutes max (was 5 minutes)
                 )
                 learning_plan = (learning_stages, graph)
+                print(f"[✓] Planning complete: {len(graph)} concepts in {len(learning_stages)} stages")
+
             except asyncio.TimeoutError:
-                print(f"[!] Goal planning timeout (5min), skipping plan and learning directly")
+                print(f"[!] Goal planning TIMEOUT (3min) - Planning took too long!")
+                print(f"[!] This usually means circular dependencies or too many prerequisites")
+                print(f"[i] Skipping plan and using direct learning instead...")
+                # Cancel the planning task
+                if not planning_task.done():
+                    planning_task.cancel()
                 learning_plan = None
+
             except Exception as e:
-                print(f"[!] Goal planning failed: {e}, continuing without plan")
+                print(f"[!] Goal planning ERROR: {e}")
+                print(f"[i] Continuing without plan (will learn by attempting)")
                 learning_plan = None
 
         attempt_num = 0
