@@ -56,6 +56,7 @@ class ConceptGPU:
     learned_at: str
     confidence: float = 1.0
     device: str = 'cuda'
+    definition: str = ""  # BUG FIX: Store text definition for retrieval
 
     def to(self, device: str):
         """Move tensor to different device."""
@@ -180,7 +181,8 @@ class NeurosymbolicGPU:
             examples=examples,
             learned_at=datetime.now().isoformat(),
             confidence=confidence,
-            device=self.device
+            device=self.device,
+            definition=definition  # BUG FIX: Store definition for later retrieval
         )
 
         # Store in memory
