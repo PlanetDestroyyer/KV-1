@@ -247,6 +247,7 @@ class SelfDiscoveryOrchestrator:
         self.current_depth = 0
         self.attempts = 0
         self.concepts_learned_this_session = []  # Track for meta-learning
+        self.session_learned: Set[str] = set()  # Prevent duplicate learning within same session
 
         # Detect goal domain for focused learning
         self.goal_domain = self._detect_goal_domain(goal)
@@ -545,7 +546,10 @@ REASONING: [brief explanation of what specific knowledge gap prevents you from s
             elif line.startswith("MISSING:"):
                 missing_str = line.split(":", 1)[1].strip()
                 if missing_str.lower() not in ["none", "n/a", ""]:
-                    missing = [m.strip() for m in missing_str.split(",")]
+                    # Clean each concept name to extract core concept from explanations
+                    missing = [self._clean_concept_name(m.strip()) for m in missing_str.split(",")]
+                    # Filter out empty/invalid concepts after cleaning
+                    missing = [m for m in missing if m and len(m) >= 2]
 
         # Fallback: Smart detection for natural language responses
         # If no explicit SUCCESS: was found, try to detect success from the response
@@ -604,14 +608,52 @@ REASONING: [brief explanation of what specific knowledge gap prevents you from s
             missing_concepts=missing
         )
 
+    def _clean_concept_name(self, concept: str) -> str:
+        """
+        Clean up concept name by extracting core concept from explanations.
+
+        Examples:
+          "Collatz sequence generation rule (specifically: ...)" → "Collatz sequence"
+          "next term = n/2; for odd n" → "Collatz sequence"
+          "polynomial factorization rule" → "polynomial factorization"
+        """
+        concept = concept.strip()
+
+        # Remove parenthetical explanations
+        if '(' in concept:
+            concept = concept.split('(')[0].strip()
+
+        # Remove "specifically:", "namely:", etc.
+        for marker in [' specifically:', ' namely:', ' i.e.:', ' e.g.:', ' such as:']:
+            if marker in concept.lower():
+                concept = concept.lower().split(marker)[0].strip()
+
+        # Remove mathematical expressions (likely part of definition, not concept name)
+        if '=' in concept or ':' in concept:
+            # Try to extract the concept name before the expression
+            parts = concept.split()
+            # Take first few words that don't contain math symbols
+            clean_parts = []
+            for part in parts:
+                if any(sym in part for sym in ['=', '/', '+', '-', '*', ':']):
+                    break
+                clean_parts.append(part)
+            if clean_parts:
+                concept = ' '.join(clean_parts)
+
+        return concept.strip()
+
     def _is_valid_concept(self, concept: str) -> bool:
         """Check if concept is valid and worth learning."""
         if not concept or len(concept) < 2:
             return False
 
-        # Skip if too long (probably garbage)
-        if len(concept) > 60:
-            return False
+        # Skip if too long (probably full explanation instead of concept name)
+        if len(concept) > 150:
+            # Try to clean it first
+            concept = self._clean_concept_name(concept)
+            if len(concept) > 150:
+                return False
 
         concept_lower = concept.lower().strip()
 
@@ -627,8 +669,6 @@ REASONING: [brief explanation of what specific knowledge gap prevents you from s
             "foundational",
             "doesn't require",
             "beyond that",
-            ")",  # Truncated prerequisite
-            "(",  # Truncated prerequisite
         ]
 
         for pattern in skip_patterns:
@@ -883,11 +923,33 @@ Keep it simple and educational."""
         print(f"\n{indent}[L] Discovering: {concept}")
         print(f"{indent}    Needed for: {needed_for}")
 
-        # Check if already known
-        if self.ltm.has(concept):
-            print(f"{indent}    [i] Already in LTM, skipping")
+        # Check if learned this session (prevents duplicate learning within same run)
+        if concept in self.session_learned or concept.lower() in self.session_learned:
+            print(f"{indent}    [✓] Already learned this session, skipping")
             self.current_depth -= 1
             return True
+
+        # Check if already known in LTM
+        has_concept = self.ltm.has(concept)
+        if has_concept:
+            print(f"{indent}    [✓] Already in LTM, skipping")
+            self.current_depth -= 1
+            return True
+        else:
+            # DEBUG: Check why concept not found
+            if self.using_hybrid:
+                # Try exact match in concepts dict
+                exact_match = concept in self.ltm.concepts or concept.lower() in self.ltm.concepts
+                if exact_match:
+                    print(f"{indent}    [!] BUG: Exact match exists but semantic search failed!")
+                    print(f"{indent}        Stored as: {list(self.ltm.concepts.keys())}")
+                # Try semantic search with lower threshold
+                from core.hybrid_memory import HybridMemory
+                if hasattr(self.ltm, '_search_ltm'):
+                    result = self.ltm._search_ltm(concept, threshold=0.7)
+                    if result:
+                        name, score = result
+                        print(f"{indent}    [i] Found similar concept '{name}' (score: {score:.2f}) but threshold=0.85 filtered it")
 
         # Check if it's a primitive concept (letters, numbers)
         primitive = self._try_primitive_learning(concept)
@@ -1147,6 +1209,8 @@ IMPORTANT:
         # Only store if confidence is sufficient (or validation disabled)
         if should_store:
             self.ltm.add(entry)
+            self.session_learned.add(concept)  # Add to session cache
+            self.session_learned.add(concept.lower())  # Also add lowercase version
             print(f"{indent}    [✓] Stored in LTM (validated)")
             if examples:
                 print(f"{indent}    [✓] Stored {len(examples)} example(s) for future reference!")
@@ -1237,6 +1301,8 @@ IMPORTANT:
                 source="primitive"
             )
             self.ltm.add(entry)
+            self.session_learned.add(concept)
+            self.session_learned.add(concept_lower)
             return True
 
         # Single digits
@@ -1250,6 +1316,8 @@ IMPORTANT:
                 source="primitive"
             )
             self.ltm.add(entry)
+            self.session_learned.add(concept)
+            self.session_learned.add(concept_lower)
             return True
 
         # Basic concepts
@@ -1269,6 +1337,8 @@ IMPORTANT:
                 source="primitive"
             )
             self.ltm.add(entry)
+            self.session_learned.add(concept)
+            self.session_learned.add(concept_lower)
             return True
 
         return False
