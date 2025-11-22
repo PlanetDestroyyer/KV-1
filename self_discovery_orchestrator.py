@@ -786,13 +786,28 @@ Keep it simple and educational."""
             return True
 
         # Search web for concept with domain context
+        # Issue #2: Retry with multiple query variations if first attempt fails
         print(f"{indent}    [i] Searching web...")
-        search_query = self._build_search_query(concept)
-        print(f"{indent}    [i] Query: {search_query}")
-        result = self.web_researcher.fetch(search_query, mode="scrape")
+
+        # Try multiple search strategies
+        search_attempts = [
+            self._build_search_query(concept),
+            f"{concept} definition",
+            f"{concept} explained",
+            f"what is {concept}",
+            f"{concept} {self.goal_domain}" if self.goal_domain else concept
+        ]
+
+        result = None
+        for attempt_num, query in enumerate(search_attempts, 1):
+            print(f"{indent}    [i] Query attempt {attempt_num}/{len(search_attempts)}: {query}")
+            result = self.web_researcher.fetch(query, mode="scrape")
+            if result and result.text:
+                break
+            print(f"{indent}    [!] Attempt {attempt_num} failed, trying next query...")
 
         if not result or not result.text:
-            print(f"{indent}    [X] No web content found")
+            print(f"{indent}    [X] All {len(search_attempts)} search attempts failed")
             self.current_depth -= 1
             return False
 
@@ -1137,7 +1152,7 @@ IMPORTANT:
         print("="*60)
 
         attempt_num = 0
-        last_missing = set()
+        attempt_history = []  # Track last 10 attempts to detect loops
         stuck_count = 0
 
         while True:
@@ -1158,35 +1173,63 @@ IMPORTANT:
                 print(f"Answer: {attempt.result}")
                 print(f"Attempts: {self.attempts}")
                 print(f"Concepts learned: {len(self.journal)}")
+
+                # Issue #6: Flush any pending saves
+                if self.using_hybrid and hasattr(self.ltm, 'save'):
+                    print("[i] Saving all learned concepts to disk...")
+                    self.ltm.save(force=True)
+
                 return True
 
             # Goal failed - learn missing concepts
             if not attempt.missing_concepts:
                 print("\n[!] Goal failed but no missing concepts identified")
                 print("[!] LLM may not understand the goal or is confused")
+
+                # Issue #6: Flush saves before exiting
+                if self.using_hybrid and hasattr(self.ltm, 'save'):
+                    self.ltm.save(force=True)
+
                 return False
 
             print(f"\n[i] Missing concepts: {', '.join(attempt.missing_concepts)}")
 
-            # Loop detection: check if we're stuck requesting the same concepts
-            current_missing = set(attempt.missing_concepts)
-            if current_missing == last_missing:
-                stuck_count += 1
-                print(f"[!] Warning: Requesting same concepts again (stuck count: {stuck_count}/5)")
-                if stuck_count >= 5:
-                    print("\n" + "="*60)
-                    print("[X] STUCK IN LEARNING LOOP")
-                    print("="*60)
-                    print("The system is repeatedly requesting the same concepts but cannot apply them.")
-                    print("This suggests:")
-                    print("  1. LLM lacks reasoning capability for this goal")
-                    print("  2. Web content has definitions but no worked examples")
-                    print("  3. Concepts are too abstract without procedural knowledge")
-                    print(f"\nRepeated concepts: {', '.join(sorted(current_missing))}")
-                    return False
-            else:
-                stuck_count = 0
-                last_missing = current_missing
+            # Loop detection: track history of ALL attempts to detect alternating loops
+            current_missing = frozenset(attempt.missing_concepts)  # Use frozenset for hashable set
+            attempt_history.append(current_missing)
+
+            # Keep only last 10 attempts
+            if len(attempt_history) > 10:
+                attempt_history.pop(0)
+
+            # Check if we've seen this exact set in the last 10 attempts
+            if len(attempt_history) >= 2:
+                # Count how many times this set appears in history
+                occurrences = attempt_history[:-1].count(current_missing)
+                if occurrences > 0:
+                    stuck_count += 1
+                    print(f"[!] Warning: Seen these concepts before (stuck count: {stuck_count}/5, seen {occurrences+1} times)")
+                    if stuck_count >= 5:
+                        print("\n" + "="*60)
+                        print("[X] STUCK IN LEARNING LOOP")
+                        print("="*60)
+                        print("The system is repeatedly requesting the same concepts but cannot apply them.")
+                        print("This suggests:")
+                        print("  1. LLM lacks reasoning capability for this goal")
+                        print("  2. Web content has definitions but no worked examples")
+                        print("  3. Concepts are too abstract without procedural knowledge")
+                        print(f"\nRepeated concepts: {', '.join(sorted(current_missing))}")
+                        print(f"\nAttempt history (last 10):")
+                        for i, hist_set in enumerate(attempt_history[-10:], 1):
+                            print(f"  {i}. {{{', '.join(sorted(hist_set))}}}")
+
+                        # Issue #6: Flush saves before exiting
+                        if self.using_hybrid and hasattr(self.ltm, 'save'):
+                            self.ltm.save(force=True)
+
+                        return False
+                else:
+                    stuck_count = 0
 
             # Learn each missing concept
             for concept in attempt.missing_concepts:
