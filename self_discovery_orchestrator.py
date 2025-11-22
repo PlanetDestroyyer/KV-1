@@ -63,6 +63,19 @@ except ImportError as e:
     UNIFIED_AGI_AVAILABLE = False
     print(f"[!] Unified AGI learner not available: {e}")
 
+# NEXT-LEVEL AGI MODULES (Self-Improving AI!)
+try:
+    from core.transfer_learning import TransferLearner
+    from core.analogical_reasoning import AnalogyEngine
+    from core.self_prompt_optimizer import SelfPromptOptimizer
+    from core.explainable_reasoning import ExplainableReasoner
+    from core.advanced_reasoning import AdvancedReasoner
+    ADVANCED_AGI_AVAILABLE = True
+    print("[+] ✨ ADVANCED AGI MODULES LOADED ✨")
+except ImportError as e:
+    ADVANCED_AGI_AVAILABLE = False
+    print(f"[!] Advanced AGI modules not available: {e}")
+
 
 @dataclass
 class LearningEntry:
@@ -241,6 +254,45 @@ class SelfDiscoveryOrchestrator:
         else:
             self.unified_learner = None
             self.using_unified_agi = False
+
+        # Initialize ADVANCED AGI modules (Next-Level Intelligence!)
+        if ADVANCED_AGI_AVAILABLE:
+            print("[+] Initializing ADVANCED AGI modules...")
+
+            # Get embedder from memory if available
+            embedder = getattr(self.ltm, 'embedder', None) if self.using_hybrid else None
+
+            # Transfer Learning - Apply knowledge across domains
+            self.transfer_learner = TransferLearner(self.ltm, embedder)
+            print("[+] ✨ Transfer Learning: Cross-domain knowledge transfer")
+
+            # Analogical Reasoning - Solve by analogy
+            self.analogy_engine = AnalogyEngine(self.ltm, self.llm)
+            print("[+] ✨ Analogical Reasoning: A:B :: C:? problem solving")
+
+            # Self-Prompt Optimizer - SYSTEM IMPROVES ITSELF!
+            self.prompt_optimizer = SelfPromptOptimizer(
+                storage_path=os.path.join(data_dir, "prompt_optimization.json")
+            )
+            print("[+] ✨ Self-Prompt Optimization: System evolves its own prompts!")
+
+            # Explainable Reasoning + Active Learning
+            self.explainer = ExplainableReasoner(self.llm)
+            print("[+] ✨ Explainable Reasoning: Clear step-by-step explanations")
+
+            # Advanced Reasoning (Common Sense + Hypothesis + Continual Learning)
+            self.advanced_reasoner = AdvancedReasoner(self.llm, self.ltm)
+            print("[+] ✨ Advanced Reasoning: Common sense, hypothesis testing, continual learning")
+
+            self.using_advanced_agi = True
+            print("[+] ✅ ADVANCED AGI READY: Self-improving, explainable, cross-domain intelligence!")
+        else:
+            self.transfer_learner = None
+            self.analogy_engine = None
+            self.prompt_optimizer = None
+            self.explainer = None
+            self.advanced_reasoner = None
+            self.using_advanced_agi = False
 
         # Learning journal
         self.journal: List[Dict] = []
@@ -500,32 +552,32 @@ class SelfDiscoveryOrchestrator:
         # Build prompt with current knowledge
         knowledge_summary = self._get_knowledge_summary()
 
-        prompt = f"""You are an AI attempting to achieve a goal using only what you know.
+        prompt = f"""You are a self-learning AI attempting to achieve a goal using your learned knowledge base.
 
-CURRENT KNOWLEDGE:
+CURRENT KNOWLEDGE BASE (concepts you have learned):
 {knowledge_summary}
 
 GOAL: {self.goal}
 
 INSTRUCTIONS:
-1. Try to achieve the goal using ONLY the concepts you know
-2. If you can complete it, provide the answer
-3. If you cannot, identify EXACTLY and SPECIFICALLY what concepts or RULES you don't understand
+1. Try to solve the problem using the concepts in your KNOWLEDGE BASE
+2. If you can solve it, provide the answer with your reasoning
+3. If you're missing ANY required concepts to solve this, report them as MISSING
 
 IMPORTANT - Be SPECIFIC about what's missing:
-- If you know WHAT something is but not HOW to calculate it, say "how to calculate [X]" or "[X] rule"
+- If you know WHAT something is but not HOW to calculate/apply it, say "how to [action]" or "[specific rule/formula]"
 - Example: Instead of "derivatives", say "power rule for derivatives" or "how to differentiate polynomials"
-- Example: Instead of "integration", say "integration by parts" or "fundamental theorem of calculus"
-- Focus on the SPECIFIC PROCEDURES, FORMULAS, or RULES you need
+- Example: Instead of "sequences", say "Collatz sequence generation rule" or "sequence formula"
+- Focus on the SPECIFIC PROCEDURES, FORMULAS, or RULES needed
 
 Respond in this format:
 SUCCESS: [yes/no]
 ANSWER: [your answer if successful, or "cannot complete" if not]
-MISSING: [comma-separated list of SPECIFIC concepts/rules you need to learn, or "none" if successful]
-REASONING: [brief explanation of what specific knowledge gap prevents you from solving this]"""
+MISSING: [comma-separated list of SPECIFIC concepts/rules/formulas you need, or "none" if successful]
+REASONING: [brief explanation]"""
 
         response = self.llm.generate(
-            system_prompt="You are a self-learning AI that honestly assesses what you know and don't know. When identifying missing knowledge, be VERY SPECIFIC about what procedures, formulas, or rules you need - not just general concepts.",
+            system_prompt="You are a self-learning AI with a knowledge base of learned concepts. Try to solve problems using your knowledge base. If you're missing required concepts, report them specifically so they can be learned. Be intelligent about applying what you know.",
             user_input=prompt
         )
 
@@ -613,33 +665,56 @@ REASONING: [brief explanation of what specific knowledge gap prevents you from s
         Clean up concept name by extracting core concept from explanations.
 
         Examples:
-          "Collatz sequence generation rule (specifically: ...)" → "Collatz sequence"
-          "next term = n/2; for odd n" → "Collatz sequence"
-          "polynomial factorization rule" → "polynomial factorization"
+          "Collatz sequence generation rule (specifically: ...)" → "Collatz sequence generation rule"
+          "next term = n/2; for odd n" → "sequence term calculation"
+          "polynomial factorization rule" → "polynomial factorization rule"
+          "how to solve equations" → "how to solve equations"
         """
         concept = concept.strip()
 
-        # Remove parenthetical explanations
+        # Remove parenthetical explanations (everything inside parentheses)
         if '(' in concept:
             concept = concept.split('(')[0].strip()
 
-        # Remove "specifically:", "namely:", etc.
-        for marker in [' specifically:', ' namely:', ' i.e.:', ' e.g.:', ' such as:']:
+        # Remove "specifically:", "namely:", etc. and everything after
+        for marker in [' specifically:', ' namely:', ' i.e.:', ' e.g.:', ' such as:', ' -']:
             if marker in concept.lower():
-                concept = concept.lower().split(marker)[0].strip()
+                concept = concept.split(marker)[0].strip()
 
-        # Remove mathematical expressions (likely part of definition, not concept name)
-        if '=' in concept or ':' in concept:
-            # Try to extract the concept name before the expression
+        # Handle cases with semicolons (often used for multiple clauses)
+        if ';' in concept:
+            # Take the first clause before semicolon
+            concept = concept.split(';')[0].strip()
+
+        # If concept still has math expressions and is very long, try to extract core
+        if len(concept) > 80 and ('=' in concept or '->' in concept):
+            # Try to extract concept name before the expression
             parts = concept.split()
-            # Take first few words that don't contain math symbols
             clean_parts = []
-            for part in parts:
-                if any(sym in part for sym in ['=', '/', '+', '-', '*', ':']):
+            for i, part in enumerate(parts):
+                # Stop at math operators or arrows
+                if any(sym in part for sym in ['=', '->', '→', '∀', '∃']):
                     break
-                clean_parts.append(part)
-            if clean_parts:
+                # Keep words that look like concept names (not single symbols)
+                if len(part) > 1 or part.isalpha():
+                    clean_parts.append(part)
+
+            # If we extracted something meaningful, use it
+            if len(clean_parts) >= 2:
                 concept = ' '.join(clean_parts)
+
+        # Remove trailing punctuation
+        concept = concept.rstrip('.,;:!?')
+
+        # Limit length to 100 characters max (reasonable concept name length)
+        if len(concept) > 100:
+            # Try to break at last complete word before 100 chars
+            truncated = concept[:100]
+            last_space = truncated.rfind(' ')
+            if last_space > 50:  # Only truncate at space if it's not too early
+                concept = concept[:last_space]
+            else:
+                concept = truncated
 
         return concept.strip()
 
@@ -1362,18 +1437,53 @@ IMPORTANT:
             print("Max attempts: UNLIMITED (will run until success)")
         print("="*60)
 
-        # NEW: Create learning plan with dependency graph (AGI planning!)
+        # Goal planner - DISABLED by default (use direct learning instead)
+        # Direct learning is faster and avoids circular dependency issues
+        # Enable by setting use_goal_planner=True in run_self_discovery.py if needed
         learning_plan = None
-        if self.using_agi_modules and self.goal_planner:
+        use_goal_planner = False  # DISABLED: Direct learning is more efficient
+
+        if use_goal_planner and self.using_agi_modules and self.goal_planner:
             print("\n[🎯] Creating learning plan with dependency graph...")
+            print("[i] Max planning time: 3 minutes (then will start learning)")
+            print("[i] Max depth: 2 levels | Max nodes: 50 concepts")
             try:
-                learning_stages, graph = await self.goal_planner.create_learning_plan(
-                    self.goal, self.goal_domain, max_depth=4
+                # CRITICAL FIX: Reduced timeout from 5min → 3min for faster failure
+                import asyncio
+
+                # Create the planning task
+                planning_task = asyncio.create_task(
+                    self.goal_planner.create_learning_plan(
+                        self.goal, self.goal_domain,
+                        max_depth=2  # REDUCED: 4→2 to prevent circular dependencies
+                    )
+                )
+
+                # Wait with strict timeout
+                learning_stages, graph = await asyncio.wait_for(
+                    planning_task,
+                    timeout=180  # CRITICAL FIX: 3 minutes max (was 5 minutes)
                 )
                 learning_plan = (learning_stages, graph)
-            except Exception as e:
-                print(f"[!] Goal planning failed: {e}, continuing without plan")
+                print(f"[✓] Planning complete: {len(graph)} concepts in {len(learning_stages)} stages")
+
+            except asyncio.TimeoutError:
+                print(f"[!] Goal planning TIMEOUT (3min) - Planning took too long!")
+                print(f"[!] This usually means circular dependencies or too many prerequisites")
+                print(f"[i] Skipping plan and using direct learning instead...")
+                # Cancel the planning task
+                if not planning_task.done():
+                    planning_task.cancel()
                 learning_plan = None
+
+            except Exception as e:
+                print(f"[!] Goal planning ERROR: {e}")
+                print(f"[i] Continuing without plan (will learn by attempting)")
+                learning_plan = None
+        else:
+            # Using direct learning approach (faster, more efficient)
+            print("\n[i] Using direct learning approach (attempt → learn → retry)")
+            learning_plan = None
 
         attempt_num = 0
         attempt_history = []  # Track last 10 attempts to detect loops
