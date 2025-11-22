@@ -235,9 +235,10 @@ def save_progress(progress):
         json.dump(progress, f, indent=2)
 
 
-async def ask_question(question, max_attempts=3):
+async def ask_question(question):
     """
     Ask a single question to the system.
+    Will retry unlimited times until goal is achieved.
 
     Returns: (success: bool, output: str)
     """
@@ -245,9 +246,9 @@ async def ask_question(question, max_attempts=3):
 
     cmd = [
         "python", "run_self_discovery.py",
-        question,
-        "--max-attempts", str(max_attempts)
+        question
         # 3-stage learning ENABLED for better quality and depth
+        # No max-attempts limit - will retry until goal is achieved!
     ]
 
     try:
@@ -316,11 +317,8 @@ async def run_curriculum(args):
             print(f"Question: {question}")
             print()
 
-            # Ask the question
-            success, output = await ask_question(
-                question,
-                args.max_attempts
-            )
+            # Ask the question (unlimited retries until success)
+            success, output = await ask_question(question)
 
             if success:
                 print(f"\n{'='*70}")
@@ -394,10 +392,9 @@ Examples:
                        help="Which phase to run (1-6 or 'all')")
     parser.add_argument("--resume", action="store_true",
                        help="Resume from last checkpoint")
-    parser.add_argument("--max-attempts", type=int, default=3,
-                       help="Max attempts per question")
     parser.add_argument("--delay", type=int, default=5,
                        help="Delay between questions (seconds)")
+    # Note: No max-attempts limit - will retry each question until success!
     parser.add_argument("--skip-failed", action="store_true",
                        help="Continue even if questions fail")
 
@@ -407,7 +404,7 @@ Examples:
     print("KV-1 LEARNING CURRICULUM")
     print("="*70)
     print(f"Provider: Ollama (qwen3:4b)")
-    print(f"Max attempts per question: {args.max_attempts}")
+    print(f"Max attempts per question: UNLIMITED (until success)")
     print(f"Delay between questions: {args.delay}s")
     print("="*70)
 
