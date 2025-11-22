@@ -1366,11 +1366,20 @@ IMPORTANT:
         learning_plan = None
         if self.using_agi_modules and self.goal_planner:
             print("\n[🎯] Creating learning plan with dependency graph...")
+            print("[i] Max planning time: 5 minutes (then will start learning)")
             try:
-                learning_stages, graph = await self.goal_planner.create_learning_plan(
-                    self.goal, self.goal_domain, max_depth=4
+                # Add timeout to prevent infinite prerequisite checking
+                import asyncio
+                learning_stages, graph = await asyncio.wait_for(
+                    self.goal_planner.create_learning_plan(
+                        self.goal, self.goal_domain, max_depth=2  # REDUCED: 4→2 to prevent circular dependencies
+                    ),
+                    timeout=300  # 5 minutes max for planning
                 )
                 learning_plan = (learning_stages, graph)
+            except asyncio.TimeoutError:
+                print(f"[!] Goal planning timeout (5min), skipping plan and learning directly")
+                learning_plan = None
             except Exception as e:
                 print(f"[!] Goal planning failed: {e}, continuing without plan")
                 learning_plan = None
