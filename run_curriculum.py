@@ -28,6 +28,7 @@ import signal
 import sys
 from datetime import datetime
 from pathlib import Path
+from core.logger import setup_logging
 
 # All curriculum questions organized by phase
 CURRICULUM = {
@@ -268,6 +269,11 @@ async def ask_question(question, max_attempts=3):
 
 async def run_curriculum(args):
     """Run the learning curriculum."""
+
+    # Set up logging to file (all output saved to ./logs/)
+    phase_name = f"phase{args.phase}" if args.phase != "all" else "full_curriculum"
+    log_file = setup_logging(session_name=f"curriculum_{phase_name}")
+    print(f"[+] All output being saved to: {log_file}")
 
     progress = load_progress()
 

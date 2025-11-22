@@ -20,6 +20,7 @@ import asyncio
 import argparse
 import os
 from self_discovery_orchestrator import main_self_discovery
+from core.logger import setup_logging
 
 
 def parse_args():
@@ -96,6 +97,10 @@ Example goals:
 
 def main():
     args = parse_args()
+
+    # Set up logging to file (all output saved to ./logs/)
+    log_file = setup_logging(session_name="self_discovery")
+    print(f"[+] All output being saved to: {log_file}")
 
     # Reset LTM if requested
     if args.reset and os.path.exists(args.ltm):
