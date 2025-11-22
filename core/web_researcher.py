@@ -7,6 +7,7 @@ import logging
 import os
 import time
 from dataclasses import dataclass
+from datetime import date
 from typing import Optional, Dict
 
 import requests
@@ -39,8 +40,14 @@ class WebResearcher:
         self.session = session or requests.Session()
         self.logger = logging.getLogger("kv1.web")
         self.requests_today = 0
+        self.last_reset_date = date.today()
 
     def fetch(self, query: str, mode: str = "scrape") -> Optional[ResearchResult]:
+        # Reset counter if new day
+        if date.today() != self.last_reset_date:
+            self.requests_today = 0
+            self.last_reset_date = date.today()
+
         if self.requests_today >= self.daily_cap:
             self.logger.warning("Daily web cap reached", extra={"query": query})
             return None

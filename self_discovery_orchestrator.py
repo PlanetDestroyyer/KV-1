@@ -996,7 +996,7 @@ IMPORTANT:
                 print(f"{indent}    [✓] Stored {len(examples)} example(s) for future reference!")
 
             # If it's a mathematical concept, also learn it symbolically with MathConnect
-            if self.using_mathconnect and self._is_mathematical_concept(concept, definition):
+            if self.using_mathconnect and self.math_connect and self._is_mathematical_concept(concept, definition):
                 print(f"{indent}    [🧮] Mathematical concept detected!")
                 print(f"{indent}    [🧮] Learning symbolically with MathConnect...")
 

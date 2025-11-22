@@ -12,11 +12,11 @@ Usage:
     # Run specific phase
     python run_curriculum.py --phase 1
 
-    # Run with Gemini
-    python run_curriculum.py --phase 1 --provider gemini --api-key YOUR_KEY
-
     # Continue from where you left off
     python run_curriculum.py --resume
+
+    # Skip failed questions
+    python run_curriculum.py --resume --skip-failed
 """
 
 import asyncio
@@ -232,7 +232,7 @@ def save_progress(progress):
         json.dump(progress, f, indent=2)
 
 
-async def ask_question(question, provider, model, api_key, max_attempts=3):
+async def ask_question(question, max_attempts=3):
     """
     Ask a single question to the system.
 
@@ -245,13 +245,6 @@ async def ask_question(question, provider, model, api_key, max_attempts=3):
         question,
         "--max-attempts", str(max_attempts)
     ]
-
-    if provider:
-        cmd.extend(["--provider", provider])
-    if model:
-        cmd.extend(["--model", model])
-    if api_key:
-        cmd.extend(["--api-key", api_key])
 
     try:
         result = subprocess.run(
@@ -307,9 +300,6 @@ async def run_curriculum(args):
         # Ask the question
         success, output = await ask_question(
             question,
-            args.provider,
-            args.model,
-            args.api_key,
             args.max_attempts
         )
 
@@ -343,10 +333,8 @@ async def run_curriculum(args):
     print(f"Failed: {len(progress['failed'])}")
     print(f"Success rate: {len(progress['completed'])/total_questions*100:.1f}%")
     print("="*70)
-
-    # Show mathematical knowledge graph
-    print("\n[+] Printing mathematical knowledge graph...")
-    os.system("python -c \"from self_discovery_orchestrator import SelfDiscoveryOrchestrator; o = SelfDiscoveryOrchestrator('test'); o.print_math_knowledge_graph()\"")
+    print("\n[i] Knowledge stored in ltm_memory.json")
+    print("[i] Use 'python run_self_discovery.py --help' for more options")
 
 
 def main():
@@ -356,7 +344,7 @@ def main():
         epilog="""
 Examples:
   # Run full curriculum
-  python run_curriculum.py --phase all --provider gemini --api-key YOUR_KEY
+  python run_curriculum.py --phase all
 
   # Run just Phase 1 (foundational)
   python run_curriculum.py --phase 1
@@ -366,6 +354,9 @@ Examples:
 
   # Skip failed questions and keep going
   python run_curriculum.py --resume --skip-failed
+
+  # With longer delay (avoid rate limits)
+  python run_curriculum.py --phase 1 --delay 10
         """
     )
 
@@ -373,12 +364,6 @@ Examples:
                        help="Which phase to run (1-6 or 'all')")
     parser.add_argument("--resume", action="store_true",
                        help="Resume from last checkpoint")
-    parser.add_argument("--provider", type=str, default=None,
-                       help="LLM provider (ollama, gemini)")
-    parser.add_argument("--model", type=str, default=None,
-                       help="Model name")
-    parser.add_argument("--api-key", type=str, default=None,
-                       help="API key for LLM provider")
     parser.add_argument("--max-attempts", type=int, default=3,
                        help="Max attempts per question")
     parser.add_argument("--delay", type=int, default=5,
@@ -391,10 +376,9 @@ Examples:
     print("="*70)
     print("KV-1 LEARNING CURRICULUM")
     print("="*70)
-    print(f"Provider: {args.provider or 'default (ollama)'}")
-    print(f"Model: {args.model or 'default'}")
-    print(f"Max attempts: {args.max_attempts}")
-    print(f"Delay: {args.delay}s")
+    print(f"Provider: Ollama (qwen3:4b)")
+    print(f"Max attempts per question: {args.max_attempts}")
+    print(f"Delay between questions: {args.delay}s")
     print("="*70)
 
     asyncio.run(run_curriculum(args))
