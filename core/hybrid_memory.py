@@ -120,6 +120,9 @@ class HybridMemory:
         # Concept storage (for compatibility)
         self.concepts: Dict[str, ConceptGPU] = {}
 
+        # Issue #6: Dirty flag for batch saves
+        self._dirty = False
+
         # Load existing concepts from disk
         self.load()
 
@@ -174,8 +177,8 @@ class HybridMemory:
 
         print(f"[Hybrid] Learned '{name}' → STM + LTM")
 
-        # Save to disk for persistence
-        self.save()
+        # Issue #6: Mark as dirty instead of saving immediately (batch optimization)
+        self._dirty = True
 
         return concept
 
@@ -370,13 +373,54 @@ class HybridMemory:
 
         return LearningEntryCompat(concept_obj)
 
-    def save(self):
-        """Save all concepts to disk for persistence."""
+    def save(self, force=False):
+        """
+        Save all concepts to disk for persistence.
+
+        Args:
+            force: Force save even if not dirty (default: False)
+        """
         import json
+        import shutil
+
+        # Check if save is needed (batch save optimization)
+        if not force and not self._dirty:
+            return
+
         try:
+            # Issue #8: Check disk space (need at least 10MB)
+            try:
+                stat = shutil.disk_usage(os.path.dirname(self.storage_path) or ".")
+                if stat.free < 10 * 1024 * 1024:
+                    print(f"[!] Low disk space ({stat.free/1024/1024:.1f}MB), skipping save")
+                    return
+            except Exception as e:
+                print(f"[!] Warning: Could not check disk space: {e}")
+
+            # Check if file/directory is writable
+            if os.path.exists(self.storage_path) and not os.access(self.storage_path, os.W_OK):
+                print(f"[!] File not writable: {self.storage_path}")
+                return
+
             # Convert concepts to JSON-serializable format
             data = {}
             for name, concept in self.concepts.items():
+                # Issue #4: Robust tensor serialization
+                tensor_data = []
+                try:
+                    if hasattr(concept.tensor, 'cpu'):
+                        # PyTorch tensor
+                        tensor_data = concept.tensor.cpu().numpy().tolist()
+                    elif hasattr(concept.tensor, 'tolist'):
+                        # NumPy array
+                        tensor_data = concept.tensor.tolist()
+                    elif concept.tensor is not None:
+                        # List or other
+                        tensor_data = list(concept.tensor)
+                except Exception as e:
+                    print(f"[!] Failed to serialize tensor for '{name}': {e}")
+                    tensor_data = []
+
                 data[name] = {
                     "name": concept.name,
                     "definition": f"Concept with {len(concept.formulas)} formulas",
@@ -384,15 +428,21 @@ class HybridMemory:
                     "examples": concept.examples,
                     "learned_at": concept.learned_at,
                     "confidence": concept.confidence,
-                    # Store tensor as list for JSON
-                    "tensor": concept.tensor.cpu().numpy().tolist() if TORCH_AVAILABLE else []
+                    "tensor": tensor_data
                 }
 
             os.makedirs(os.path.dirname(self.storage_path) or ".", exist_ok=True)
-            with open(self.storage_path, 'w') as f:
+
+            # Atomic write: write to temp file, then rename
+            temp_path = self.storage_path + ".tmp"
+            with open(temp_path, 'w') as f:
                 json.dump(data, f, indent=2)
 
+            # Atomic rename (overwrites existing file)
+            os.replace(temp_path, self.storage_path)
+
             print(f"[+] Saved {len(data)} concepts to {self.storage_path}")
+            self._dirty = False  # Mark as clean after save
         except Exception as e:
             print(f"[!] Failed to save concepts: {e}")
 
@@ -409,10 +459,21 @@ class HybridMemory:
 
             loaded_count = 0
             for name, concept_data in data.items():
+                # Issue #5: Check for duplicates - skip if already loaded
+                if name in self.concepts:
+                    print(f"[!] Skipping duplicate concept: {name}")
+                    continue
+
                 # Reconstruct concept from saved data
                 if TORCH_AVAILABLE:
                     import torch
                     tensor = torch.tensor(concept_data.get("tensor", []))
+
+                    # Issue #5: Move tensor to correct device (match LTM device)
+                    if self.ltm and hasattr(self.ltm, 'device'):
+                        tensor = tensor.to(self.ltm.device)
+                    elif self.ltm and hasattr(self.ltm, 'concept_matrix') and self.ltm.concept_matrix is not None:
+                        tensor = tensor.to(self.ltm.concept_matrix.device)
                 else:
                     tensor = None
 
@@ -429,20 +490,31 @@ class HybridMemory:
                 self.concepts[name] = concept
 
                 # Also add to LTM if available
-                if self.ltm and tensor is not None:
-                    self.ltm.concepts[name] = concept
-                    if self.ltm.concept_matrix is None:
-                        self.ltm.concept_matrix = tensor.unsqueeze(0)
-                        self.ltm.concept_names = [name]
-                    else:
-                        self.ltm.concept_matrix = torch.cat([self.ltm.concept_matrix, tensor.unsqueeze(0)], dim=0)
-                        self.ltm.concept_names.append(name)
+                if self.ltm and tensor is not None and TORCH_AVAILABLE:
+                    # Issue #5: Check if not already in LTM
+                    if name not in self.ltm.concepts:
+                        self.ltm.concepts[name] = concept
+
+                        # Issue #5: Ensure tensor is on same device before concat
+                        if self.ltm.concept_matrix is None:
+                            self.ltm.concept_matrix = tensor.unsqueeze(0)
+                            self.ltm.concept_names = [name]
+                        else:
+                            # Move tensor to same device as existing matrix
+                            tensor = tensor.to(self.ltm.concept_matrix.device)
+                            self.ltm.concept_matrix = torch.cat(
+                                [self.ltm.concept_matrix, tensor.unsqueeze(0)],
+                                dim=0
+                            )
+                            self.ltm.concept_names.append(name)
 
                 loaded_count += 1
 
             print(f"[+] Loaded {loaded_count} concepts from {self.storage_path}")
         except Exception as e:
             print(f"[!] Failed to load concepts: {e}")
+            import traceback
+            traceback.print_exc()
             self.concepts = {}
 
     # ===== End compatibility methods =====

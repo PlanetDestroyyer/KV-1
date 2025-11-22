@@ -24,6 +24,8 @@ import argparse
 import json
 import os
 import time
+import signal
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -288,41 +290,57 @@ async def run_curriculum(args):
 
     total_questions = len(ALL_QUESTIONS)
 
-    for i in range(start_idx, total_questions):
-        phase, question = ALL_QUESTIONS[i]
-
-        print("\n" + "="*70)
-        print(f"[{i+1}/{total_questions}] {phase}")
-        print("="*70)
-        print(f"Question: {question}")
-        print()
-
-        # Ask the question
-        success, output = await ask_question(
-            question,
-            args.max_attempts
-        )
-
-        if success:
-            print(f"[✓] Successfully learned!")
-            progress["completed"].append(i)
-        else:
-            print(f"[✗] Failed to learn")
-            print(f"Error: {output[:500]}")
-            progress["failed"].append(i)
-
-            if not args.skip_failed:
-                print("\n[!] Stopping due to failure (use --skip-failed to continue)")
-                break
-
-        # Update progress
-        progress["last_index"] = i + 1
+    # Issue #10: Handle Ctrl+C gracefully
+    def signal_handler(sig, frame):
+        print("\n\n[!] Interrupted by user! Saving progress...")
         save_progress(progress)
+        print(f"[+] Progress saved. Resume with: python run_curriculum.py --resume")
+        sys.exit(0)
 
-        # Rate limiting
-        if args.delay > 0:
-            print(f"[.] Waiting {args.delay}s before next question...")
-            time.sleep(args.delay)
+    signal.signal(signal.SIGINT, signal_handler)
+
+    try:
+        for i in range(start_idx, total_questions):
+            phase, question = ALL_QUESTIONS[i]
+
+            print("\n" + "="*70)
+            print(f"[{i+1}/{total_questions}] {phase}")
+            print("="*70)
+            print(f"Question: {question}")
+            print()
+
+            # Ask the question
+            success, output = await ask_question(
+                question,
+                args.max_attempts
+            )
+
+            if success:
+                print(f"[✓] Successfully learned!")
+                progress["completed"].append(i)
+            else:
+                print(f"[✗] Failed to learn")
+                print(f"Error: {output[:500]}")
+                progress["failed"].append(i)
+
+                if not args.skip_failed:
+                    print("\n[!] Stopping due to failure (use --skip-failed to continue)")
+                    break
+
+            # Update progress
+            progress["last_index"] = i + 1
+            save_progress(progress)
+
+            # Rate limiting
+            if args.delay > 0:
+                print(f"[.] Waiting {args.delay}s before next question...")
+                time.sleep(args.delay)
+
+    except KeyboardInterrupt:
+        print("\n\n[!] Interrupted by user! Saving progress...")
+        save_progress(progress)
+        print(f"[+] Progress saved. Resume with: python run_curriculum.py --resume")
+        sys.exit(0)
 
     # Final summary
     print("\n" + "="*70)

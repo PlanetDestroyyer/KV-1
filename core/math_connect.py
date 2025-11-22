@@ -109,8 +109,8 @@ class MathParser:
             except:
                 pass
 
-        # Pattern: "c equals 2 times pi times r" or "circumference"
-        if ('circumference' in text or 'c equals' in text) and 'pi' in text and 'r' in text:
+        # Issue #7: Pattern: "c equals 2 times pi times r" or "circumference" (more flexible)
+        if re.search(r'circumference|C\s*[=:≈]', text, re.I) and re.search(r'pi|π', text, re.I):
             try:
                 C, r = symbols('C r', real=True, positive=True)
                 return Eq(C, 2 * sympy.pi * r)
@@ -426,8 +426,10 @@ class MathConnect:
         """
         equation = self.parser.parse_text_to_equation(text)
 
-        if equation is None:
-            print(f"[!] Could not parse: {text}")
+        # Issue #11: Validate equation type (not just None check)
+        if equation is None or not isinstance(equation, (sympy.Expr, sympy.Eq, sympy.Basic)):
+            print(f"[!] Could not parse to valid equation: {text}")
+            print(f"[!] Got type: {type(equation)}")
             return False
 
         theorem = MathTheorem(
