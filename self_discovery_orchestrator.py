@@ -143,7 +143,8 @@ class SelfDiscoveryOrchestrator:
         use_hybrid_memory: bool = True,  # NEW: Use STM+LTM+GPU by default!
         enable_validation: bool = False,  # NEW: Validation OFF by default for SPEED!
         enable_rehearsal: bool = True,  # NEW: 3-stage learning for quality control!
-        target_confidence: float = 0.85  # NEW: Mastery threshold (0.0-1.0)
+        target_confidence: float = 0.85,  # NEW: Mastery threshold (0.0-1.0)
+        max_parallel_concepts: int = 10  # NEW: Max concepts to learn in parallel (GPU-optimized)
     ):
         self.goal = goal
         self.max_learning_depth = max_depth
@@ -151,12 +152,13 @@ class SelfDiscoveryOrchestrator:
         self.enable_validation = enable_validation  # Store validation setting
         self.enable_rehearsal = enable_rehearsal  # Store rehearsal setting
         self.target_confidence = target_confidence  # Store confidence threshold
+        self.max_parallel_concepts = max_parallel_concepts  # Parallel learning limit
         os.makedirs(data_dir, exist_ok=True)
 
         # Initialize components
         if use_hybrid_memory and HYBRID_MEMORY_AVAILABLE:
             print("[+] Using Hybrid Memory (STM + LTM + GPU Tensors)")
-            self.ltm = HybridMemory(stm_capacity=7, use_gpu=True, storage_path=ltm_path)
+            self.ltm = HybridMemory(stm_capacity=50, use_gpu=True, storage_path=ltm_path)  # Increased from 7 to 50 for GPU
             self.using_hybrid = True
         else:
             print("[+] Using legacy PersistentLTM (string storage)")
@@ -1249,11 +1251,39 @@ IMPORTANT:
                 else:
                     stuck_count = 0
 
-            # Learn each missing concept
-            for concept in attempt.missing_concepts:
-                learned = await self.discover_concept(concept, needed_for=self.goal)
-                if not learned:
-                    print(f"[!] Failed to learn {concept}, continuing anyway...")
+            # MULTIPROCESSING: Learn all missing concepts in parallel!
+            # This dramatically speeds up learning when multiple concepts are needed
+            num_concepts = len(attempt.missing_concepts)
+            parallel_batch = min(num_concepts, self.max_parallel_concepts)
+            print(f"[⚡] Learning {num_concepts} concepts (batch size: {parallel_batch} parallel)...")
+
+            async def learn_with_error_handling(concept):
+                """Wrapper to handle errors in parallel learning."""
+                try:
+                    learned = await self.discover_concept(concept, needed_for=self.goal)
+                    if not learned:
+                        print(f"[!] Failed to learn {concept}, continuing anyway...")
+                    return learned
+                except Exception as e:
+                    print(f"[!] Error learning {concept}: {e}")
+                    return False
+
+            # Learn concepts in parallel batches to avoid overwhelming the system
+            all_results = []
+            for i in range(0, num_concepts, parallel_batch):
+                batch = attempt.missing_concepts[i:i+parallel_batch]
+                print(f"[⚡] Processing batch {i//parallel_batch + 1} ({len(batch)} concepts)...")
+
+                # Learn batch concurrently using asyncio.gather
+                batch_results = await asyncio.gather(
+                    *[learn_with_error_handling(c) for c in batch],
+                    return_exceptions=True
+                )
+                all_results.extend(batch_results)
+
+            # Count successful learnings
+            successful = sum(1 for r in all_results if r is True)
+            print(f"[✓] Successfully learned {successful}/{num_concepts} concepts using parallel processing")
 
             # Brief delay before retry
             await asyncio.sleep(1)

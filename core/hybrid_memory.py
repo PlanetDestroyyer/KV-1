@@ -84,7 +84,7 @@ class HybridMemory:
 
     def __init__(
         self,
-        stm_capacity: int = 7,
+        stm_capacity: int = 50,  # Increased from 7 for GPU systems
         stm_decay_seconds: float = 300.0,  # 5 minutes (longer than HSOKV default)
         use_gpu: bool = True,
         storage_path: str = "./ltm_memory.json"  # NEW: Persistent storage
@@ -93,7 +93,7 @@ class HybridMemory:
         Initialize hybrid memory.
 
         Args:
-            stm_capacity: How many concepts in STM (default: 7 = Miller's number)
+            stm_capacity: How many concepts in STM (default: 50 for GPU, was 7 for CPU)
             stm_decay_seconds: How long STM items last without access
             use_gpu: Whether to use GPU for LTM (if available)
             storage_path: Path to save/load concepts from disk
@@ -578,7 +578,7 @@ class HybridMemory:
 
         lines = []
         lines.append("Hybrid Memory Status:")
-        lines.append(f"  STM: {stats['stm_size']}/{7 if HSOKV_AVAILABLE else 'unlimited'} slots")
+        lines.append(f"  STM: {stats['stm_size']}/{50 if HSOKV_AVAILABLE else 'unlimited'} slots")
         lines.append(f"  LTM: {stats['ltm_size']} concepts")
         lines.append(f"\nPerformance:")
         lines.append(f"  Total queries: {stats['total_queries']}")
