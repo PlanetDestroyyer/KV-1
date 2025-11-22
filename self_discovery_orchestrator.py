@@ -546,7 +546,10 @@ REASONING: [brief explanation of what specific knowledge gap prevents you from s
             elif line.startswith("MISSING:"):
                 missing_str = line.split(":", 1)[1].strip()
                 if missing_str.lower() not in ["none", "n/a", ""]:
-                    missing = [m.strip() for m in missing_str.split(",")]
+                    # Clean each concept name to extract core concept from explanations
+                    missing = [self._clean_concept_name(m.strip()) for m in missing_str.split(",")]
+                    # Filter out empty/invalid concepts after cleaning
+                    missing = [m for m in missing if m and len(m) >= 2]
 
         # Fallback: Smart detection for natural language responses
         # If no explicit SUCCESS: was found, try to detect success from the response
@@ -605,14 +608,52 @@ REASONING: [brief explanation of what specific knowledge gap prevents you from s
             missing_concepts=missing
         )
 
+    def _clean_concept_name(self, concept: str) -> str:
+        """
+        Clean up concept name by extracting core concept from explanations.
+
+        Examples:
+          "Collatz sequence generation rule (specifically: ...)" → "Collatz sequence"
+          "next term = n/2; for odd n" → "Collatz sequence"
+          "polynomial factorization rule" → "polynomial factorization"
+        """
+        concept = concept.strip()
+
+        # Remove parenthetical explanations
+        if '(' in concept:
+            concept = concept.split('(')[0].strip()
+
+        # Remove "specifically:", "namely:", etc.
+        for marker in [' specifically:', ' namely:', ' i.e.:', ' e.g.:', ' such as:']:
+            if marker in concept.lower():
+                concept = concept.lower().split(marker)[0].strip()
+
+        # Remove mathematical expressions (likely part of definition, not concept name)
+        if '=' in concept or ':' in concept:
+            # Try to extract the concept name before the expression
+            parts = concept.split()
+            # Take first few words that don't contain math symbols
+            clean_parts = []
+            for part in parts:
+                if any(sym in part for sym in ['=', '/', '+', '-', '*', ':']):
+                    break
+                clean_parts.append(part)
+            if clean_parts:
+                concept = ' '.join(clean_parts)
+
+        return concept.strip()
+
     def _is_valid_concept(self, concept: str) -> bool:
         """Check if concept is valid and worth learning."""
         if not concept or len(concept) < 2:
             return False
 
-        # Skip if too long (probably garbage)
-        if len(concept) > 60:
-            return False
+        # Skip if too long (probably full explanation instead of concept name)
+        if len(concept) > 150:
+            # Try to clean it first
+            concept = self._clean_concept_name(concept)
+            if len(concept) > 150:
+                return False
 
         concept_lower = concept.lower().strip()
 
@@ -628,8 +669,6 @@ REASONING: [brief explanation of what specific knowledge gap prevents you from s
             "foundational",
             "doesn't require",
             "beyond that",
-            ")",  # Truncated prerequisite
-            "(",  # Truncated prerequisite
         ]
 
         for pattern in skip_patterns:

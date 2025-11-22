@@ -177,8 +177,9 @@ class HybridMemory:
 
         print(f"[Hybrid] Learned '{name}' → STM + LTM")
 
-        # Issue #6: Mark as dirty instead of saving immediately (batch optimization)
-        self._dirty = True
+        # CHANGED: Save immediately after each concept (old working behavior)
+        # User prefers seeing "[+] Saved X concepts" messages and immediate persistence
+        self.save(force=True)
 
         return concept
 
