@@ -246,34 +246,35 @@ async def ask_question(question, max_attempts=3):
     cmd = [
         "python", "run_self_discovery.py",
         question,
-        "--max-attempts", str(max_attempts)
+        "--max-attempts", str(max_attempts),
+        "--no-rehearsal"  # Faster mode for curriculum
     ]
 
     try:
+        # DON'T capture output - let it print in real-time so you see the learning process!
         result = subprocess.run(
             cmd,
-            capture_output=True,
+            capture_output=False,  # Show all output in real-time!
             text=True,
-            timeout=300  # 5 minute timeout
+            timeout=600  # 10 minute timeout (increased from 5)
         )
 
         success = result.returncode == 0
-        output = result.stdout + result.stderr
-
-        return success, output
+        return success, "Completed"
     except subprocess.TimeoutExpired:
-        return False, "Timeout after 5 minutes"
+        print("[!] Timeout after 10 minutes - question too complex")
+        return False, "Timeout after 10 minutes"
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return False, str(e)
 
 
 async def run_curriculum(args):
     """Run the learning curriculum."""
 
-    # Set up logging to file (all output saved to ./logs/)
-    phase_name = f"phase{args.phase}" if args.phase != "all" else "full_curriculum"
-    log_file = setup_logging(session_name=f"curriculum_{phase_name}")
-    print(f"[+] All output being saved to: {log_file}")
+    # Note: Logging is set up by run_self_discovery.py for each question
+    # All output will be visible in real-time AND saved to logs/
 
     progress = load_progress()
 
@@ -322,11 +323,16 @@ async def run_curriculum(args):
             )
 
             if success:
-                print(f"[✓] Successfully learned!")
+                print(f"\n{'='*70}")
+                print(f"[✓] Question {i+1}/{total_questions} - Successfully learned!")
+                print(f"{'='*70}\n")
                 progress["completed"].append(i)
             else:
-                print(f"[✗] Failed to learn")
-                print(f"Error: {output[:500]}")
+                print(f"\n{'='*70}")
+                print(f"[✗] Question {i+1}/{total_questions} - Failed")
+                if "Timeout" in output:
+                    print(f"[!] Reason: {output}")
+                print(f"{'='*70}\n")
                 progress["failed"].append(i)
 
                 if not args.skip_failed:
