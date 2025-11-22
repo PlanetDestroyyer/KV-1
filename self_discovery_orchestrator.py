@@ -40,6 +40,21 @@ except ImportError:
     MATHCONNECT_AVAILABLE = False
     print("[!] MathConnect not available, symbolic math reasoning disabled")
 
+# NEW AGI modules
+try:
+    from core.meta_learner import MetaLearner, LearningAttempt
+    from core.metacognition import MetacognitiveLayer
+    from core.relevance_filter import RelevanceFilter
+    from core.goal_planner import GoalPlanner
+    from core.creative_reasoner import CreativeReasoner
+    from core.curiosity_engine import CuriosityEngine
+    from core.causal_reasoner import CausalReasoner
+    from core.parallel_web_search import ParallelWebSearch
+    AGI_MODULES_AVAILABLE = True
+except ImportError as e:
+    AGI_MODULES_AVAILABLE = False
+    print(f"[!] AGI modules not available: {e}")
+
 
 @dataclass
 class LearningEntry:
@@ -143,7 +158,7 @@ class SelfDiscoveryOrchestrator:
         use_hybrid_memory: bool = True,  # NEW: Use STM+LTM+GPU by default!
         enable_validation: bool = False,  # NEW: Validation OFF by default for SPEED!
         enable_rehearsal: bool = True,  # NEW: 3-stage learning for quality control!
-        target_confidence: float = 0.85,  # NEW: Mastery threshold (0.0-1.0)
+        target_confidence: float = 0.70,  # NEW: Mastery threshold (0.70 = 70%, balanced speed+quality)
         max_parallel_concepts: int = 10  # NEW: Max concepts to learn in parallel (GPU-optimized)
     ):
         self.goal = goal
@@ -181,10 +196,35 @@ class SelfDiscoveryOrchestrator:
             self.math_connect = None
             self.using_mathconnect = False
 
+        # Initialize AGI modules
+        if AGI_MODULES_AVAILABLE:
+            print("[+] Initializing AGI modules...")
+            self.meta_learner = MetaLearner(storage_path=os.path.join(data_dir, "meta_learning.json"))
+            self.metacognition = MetacognitiveLayer(self.llm)
+            self.relevance_filter = RelevanceFilter(self.llm)
+            self.goal_planner = GoalPlanner(self.llm, self.relevance_filter)
+            self.creative_reasoner = CreativeReasoner(self.llm)
+            self.curiosity_engine = CuriosityEngine(self.llm)
+            self.causal_reasoner = CausalReasoner(self.llm)
+            self.parallel_web = ParallelWebSearch(self.web_researcher, max_workers=5)
+            self.using_agi_modules = True
+            print("[+] AGI modules ready: Meta-learning, Metacognition, Goal Planning, Creative Reasoning, Curiosity, Causal Reasoning")
+        else:
+            self.meta_learner = None
+            self.metacognition = None
+            self.relevance_filter = None
+            self.goal_planner = None
+            self.creative_reasoner = None
+            self.curiosity_engine = None
+            self.causal_reasoner = None
+            self.parallel_web = None
+            self.using_agi_modules = False
+
         # Learning journal
         self.journal: List[Dict] = []
         self.current_depth = 0
         self.attempts = 0
+        self.concepts_learned_this_session = []  # Track for meta-learning
 
         # Detect goal domain for focused learning
         self.goal_domain = self._detect_goal_domain(goal)
@@ -216,11 +256,21 @@ class SelfDiscoveryOrchestrator:
 
         # Domain indicators
         math_indicators = [
+            # Basic operations
             "solve", "equation", "calculate", "add", "subtract", "multiply", "divide",
+            # Algebra & functions
             "algebra", "calculus", "geometry", "trigonometry", "quadratic", "polynomial",
             "derivative", "integral", "matrix", "vector", "function", "graph",
+            # Numbers & number theory
+            "number", "numbers", "prime", "composite", "factor", "factors", "divisor",
+            "multiple", "integer", "rational", "irrational", "real", "complex",
+            "natural numbers", "whole numbers", "counting",
+            # Geometry & measurement
             "x =", "y =", "2x", "3x", "squared", "cubed", "pi", "area", "volume",
-            "radius", "diameter", "perimeter", "percentage", "ratio", "fraction"
+            "radius", "diameter", "perimeter", "percentage", "ratio", "fraction",
+            # Math concepts
+            "theorem", "proof", "axiom", "lemma", "corollary", "set", "sequence",
+            "series", "limit", "infinity", "probability", "statistics"
         ]
 
         science_indicators = [
@@ -599,6 +649,37 @@ REASONING: [brief explanation of what specific knowledge gap prevents you from s
                 "science": "biological cell",
                 "programming": "cell in data structures",
                 "general": "cell definition"
+            },
+            "factor": {
+                "mathematics": "mathematical factors divisors",
+                "science": "factor in science",
+                "general": "factors definition"
+            },
+            "factors": {
+                "mathematics": "mathematical factors of numbers",
+                "science": "factors in science",
+                "general": "factors definition"
+            },
+            "operations": {
+                "mathematics": "basic mathematical operations",
+                "programming": "computer operations",
+                "science": "operations in science",
+                "general": "operations definition"
+            },
+            "object": {
+                "mathematics": "mathematical object",
+                "programming": "programming object",
+                "general": "object definition"
+            },
+            "objects": {
+                "mathematics": "mathematical objects",
+                "programming": "programming objects",
+                "general": "objects definition"
+            },
+            "characteristics": {
+                "mathematics": "characteristics in mathematics",
+                "science": "characteristics in science",
+                "general": "characteristics definition"
             }
         }
 
@@ -939,18 +1020,23 @@ IMPORTANT:
             # STAGE 1: SURPRISE EPISODE - Test initial understanding
             confidence = self._test_concept_understanding(concept, definition, examples, indent)
 
-            if confidence < 0.30:
-                print(f"{indent}        [!] Genuine surprise (new/difficult concept)")
-            elif confidence < 0.70:
+            # Tiered evaluation of initial understanding
+            if confidence >= 0.75:
+                print(f"{indent}        [✓✓] Excellent initial understanding!")
+            elif confidence >= 0.70:
+                print(f"{indent}        [✓] Good initial understanding")
+            elif confidence >= 0.65:
+                print(f"{indent}        [~] Acceptable initial understanding")
+            elif confidence >= 0.30:
                 print(f"{indent}        [i] Partial understanding (needs practice)")
             else:
-                print(f"{indent}        [✓] Good initial understanding")
+                print(f"{indent}        [!] Genuine surprise (new/difficult concept)")
 
-            # STAGE 2: REHEARSAL LOOP - Practice until mastery
+            # STAGE 2: REHEARSAL LOOP - Practice until mastery (minimum 65%)
             rehearsal_count = 0
             max_rehearsals = 4
 
-            while confidence < self.target_confidence and rehearsal_count < max_rehearsals:
+            while confidence < 0.65 and rehearsal_count < max_rehearsals:
                 rehearsal_count += 1
                 print(f"{indent}    [R] Rehearsal {rehearsal_count}/{max_rehearsals}...")
 
@@ -962,23 +1048,36 @@ IMPORTANT:
                 # Practice applying the concept
                 confidence = self._rehearse_concept(concept, definition, examples, confidence, indent)
 
-                # Check if mastered
-                if confidence >= self.target_confidence:
-                    print(f"{indent}        [✓] Mastered! (confidence: {confidence:.2f})")
+                # Check if mastered (tiered confidence evaluation)
+                if confidence >= 0.75:
+                    print(f"{indent}        [✓✓] Excellent! Confirmed mastery (confidence: {confidence:.2f})")
+                    break
+                elif confidence >= 0.70:
+                    print(f"{indent}        [✓] Good! Concept mastered (confidence: {confidence:.2f})")
+                    break
+                elif confidence >= 0.65:
+                    print(f"{indent}        [~] Acceptable (least possibility, confidence: {confidence:.2f})")
                     break
                 elif rehearsal_count >= max_rehearsals:
-                    print(f"{indent}        [!] Max rehearsals reached (confidence: {confidence:.2f})")
+                    print(f"{indent}        [!] Max rehearsals reached (confidence: {confidence:.2f} < 0.65 minimum)")
 
-            # STAGE 3: CORTICAL TRANSFER - Store only if confident enough
+            # STAGE 3: CORTICAL TRANSFER - Store with quality indicator
             final_confidence = confidence
 
-            if final_confidence >= self.target_confidence:
+            # Tiered confidence evaluation for transfer
+            if final_confidence >= 0.75:
+                print(f"{indent}    [✓✓] Transferring to LTM (cortical transfer)")
+                print(f"{indent}        Final confidence: {final_confidence:.2f} - CONFIRMED (excellent)")
+            elif final_confidence >= 0.70:
                 print(f"{indent}    [✓] Transferring to LTM (cortical transfer)")
-                print(f"{indent}        Final confidence: {final_confidence:.2f}")
+                print(f"{indent}        Final confidence: {final_confidence:.2f} - YES (good understanding)")
+            elif final_confidence >= 0.65:
+                print(f"{indent}    [~] Transferring to LTM (cortical transfer)")
+                print(f"{indent}        Final confidence: {final_confidence:.2f} - ACCEPTABLE (least possibility)")
             else:
-                print(f"{indent}    [!] Concept not fully mastered")
-                print(f"{indent}        Confidence: {final_confidence:.2f} < Target: {self.target_confidence:.2f}")
-                print(f"{indent}        Storing anyway (will reinforce if needed later)")
+                print(f"{indent}    [!] Below minimum threshold (0.65)")
+                print(f"{indent}        Confidence: {final_confidence:.2f}")
+                print(f"{indent}        Storing anyway (will reinforce later if needed)")
         else:
             print(f"{indent}    [i] 3-Stage Learning disabled (fast mode)")
 
@@ -1171,9 +1270,23 @@ IMPORTANT:
             print("Max attempts: UNLIMITED (will run until success)")
         print("="*60)
 
+        # NEW: Create learning plan with dependency graph (AGI planning!)
+        learning_plan = None
+        if self.using_agi_modules and self.goal_planner:
+            print("\n[🎯] Creating learning plan with dependency graph...")
+            try:
+                learning_stages, graph = await self.goal_planner.create_learning_plan(
+                    self.goal, self.goal_domain, max_depth=4
+                )
+                learning_plan = (learning_stages, graph)
+            except Exception as e:
+                print(f"[!] Goal planning failed: {e}, continuing without plan")
+                learning_plan = None
+
         attempt_num = 0
         attempt_history = []  # Track last 10 attempts to detect loops
         stuck_count = 0
+        start_time = datetime.now()  # Track learning session time
 
         while True:
             attempt_num += 1
@@ -1194,6 +1307,39 @@ IMPORTANT:
                 print(f"Attempts: {self.attempts}")
                 print(f"Concepts learned: {len(self.journal)}")
 
+                # NEW: Record successful learning session in meta-learner
+                if self.using_agi_modules and self.meta_learner:
+                    session_time = (datetime.now() - start_time).total_seconds()
+                    learning_record = LearningAttempt(
+                        concept=self.goal,
+                        domain=self.goal_domain,
+                        attempts=self.attempts,
+                        time_seconds=session_time,
+                        final_confidence=0.75,  # Achieved goal
+                        success=True,
+                        prerequisites_learned=len(self.concepts_learned_this_session),
+                        web_searches=len(self.parallel_web.search_history) if self.parallel_web else 0,
+                        rehearsal_rounds=3 if self.enable_rehearsal else 0,
+                        timestamp=datetime.now().isoformat()
+                    )
+                    self.meta_learner.record_attempt(learning_record)
+                    print("\n[📊] Meta-learning: Session recorded for future improvement")
+
+                    # Show improvement stats
+                    improvement = self.meta_learner.analyze_improvement()
+                    if not improvement.get("not_enough_data"):
+                        print(f"[📊] Learning improvement: {improvement.get('attempts_improvement', 0)*100:.1f}% fewer attempts needed")
+                        print(f"[📊] Confidence improvement: +{improvement.get('confidence_improvement', 0)*100:.1f}%")
+
+                # NEW: Show AGI summaries
+                if self.using_agi_modules:
+                    if self.creative_reasoner and len(self.creative_reasoner.insights_generated) > 0:
+                        print(self.creative_reasoner.summarize_insights())
+                    if self.curiosity_engine and len(self.curiosity_engine.questions_generated) > 0:
+                        print(self.curiosity_engine.summarize_curiosity())
+                    if self.causal_reasoner and len(self.causal_reasoner.causal_graph) > 0:
+                        print(self.causal_reasoner.summarize_causal_knowledge())
+
                 # Issue #6: Flush any pending saves
                 if self.using_hybrid and hasattr(self.ltm, 'save'):
                     print("[i] Saving all learned concepts to disk...")
@@ -1213,6 +1359,34 @@ IMPORTANT:
                 return False
 
             print(f"\n[i] Missing concepts: {', '.join(attempt.missing_concepts)}")
+
+            # NEW: Filter irrelevant prerequisites using RelevanceFilter
+            filtered_concepts = attempt.missing_concepts
+            if self.using_agi_modules and self.relevance_filter:
+                print(f"\n[🔍] Filtering {len(attempt.missing_concepts)} prerequisites for relevance...")
+                relevant, filtered_out = await self.relevance_filter.filter_prerequisites(
+                    attempt.missing_concepts,
+                    self.goal,
+                    self.goal,
+                    self.goal_domain
+                )
+                filtered_concepts = relevant
+                if filtered_out:
+                    print(f"[✓] Filtered out {len(filtered_out)} irrelevant concepts: {', '.join(filtered_out[:5])}")
+                    print(f"[✓] Learning only {len(relevant)} relevant concepts")
+
+            # NEW: Metacognition - check if we're going off track
+            if self.using_agi_modules and self.metacognition and len(self.concepts_learned_this_session) > 0:
+                if len(self.concepts_learned_this_session) % 3 == 0:  # Every 3 concepts
+                    on_track, reason = await self.metacognition.check_if_on_track(
+                        self.goal,
+                        filtered_concepts[0] if filtered_concepts else "unknown",
+                        self.concepts_learned_this_session,
+                        self.current_depth
+                    )
+                    if not on_track:
+                        print(f"[🧠] METACOGNITION WARNING: Might be going off track!")
+                        print(f"[🧠] Consider: {reason}")
 
             # Loop detection: track history of ALL attempts to detect alternating loops
             current_missing = frozenset(attempt.missing_concepts)  # Use frozenset for hashable set
@@ -1253,7 +1427,14 @@ IMPORTANT:
 
             # MULTIPROCESSING: Learn all missing concepts in parallel!
             # This dramatically speeds up learning when multiple concepts are needed
-            num_concepts = len(attempt.missing_concepts)
+            # Use filtered_concepts (relevance filter applied!)
+            concepts_to_learn = filtered_concepts if self.using_agi_modules else attempt.missing_concepts
+            num_concepts = len(concepts_to_learn)
+
+            if num_concepts == 0:
+                print("[i] No relevant concepts to learn after filtering, retrying goal...")
+                continue
+
             parallel_batch = min(num_concepts, self.max_parallel_concepts)
             print(f"[⚡] Learning {num_concepts} concepts (batch size: {parallel_batch} parallel)...")
 
@@ -1261,6 +1442,9 @@ IMPORTANT:
                 """Wrapper to handle errors in parallel learning."""
                 try:
                     learned = await self.discover_concept(concept, needed_for=self.goal)
+                    if learned and self.using_agi_modules:
+                        # Track for meta-learning
+                        self.concepts_learned_this_session.append(concept)
                     if not learned:
                         print(f"[!] Failed to learn {concept}, continuing anyway...")
                     return learned
@@ -1271,7 +1455,7 @@ IMPORTANT:
             # Learn concepts in parallel batches to avoid overwhelming the system
             all_results = []
             for i in range(0, num_concepts, parallel_batch):
-                batch = attempt.missing_concepts[i:i+parallel_batch]
+                batch = concepts_to_learn[i:i+parallel_batch]
                 print(f"[⚡] Processing batch {i//parallel_batch + 1} ({len(batch)} concepts)...")
 
                 # Learn batch concurrently using asyncio.gather
@@ -1284,6 +1468,16 @@ IMPORTANT:
             # Count successful learnings
             successful = sum(1 for r in all_results if r is True)
             print(f"[✓] Successfully learned {successful}/{num_concepts} concepts using parallel processing")
+
+            # NEW: Generate creative insights after learning batch
+            if self.using_agi_modules and self.creative_reasoner and successful > 2:
+                try:
+                    await self.creative_reasoner.find_hidden_patterns(
+                        self.concepts_learned_this_session[-successful:],
+                        self.goal_domain
+                    )
+                except Exception as e:
+                    print(f"[!] Creative reasoning failed: {e}")
 
             # Brief delay before retry
             await asyncio.sleep(1)
