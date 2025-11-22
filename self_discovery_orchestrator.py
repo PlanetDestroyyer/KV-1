@@ -40,6 +40,21 @@ except ImportError:
     MATHCONNECT_AVAILABLE = False
     print("[!] MathConnect not available, symbolic math reasoning disabled")
 
+# NEW AGI modules
+try:
+    from core.meta_learner import MetaLearner, LearningAttempt
+    from core.metacognition import MetacognitiveLayer
+    from core.relevance_filter import RelevanceFilter
+    from core.goal_planner import GoalPlanner
+    from core.creative_reasoner import CreativeReasoner
+    from core.curiosity_engine import CuriosityEngine
+    from core.causal_reasoner import CausalReasoner
+    from core.parallel_web_search import ParallelWebSearch
+    AGI_MODULES_AVAILABLE = True
+except ImportError as e:
+    AGI_MODULES_AVAILABLE = False
+    print(f"[!] AGI modules not available: {e}")
+
 
 @dataclass
 class LearningEntry:
@@ -181,10 +196,35 @@ class SelfDiscoveryOrchestrator:
             self.math_connect = None
             self.using_mathconnect = False
 
+        # Initialize AGI modules
+        if AGI_MODULES_AVAILABLE:
+            print("[+] Initializing AGI modules...")
+            self.meta_learner = MetaLearner(storage_path=os.path.join(data_dir, "meta_learning.json"))
+            self.metacognition = MetacognitiveLayer(self.llm)
+            self.relevance_filter = RelevanceFilter(self.llm)
+            self.goal_planner = GoalPlanner(self.llm, self.relevance_filter)
+            self.creative_reasoner = CreativeReasoner(self.llm)
+            self.curiosity_engine = CuriosityEngine(self.llm)
+            self.causal_reasoner = CausalReasoner(self.llm)
+            self.parallel_web = ParallelWebSearch(self.web_researcher, max_workers=5)
+            self.using_agi_modules = True
+            print("[+] AGI modules ready: Meta-learning, Metacognition, Goal Planning, Creative Reasoning, Curiosity, Causal Reasoning")
+        else:
+            self.meta_learner = None
+            self.metacognition = None
+            self.relevance_filter = None
+            self.goal_planner = None
+            self.creative_reasoner = None
+            self.curiosity_engine = None
+            self.causal_reasoner = None
+            self.parallel_web = None
+            self.using_agi_modules = False
+
         # Learning journal
         self.journal: List[Dict] = []
         self.current_depth = 0
         self.attempts = 0
+        self.concepts_learned_this_session = []  # Track for meta-learning
 
         # Detect goal domain for focused learning
         self.goal_domain = self._detect_goal_domain(goal)
@@ -1230,9 +1270,23 @@ IMPORTANT:
             print("Max attempts: UNLIMITED (will run until success)")
         print("="*60)
 
+        # NEW: Create learning plan with dependency graph (AGI planning!)
+        learning_plan = None
+        if self.using_agi_modules and self.goal_planner:
+            print("\n[🎯] Creating learning plan with dependency graph...")
+            try:
+                learning_stages, graph = await self.goal_planner.create_learning_plan(
+                    self.goal, self.goal_domain, max_depth=4
+                )
+                learning_plan = (learning_stages, graph)
+            except Exception as e:
+                print(f"[!] Goal planning failed: {e}, continuing without plan")
+                learning_plan = None
+
         attempt_num = 0
         attempt_history = []  # Track last 10 attempts to detect loops
         stuck_count = 0
+        start_time = datetime.now()  # Track learning session time
 
         while True:
             attempt_num += 1
@@ -1253,6 +1307,39 @@ IMPORTANT:
                 print(f"Attempts: {self.attempts}")
                 print(f"Concepts learned: {len(self.journal)}")
 
+                # NEW: Record successful learning session in meta-learner
+                if self.using_agi_modules and self.meta_learner:
+                    session_time = (datetime.now() - start_time).total_seconds()
+                    learning_record = LearningAttempt(
+                        concept=self.goal,
+                        domain=self.goal_domain,
+                        attempts=self.attempts,
+                        time_seconds=session_time,
+                        final_confidence=0.75,  # Achieved goal
+                        success=True,
+                        prerequisites_learned=len(self.concepts_learned_this_session),
+                        web_searches=len(self.parallel_web.search_history) if self.parallel_web else 0,
+                        rehearsal_rounds=3 if self.enable_rehearsal else 0,
+                        timestamp=datetime.now().isoformat()
+                    )
+                    self.meta_learner.record_attempt(learning_record)
+                    print("\n[📊] Meta-learning: Session recorded for future improvement")
+
+                    # Show improvement stats
+                    improvement = self.meta_learner.analyze_improvement()
+                    if not improvement.get("not_enough_data"):
+                        print(f"[📊] Learning improvement: {improvement.get('attempts_improvement', 0)*100:.1f}% fewer attempts needed")
+                        print(f"[📊] Confidence improvement: +{improvement.get('confidence_improvement', 0)*100:.1f}%")
+
+                # NEW: Show AGI summaries
+                if self.using_agi_modules:
+                    if self.creative_reasoner and len(self.creative_reasoner.insights_generated) > 0:
+                        print(self.creative_reasoner.summarize_insights())
+                    if self.curiosity_engine and len(self.curiosity_engine.questions_generated) > 0:
+                        print(self.curiosity_engine.summarize_curiosity())
+                    if self.causal_reasoner and len(self.causal_reasoner.causal_graph) > 0:
+                        print(self.causal_reasoner.summarize_causal_knowledge())
+
                 # Issue #6: Flush any pending saves
                 if self.using_hybrid and hasattr(self.ltm, 'save'):
                     print("[i] Saving all learned concepts to disk...")
@@ -1272,6 +1359,34 @@ IMPORTANT:
                 return False
 
             print(f"\n[i] Missing concepts: {', '.join(attempt.missing_concepts)}")
+
+            # NEW: Filter irrelevant prerequisites using RelevanceFilter
+            filtered_concepts = attempt.missing_concepts
+            if self.using_agi_modules and self.relevance_filter:
+                print(f"\n[🔍] Filtering {len(attempt.missing_concepts)} prerequisites for relevance...")
+                relevant, filtered_out = await self.relevance_filter.filter_prerequisites(
+                    attempt.missing_concepts,
+                    self.goal,
+                    self.goal,
+                    self.goal_domain
+                )
+                filtered_concepts = relevant
+                if filtered_out:
+                    print(f"[✓] Filtered out {len(filtered_out)} irrelevant concepts: {', '.join(filtered_out[:5])}")
+                    print(f"[✓] Learning only {len(relevant)} relevant concepts")
+
+            # NEW: Metacognition - check if we're going off track
+            if self.using_agi_modules and self.metacognition and len(self.concepts_learned_this_session) > 0:
+                if len(self.concepts_learned_this_session) % 3 == 0:  # Every 3 concepts
+                    on_track, reason = await self.metacognition.check_if_on_track(
+                        self.goal,
+                        filtered_concepts[0] if filtered_concepts else "unknown",
+                        self.concepts_learned_this_session,
+                        self.current_depth
+                    )
+                    if not on_track:
+                        print(f"[🧠] METACOGNITION WARNING: Might be going off track!")
+                        print(f"[🧠] Consider: {reason}")
 
             # Loop detection: track history of ALL attempts to detect alternating loops
             current_missing = frozenset(attempt.missing_concepts)  # Use frozenset for hashable set
@@ -1312,7 +1427,14 @@ IMPORTANT:
 
             # MULTIPROCESSING: Learn all missing concepts in parallel!
             # This dramatically speeds up learning when multiple concepts are needed
-            num_concepts = len(attempt.missing_concepts)
+            # Use filtered_concepts (relevance filter applied!)
+            concepts_to_learn = filtered_concepts if self.using_agi_modules else attempt.missing_concepts
+            num_concepts = len(concepts_to_learn)
+
+            if num_concepts == 0:
+                print("[i] No relevant concepts to learn after filtering, retrying goal...")
+                continue
+
             parallel_batch = min(num_concepts, self.max_parallel_concepts)
             print(f"[⚡] Learning {num_concepts} concepts (batch size: {parallel_batch} parallel)...")
 
@@ -1320,6 +1442,9 @@ IMPORTANT:
                 """Wrapper to handle errors in parallel learning."""
                 try:
                     learned = await self.discover_concept(concept, needed_for=self.goal)
+                    if learned and self.using_agi_modules:
+                        # Track for meta-learning
+                        self.concepts_learned_this_session.append(concept)
                     if not learned:
                         print(f"[!] Failed to learn {concept}, continuing anyway...")
                     return learned
@@ -1330,7 +1455,7 @@ IMPORTANT:
             # Learn concepts in parallel batches to avoid overwhelming the system
             all_results = []
             for i in range(0, num_concepts, parallel_batch):
-                batch = attempt.missing_concepts[i:i+parallel_batch]
+                batch = concepts_to_learn[i:i+parallel_batch]
                 print(f"[⚡] Processing batch {i//parallel_batch + 1} ({len(batch)} concepts)...")
 
                 # Learn batch concurrently using asyncio.gather
@@ -1343,6 +1468,16 @@ IMPORTANT:
             # Count successful learnings
             successful = sum(1 for r in all_results if r is True)
             print(f"[✓] Successfully learned {successful}/{num_concepts} concepts using parallel processing")
+
+            # NEW: Generate creative insights after learning batch
+            if self.using_agi_modules and self.creative_reasoner and successful > 2:
+                try:
+                    await self.creative_reasoner.find_hidden_patterns(
+                        self.concepts_learned_this_session[-successful:],
+                        self.goal_domain
+                    )
+                except Exception as e:
+                    print(f"[!] Creative reasoning failed: {e}")
 
             # Brief delay before retry
             await asyncio.sleep(1)
