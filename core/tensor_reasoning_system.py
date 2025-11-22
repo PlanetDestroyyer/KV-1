@@ -20,7 +20,7 @@ import asyncio
 from typing import List, Dict, Tuple, Optional, Any
 from dataclasses import dataclass
 
-from core.math_primitives import MathematicalPrimitives, Math Domain
+from core.math_primitives import MathematicalPrimitives, MathDomain
 from core.symbolic_math_engine import SymbolicMathEngine, ProofStatus
 from core.geometric_knowledge_space import RiemannianKnowledgeManifold
 from core.mathematical_exploration_engine import MathematicalExplorationEngine, ExplorationResult

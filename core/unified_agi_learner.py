@@ -210,7 +210,7 @@ class UnifiedAGILearner:
 
         # Search web
         print(f"[🌐] Searching web for: {question}")
-        search_result = self.web.search(question)
+        search_result = self.web.fetch(question)
 
         if not search_result:
             return UnifiedResult(
@@ -227,7 +227,7 @@ class UnifiedAGILearner:
 
         prompt = f"""Based on this information:
 
-{search_result[:2000]}
+{search_result.text[:2000]}
 
 Answer the question: {question}
 
