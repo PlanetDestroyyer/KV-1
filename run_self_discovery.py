@@ -88,8 +88,8 @@ Example goals:
     parser.add_argument(
         "--target-confidence",
         type=float,
-        default=0.85,
-        help="Mastery threshold for 3-stage learning (0.0-1.0). Default: 0.85"
+        default=0.70,
+        help="Mastery threshold for 3-stage learning (0.0-1.0). Default: 0.70 (70%)"
     )
 
     return parser.parse_args()
