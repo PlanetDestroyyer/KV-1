@@ -1601,8 +1601,6 @@ IMPORTANT:
             print("[i] Max depth: 2 levels | Max nodes: 50 concepts")
             try:
                 # CRITICAL FIX: Reduced timeout from 5min → 3min for faster failure
-                import asyncio
-
                 # Create the planning task
                 planning_task = asyncio.create_task(
                     self.goal_planner.create_learning_plan(
