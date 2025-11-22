@@ -116,7 +116,7 @@ def main():
         print(f"Max attempts: {args.max_attempts}")
     else:
         print("Max attempts: UNLIMITED (will run until success)")
-    print(f"3-Stage Learning: {'OFF (fast mode)' if args.no_rehearsal else f'ON (target confidence: {args.target_confidence:.2f})'}")
+    print(f"3-Stage Learning: {'OFF (fast mode)' if args.no_rehearsal else 'ON (65%=acceptable, 70%=yes, 75%+=confirmed)'}")
     print(f"Validation: {'ON (multi-source)' if args.validate else 'OFF (fast mode)'}")
     print(f"STM Capacity: 50 slots (GPU-optimized, was 7)")
     print(f"Parallel Processing: ⚡ Up to 10 concepts simultaneously ⚡")

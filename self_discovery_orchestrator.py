@@ -939,18 +939,23 @@ IMPORTANT:
             # STAGE 1: SURPRISE EPISODE - Test initial understanding
             confidence = self._test_concept_understanding(concept, definition, examples, indent)
 
-            if confidence < 0.30:
-                print(f"{indent}        [!] Genuine surprise (new/difficult concept)")
-            elif confidence < 0.70:
+            # Tiered evaluation of initial understanding
+            if confidence >= 0.75:
+                print(f"{indent}        [✓✓] Excellent initial understanding!")
+            elif confidence >= 0.70:
+                print(f"{indent}        [✓] Good initial understanding")
+            elif confidence >= 0.65:
+                print(f"{indent}        [~] Acceptable initial understanding")
+            elif confidence >= 0.30:
                 print(f"{indent}        [i] Partial understanding (needs practice)")
             else:
-                print(f"{indent}        [✓] Good initial understanding")
+                print(f"{indent}        [!] Genuine surprise (new/difficult concept)")
 
-            # STAGE 2: REHEARSAL LOOP - Practice until mastery
+            # STAGE 2: REHEARSAL LOOP - Practice until mastery (minimum 65%)
             rehearsal_count = 0
             max_rehearsals = 4
 
-            while confidence < self.target_confidence and rehearsal_count < max_rehearsals:
+            while confidence < 0.65 and rehearsal_count < max_rehearsals:
                 rehearsal_count += 1
                 print(f"{indent}    [R] Rehearsal {rehearsal_count}/{max_rehearsals}...")
 
@@ -962,23 +967,36 @@ IMPORTANT:
                 # Practice applying the concept
                 confidence = self._rehearse_concept(concept, definition, examples, confidence, indent)
 
-                # Check if mastered
-                if confidence >= self.target_confidence:
-                    print(f"{indent}        [✓] Mastered! (confidence: {confidence:.2f})")
+                # Check if mastered (tiered confidence evaluation)
+                if confidence >= 0.75:
+                    print(f"{indent}        [✓✓] Excellent! Confirmed mastery (confidence: {confidence:.2f})")
+                    break
+                elif confidence >= 0.70:
+                    print(f"{indent}        [✓] Good! Concept mastered (confidence: {confidence:.2f})")
+                    break
+                elif confidence >= 0.65:
+                    print(f"{indent}        [~] Acceptable (least possibility, confidence: {confidence:.2f})")
                     break
                 elif rehearsal_count >= max_rehearsals:
-                    print(f"{indent}        [!] Max rehearsals reached (confidence: {confidence:.2f})")
+                    print(f"{indent}        [!] Max rehearsals reached (confidence: {confidence:.2f} < 0.65 minimum)")
 
-            # STAGE 3: CORTICAL TRANSFER - Store only if confident enough
+            # STAGE 3: CORTICAL TRANSFER - Store with quality indicator
             final_confidence = confidence
 
-            if final_confidence >= self.target_confidence:
+            # Tiered confidence evaluation for transfer
+            if final_confidence >= 0.75:
+                print(f"{indent}    [✓✓] Transferring to LTM (cortical transfer)")
+                print(f"{indent}        Final confidence: {final_confidence:.2f} - CONFIRMED (excellent)")
+            elif final_confidence >= 0.70:
                 print(f"{indent}    [✓] Transferring to LTM (cortical transfer)")
-                print(f"{indent}        Final confidence: {final_confidence:.2f}")
+                print(f"{indent}        Final confidence: {final_confidence:.2f} - YES (good understanding)")
+            elif final_confidence >= 0.65:
+                print(f"{indent}    [~] Transferring to LTM (cortical transfer)")
+                print(f"{indent}        Final confidence: {final_confidence:.2f} - ACCEPTABLE (least possibility)")
             else:
-                print(f"{indent}    [!] Concept not fully mastered")
-                print(f"{indent}        Confidence: {final_confidence:.2f} < Target: {self.target_confidence:.2f}")
-                print(f"{indent}        Storing anyway (will reinforce if needed later)")
+                print(f"{indent}    [!] Below minimum threshold (0.65)")
+                print(f"{indent}        Confidence: {final_confidence:.2f}")
+                print(f"{indent}        Storing anyway (will reinforce later if needed)")
         else:
             print(f"{indent}    [i] 3-Stage Learning disabled (fast mode)")
 
