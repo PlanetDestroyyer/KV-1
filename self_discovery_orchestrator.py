@@ -837,7 +837,8 @@ REASONING: I need to know exponential decay to work backward from current popula
             else:
                 concept = truncated
 
-        return concept.strip()
+        # CRITICAL: Normalize to lowercase for consistent storage and lookup
+        return concept.strip().lower()
 
     def _is_valid_concept(self, concept: str) -> bool:
         """Check if concept is valid and worth learning."""
