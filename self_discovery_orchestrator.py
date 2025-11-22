@@ -247,6 +247,7 @@ class SelfDiscoveryOrchestrator:
         self.current_depth = 0
         self.attempts = 0
         self.concepts_learned_this_session = []  # Track for meta-learning
+        self.session_learned: Set[str] = set()  # Prevent duplicate learning within same session
 
         # Detect goal domain for focused learning
         self.goal_domain = self._detect_goal_domain(goal)
@@ -883,11 +884,33 @@ Keep it simple and educational."""
         print(f"\n{indent}[L] Discovering: {concept}")
         print(f"{indent}    Needed for: {needed_for}")
 
-        # Check if already known
-        if self.ltm.has(concept):
-            print(f"{indent}    [i] Already in LTM, skipping")
+        # Check if learned this session (prevents duplicate learning within same run)
+        if concept in self.session_learned or concept.lower() in self.session_learned:
+            print(f"{indent}    [✓] Already learned this session, skipping")
             self.current_depth -= 1
             return True
+
+        # Check if already known in LTM
+        has_concept = self.ltm.has(concept)
+        if has_concept:
+            print(f"{indent}    [✓] Already in LTM, skipping")
+            self.current_depth -= 1
+            return True
+        else:
+            # DEBUG: Check why concept not found
+            if self.using_hybrid:
+                # Try exact match in concepts dict
+                exact_match = concept in self.ltm.concepts or concept.lower() in self.ltm.concepts
+                if exact_match:
+                    print(f"{indent}    [!] BUG: Exact match exists but semantic search failed!")
+                    print(f"{indent}        Stored as: {list(self.ltm.concepts.keys())}")
+                # Try semantic search with lower threshold
+                from core.hybrid_memory import HybridMemory
+                if hasattr(self.ltm, '_search_ltm'):
+                    result = self.ltm._search_ltm(concept, threshold=0.7)
+                    if result:
+                        name, score = result
+                        print(f"{indent}    [i] Found similar concept '{name}' (score: {score:.2f}) but threshold=0.85 filtered it")
 
         # Check if it's a primitive concept (letters, numbers)
         primitive = self._try_primitive_learning(concept)
@@ -1147,6 +1170,8 @@ IMPORTANT:
         # Only store if confidence is sufficient (or validation disabled)
         if should_store:
             self.ltm.add(entry)
+            self.session_learned.add(concept)  # Add to session cache
+            self.session_learned.add(concept.lower())  # Also add lowercase version
             print(f"{indent}    [✓] Stored in LTM (validated)")
             if examples:
                 print(f"{indent}    [✓] Stored {len(examples)} example(s) for future reference!")
@@ -1237,6 +1262,8 @@ IMPORTANT:
                 source="primitive"
             )
             self.ltm.add(entry)
+            self.session_learned.add(concept)
+            self.session_learned.add(concept_lower)
             return True
 
         # Single digits
@@ -1250,6 +1277,8 @@ IMPORTANT:
                 source="primitive"
             )
             self.ltm.add(entry)
+            self.session_learned.add(concept)
+            self.session_learned.add(concept_lower)
             return True
 
         # Basic concepts
@@ -1269,6 +1298,8 @@ IMPORTANT:
                 source="primitive"
             )
             self.ltm.add(entry)
+            self.session_learned.add(concept)
+            self.session_learned.add(concept_lower)
             return True
 
         return False
