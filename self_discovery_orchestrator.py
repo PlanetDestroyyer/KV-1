@@ -55,6 +55,14 @@ except ImportError as e:
     AGI_MODULES_AVAILABLE = False
     print(f"[!] AGI modules not available: {e}")
 
+# Unified AGI Learning System
+try:
+    from core.unified_agi_learner import UnifiedAGILearner, QuestionType
+    UNIFIED_AGI_AVAILABLE = True
+except ImportError as e:
+    UNIFIED_AGI_AVAILABLE = False
+    print(f"[!] Unified AGI learner not available: {e}")
+
 
 @dataclass
 class LearningEntry:
@@ -219,6 +227,20 @@ class SelfDiscoveryOrchestrator:
             self.causal_reasoner = None
             self.parallel_web = None
             self.using_agi_modules = False
+
+        # Initialize Unified AGI Learning System
+        if UNIFIED_AGI_AVAILABLE:
+            print("[+] Initializing UNIFIED AGI LEARNING SYSTEM...")
+            self.unified_learner = UnifiedAGILearner(
+                llm_bridge=self.llm,
+                web_researcher=self.web_researcher,
+                memory=self.ltm
+            )
+            self.using_unified_agi = True
+            print("[+] ✅ UNIFIED AGI: Handles BOTH math (tensor reasoning) AND general knowledge!")
+        else:
+            self.unified_learner = None
+            self.using_unified_agi = False
 
         # Learning journal
         self.journal: List[Dict] = []
