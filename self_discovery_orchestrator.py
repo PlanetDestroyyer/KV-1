@@ -216,11 +216,21 @@ class SelfDiscoveryOrchestrator:
 
         # Domain indicators
         math_indicators = [
+            # Basic operations
             "solve", "equation", "calculate", "add", "subtract", "multiply", "divide",
+            # Algebra & functions
             "algebra", "calculus", "geometry", "trigonometry", "quadratic", "polynomial",
             "derivative", "integral", "matrix", "vector", "function", "graph",
+            # Numbers & number theory
+            "number", "numbers", "prime", "composite", "factor", "factors", "divisor",
+            "multiple", "integer", "rational", "irrational", "real", "complex",
+            "natural numbers", "whole numbers", "counting",
+            # Geometry & measurement
             "x =", "y =", "2x", "3x", "squared", "cubed", "pi", "area", "volume",
-            "radius", "diameter", "perimeter", "percentage", "ratio", "fraction"
+            "radius", "diameter", "perimeter", "percentage", "ratio", "fraction",
+            # Math concepts
+            "theorem", "proof", "axiom", "lemma", "corollary", "set", "sequence",
+            "series", "limit", "infinity", "probability", "statistics"
         ]
 
         science_indicators = [
@@ -599,6 +609,37 @@ REASONING: [brief explanation of what specific knowledge gap prevents you from s
                 "science": "biological cell",
                 "programming": "cell in data structures",
                 "general": "cell definition"
+            },
+            "factor": {
+                "mathematics": "mathematical factors divisors",
+                "science": "factor in science",
+                "general": "factors definition"
+            },
+            "factors": {
+                "mathematics": "mathematical factors of numbers",
+                "science": "factors in science",
+                "general": "factors definition"
+            },
+            "operations": {
+                "mathematics": "basic mathematical operations",
+                "programming": "computer operations",
+                "science": "operations in science",
+                "general": "operations definition"
+            },
+            "object": {
+                "mathematics": "mathematical object",
+                "programming": "programming object",
+                "general": "object definition"
+            },
+            "objects": {
+                "mathematics": "mathematical objects",
+                "programming": "programming objects",
+                "general": "objects definition"
+            },
+            "characteristics": {
+                "mathematics": "characteristics in mathematics",
+                "science": "characteristics in science",
+                "general": "characteristics definition"
             }
         }
 
