@@ -717,7 +717,8 @@ REASONING: I need to know exponential decay to work backward from current popula
                     result = str(json_data["solution"])
                 if "missing_concepts" in json_data:
                     if json_data["missing_concepts"]:
-                        missing = json_data["missing_concepts"]
+                        # Clean and normalize each concept to lowercase
+                        missing = [self._clean_concept_name(c) for c in json_data["missing_concepts"]]
                     success = len(json_data["missing_concepts"]) == 0
                 elif "answer" in json_data:
                     result = str(json_data["answer"])
@@ -1252,9 +1253,9 @@ IMPORTANT:
                 if prereq_str.lower() not in ["none", "n/a", ""]:
                     # Split and clean prerequisites
                     raw_prereqs = [p.strip() for p in prereq_str.split(",")]
-                    # Filter out invalid concepts AND irrelevant ones
+                    # Filter out invalid concepts AND irrelevant ones, then normalize to lowercase
                     prerequisites = [
-                        p for p in raw_prereqs
+                        self._clean_concept_name(p) for p in raw_prereqs
                         if self._is_valid_concept(p) and self._is_relevant_to_goal(p)
                     ]
             elif line.startswith("EXAMPLES:"):
