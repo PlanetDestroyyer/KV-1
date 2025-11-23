@@ -502,8 +502,10 @@ class SelfDiscoveryOrchestrator:
                 if pattern in concept_lower:
                     return False
 
-        # General domain check
-        return self.goal_domain == "general"
+        # If no irrelevant patterns matched, assume relevant
+        # Let LLM decide if it's truly needed - don't over-filter
+        # This aligns with the philosophy: "let llm decide what is missing"
+        return True
 
     def _get_knowledge_summary(self) -> str:
         """Generate summary of current knowledge for LLM context."""
