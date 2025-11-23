@@ -98,33 +98,37 @@ class MathematicalPrimitives:
         axioms = {}
 
         # Number theory axioms
+        # Note: Using string representations since sympy doesn't support all first-order logic
+        n = sp.Symbol('n', integer=True, positive=True)
+
         axioms["peano_1"] = MathAxiom(
             name="Peano Axiom 1",
             domain=MathDomain.NUMBER_THEORY,
-            symbolic_form=sp.sympify("1 in N"),  # 1 is a natural number
+            symbolic_form=sp.Integer(1),  # Represents that 1 exists as a natural number
             natural_language="1 is a natural number"
         )
 
         axioms["peano_successor"] = MathAxiom(
             name="Peano Successor",
             domain=MathDomain.NUMBER_THEORY,
-            symbolic_form="n in N implies n+1 in N",
+            symbolic_form=n + 1,  # Successor function
             natural_language="Every natural number has a successor"
         )
 
-        # Well-ordering principle
+        # Well-ordering principle (no direct sympy representation)
         axioms["well_ordering"] = MathAxiom(
             name="Well-Ordering Principle",
             domain=MathDomain.NUMBER_THEORY,
-            symbolic_form="Every non-empty set of natural numbers has a least element",
+            symbolic_form=None,  # Axiomatic principle, no symbolic form
             natural_language="Every non-empty subset of natural numbers has a minimum"
         )
 
         # Division algorithm
+        a, b, q, r = sp.symbols('a b q r', integer=True)
         axioms["division_algorithm"] = MathAxiom(
             name="Division Algorithm",
             domain=MathDomain.NUMBER_THEORY,
-            symbolic_form="ForAll(a,b: exists q,r: a = b*q + r and 0 <= r < b)",
+            symbolic_form=sp.Eq(a, b*q + r),  # a = b*q + r
             natural_language="Every integer can be divided with quotient and remainder"
         )
 
@@ -132,7 +136,7 @@ class MathematicalPrimitives:
         axioms["fundamental_theorem_arithmetic"] = MathAxiom(
             name="Fundamental Theorem of Arithmetic",
             domain=MathDomain.NUMBER_THEORY,
-            symbolic_form="Every integer > 1 has unique prime factorization",
+            symbolic_form=None,  # Axiomatic principle, use factorint() operation
             natural_language="Every integer has a unique decomposition into primes"
         )
 

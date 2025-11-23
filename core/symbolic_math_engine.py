@@ -15,7 +15,8 @@ import sympy as sp
 from sympy import symbols, Symbol, sympify, simplify, expand, factor
 from sympy import solve, Eq, And, Or, Not, Implies
 from sympy import isprime, factorint, gcd, lcm, divisors
-from sympy.logic.boolalg import to_cnf, satisfiable
+from sympy.logic.boolalg import to_cnf
+from sympy.logic.inference import satisfiable
 from sympy.solvers.inequalities import solve_univariate_inequality
 from typing import List, Dict, Tuple, Optional, Any, Set
 from dataclasses import dataclass
