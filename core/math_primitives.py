@@ -15,9 +15,8 @@ from typing import List, Dict, Set, Callable, Any
 from dataclasses import dataclass
 from enum import Enum
 import sympy as sp
-from sympy import symbols, Symbol, Integer, Rational, Prime
+from sympy import symbols, Symbol, Integer, Rational
 from sympy.logic.boolalg import And, Or, Not, Implies, Equivalent
-from sympy.logic.boolalg import ForAll, Exists
 
 
 class MathDomain(Enum):
