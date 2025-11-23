@@ -29,7 +29,7 @@ class WebResearcher:
         cache_dir: str,
         user_agent: str = "KV1/WebResearcher",
         allow_domains: Optional[list] = None,
-        daily_cap: int = 20,
+        daily_cap: int = 999999,  # Unlimited
         session: Optional[requests.Session] = None,
     ):
         self.cache_dir = cache_dir

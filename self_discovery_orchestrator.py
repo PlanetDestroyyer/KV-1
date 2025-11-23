@@ -175,7 +175,7 @@ class SelfDiscoveryOrchestrator:
         goal: str,
         ltm_path: str = "./ltm_memory.json",
         data_dir: str = "./self_discovery_data",
-        max_depth: int = 10,
+        max_depth: int = 7,
         use_hybrid_memory: bool = True,  # NEW: Use STM+LTM+GPU by default!
         enable_validation: bool = False,  # NEW: Validation OFF by default for SPEED!
         enable_rehearsal: bool = True,  # NEW: 3-stage learning for quality control!
@@ -204,7 +204,7 @@ class SelfDiscoveryOrchestrator:
         self.llm = LLMBridge(provider="ollama", default_model="qwen3:4b")
         self.web_researcher = WebResearcher(
             cache_dir=os.path.join(data_dir, "web_cache"),
-            daily_cap=100
+            daily_cap=999999  # Unlimited
         )
         self.validator = KnowledgeValidator(self.llm, self.web_researcher)
 

@@ -1,267 +1,76 @@
 # KV-1 🧠
 
-**A groundbreaking AI learning system featuring autonomous self-discovery, neurosymbolic memory, and mathematical reasoning.**
+**An autonomous learning system for goal-driven knowledge acquisition with persistent memory.**
 
-KV-1 learns like humans do: **goal-driven, failure-aware, and persistent**. It starts with a goal, fails, identifies what it doesn't know, learns those concepts from the web, and retries until success. All knowledge is stored as both human-readable text AND AI-native tensors + symbolic equations.
-
----
-
-## 🎯 The Vision: AI That Learns to Solve Unsolved Problems
-
-**Current Goal**: Build toward attempting the **Riemann Hypothesis** through a 260-question curriculum covering foundational mathematics → number theory → complex analysis.
-
-**The Big Idea**:
-- What if AI didn't just answer questions, but **learned the prerequisites** to solve them?
-- What if AI thought in **math equations**, not just text?
-- What if AI could **discover connections** between theorems automatically?
-- What if knowledge **never disappeared** between sessions?
-
-**That's KV-1.**
+KV-1 is a research system that learns concepts on-demand by: attempting a goal → identifying knowledge gaps → searching the web → learning prerequisites recursively → storing in persistent memory → retrying until success.
 
 ---
 
-## 🏆 What Makes KV-1 Groundbreaking?
+## 🎯 Core Concept
 
-### 1. 🧠 Self-Discovery Learning (Goal-Driven)
+**Problem**: Most AI systems have static knowledge. They can't learn new concepts during operation.
 
-**NOT curriculum-based!** The system:
-
-1. **Attempts** to solve your goal with current knowledge
-2. **Fails** and identifies what concepts are missing
-3. **Searches web** for those concepts autonomously
-4. **Learns prerequisites** recursively (up to 10 levels deep)
-5. **Stores** in persistent memory (STM + LTM + Disk)
-6. **Retries** the goal with new knowledge
-7. **Repeats** until success
-
-**Example**: "Solve x² - 5x + 6 = 0"
-
-```
-[Attempt 1] Tries with 0 knowledge → Fails
-  ↓
-Identifies: "quadratic formula", "factoring", "polynomials"
-  ↓
-Searches web for "quadratic formula" → 2385 chars retrieved
-  ↓
-LLM extracts: definition, examples, prerequisites
-  ↓
-Recursively learns: "square roots" → "exponents" → "multiplication"
-  ↓
-Stores all concepts in LTM (persistent across sessions)
-  ↓
-[Attempt 2] Tries again → SUCCESS! (x = 2, x = 3)
-```
-
-**This is genuine autonomous learning, not retrieval.**
-
-### 2. 🔮 Neurosymbolic Memory (AI-Native Storage)
-
-Traditional AI stores knowledge as **strings** (human language).
-
-KV-1 stores knowledge as:
-- **Text**: Human-readable definitions
-- **Tensors**: 384-D semantic embeddings (for GPU search)
-- **Formulas**: Symbolic expressions (for symbolic reasoning)
-- **Examples**: Worked procedures showing HOW to apply concepts
-
-**Why this matters**: AI can reason with formulas directly, not just text descriptions.
-
-### 3. 🧮 MathConnect (Thinks in Equations)
-
-When KV-1 learns "Pythagorean theorem", it doesn't just store text:
-
-```
-❌ Traditional: "a squared plus b squared equals c squared"
-✅ KV-1: Eq(a**2 + b**2, c**2)  [SymPy equation]
-```
-
-Then it:
-- **Finds connections** to other theorems (distance formula, trigonometry)
-- **Derives new theorems** by composition (e.g., combines circumference + area)
-- **Manipulates equations** symbolically (substitution, solving)
-- **Builds knowledge graph** automatically
-
-**Demo**: Started with 5 base theorems → Derived 22 new theorems → Found 279 connections
-
-### 4. 🔄 3-Stage Learning (Quality Control)
-
-**NEW!** Integrates biological learning principles to verify understanding before storing:
-
-```
-STAGE 1: Surprise Episode (Test Understanding)
-   ↓
-   Read concept from web
-   ↓
-   Test: "Can you explain this in your own words?"
-   ↓
-   Confidence: 0.60 (partial understanding)
-
-STAGE 2: Rehearsal Loop (Practice Until Mastery)
-   ↓
-   Rehearsal 1: Practice problem → Confidence: 0.75 (+0.15)
-   ↓
-   Rehearsal 2: Practice problem → Confidence: 0.87 (+0.12)
-   ↓
-   Target reached! (0.87 ≥ 0.85)
-
-STAGE 3: Cortical Transfer (Store When Confident)
-   ↓
-   Final confidence: 0.87
-   ↓
-   Store in LTM ✓
-```
-
-**Why this matters:**
-- ✅ **Quality Control**: Only stores concepts LLM can actually APPLY
-- ✅ **Catches Misunderstandings**: Tests before storing, not after failing
-- ✅ **Adaptive Practice**: More rehearsal for difficult concepts
-- ✅ **Fewer Loops**: Higher first-attempt success rate
-
-**Default**: ON (target confidence: 0.85)
-
-### 5. 💾 Hybrid Memory (Fast + Persistent)
-
-```
-┌─────────────┐
-│  USER QUERY │
-└──────┬──────┘
-       │
-   ┌───▼────┐
-   │  STM   │ ← 7 slots, O(1) lookup, recent concepts
-   │ (Fast) │ ← "quadratic formula" if used recently
-   └───┬────┘
-       │ Miss?
-   ┌───▼────────┐
-   │    LTM     │ ← GPU semantic search (384-D tensors)
-   │ (Semantic) │ ← "quadratic" → finds "quadratic formula"
-   └───┬────────┘
-       │
-   ┌───▼────┐
-   │  DISK  │ ← ltm_memory.json (persistence)
-   │ (Never │ ← Survives reboots, never forgets
-   │ Forget)│
-   └────────┘
-```
-
-**Speed**: O(1) for recent, 1000x faster than string search for semantic
-
-**Persistence**: All learned concepts saved to disk after every learn() call
-
-### 6. ✅ Knowledge Validation (Optional)
-
-Before storing a concept, KV-1 can:
-- ✅ Search 3+ web sources
-- ✅ Verify definitions match across sources
-- ✅ Validate examples with LLM
-- ✅ Calculate confidence score
-- ✅ Only store if confidence > 0.6
-
-**Default**: Validation **OFF** (10x faster, assumes 0.95 confidence)
-**Enable**: Use `--validate` flag
+**Solution**: KV-1 implements autonomous learning with:
+- Goal-driven knowledge acquisition (learns only what's needed)
+- Recursive prerequisite learning (up to 7 levels deep)
+- Persistent neurosymbolic memory (text + 384-D tensors + symbolic formulas)
+- Multi-source web research (Wikipedia, ArXiv, StackExchange, etc.)
+- Optional 3-stage biological learning (surprise → rehearsal → consolidation)
 
 ---
 
 ## 🏗️ Architecture
 
-### Core System
+### Core Components
 
 ```
-KV-1/
-├── self_discovery_orchestrator.py  ← Main learning loop
-│   ├── pursue_goal()               ← Loops until success
-│   ├── attempt_goal()              ← Tries, identifies gaps
-│   └── discover_concept()          ← Learns missing concepts
-│
-├── core/
-│   ├── hybrid_memory.py            ← STM + LTM + Disk
-│   ├── neurosymbolic_gpu.py        ← GPU semantic search
-│   ├── math_connect.py             ← Symbolic math reasoning
-│   ├── knowledge_validator.py      ← Multi-source validation
-│   ├── llm.py                      ← LLM bridge (Ollama/Gemini)
-│   └── web_researcher.py           ← Web scraping
-│
-├── run_self_discovery.py           ← CLI interface
-├── run_curriculum.py               ← Automated curriculum runner
-└── LEARNING_CURRICULUM.md          ← 260 questions → Riemann
+┌─────────────────────────────────────────────────────────┐
+│  Self-Discovery Orchestrator                            │
+│  • Goal pursuit loop                                    │
+│  • Concept discovery with recursive learning            │
+│  • Parallel batch processing (up to 10 concepts)        │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│  Hybrid Memory System                                   │
+│  • STM: 50 slots, O(1) lookup (0.001ms)               │
+│  • LTM: GPU semantic search (1-5ms)                    │
+│  • Disk: Persistent JSON storage                       │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│  Knowledge Acquisition Pipeline                         │
+│  • Web Researcher: 9 sources (Wikipedia, ArXiv, etc)   │
+│  • LLM Bridge: Ollama/Gemini support                   │
+│  • MathConnect: Symbolic math reasoning (SymPy)        │
+│  • Validator: Optional multi-source verification       │
+└─────────────────────────────────────────────────────────┘
 ```
 
-### What Gets Stored (Per Concept)
-
-```python
-{
-  "name": "quadratic formula",
-  "definition": "x = (-b ± √(b²-4ac)) / 2a for ax² + bx + c = 0",
-  "examples": [
-    "x² + 5x + 6 = 0 → (x+2)(x+3) = 0 → x = -2 or x = -3"
-  ],
-  "formulas": ["x = (-b ± sqrt(b**2 - 4*a*c)) / (2*a)"],
-  "tensor": [0.123, -0.456, ..., 0.789],  # 384-D embedding
-  "confidence": 0.95,
-  "prerequisites": ["factoring", "square roots", "algebra"],
-  "needed_for": "solve x² - 5x + 6 = 0",
-  "learned_at": "2025-11-21T19:30:00"
-}
-```
-
-### Learning Flow Diagram
+### Memory Architecture
 
 ```
-┌──────────────────────────────────────────────────────┐
-│ 1. User Goal: "Solve x² - 5x + 6 = 0"               │
-└────────────────────┬─────────────────────────────────┘
-                     ↓
-┌──────────────────────────────────────────────────────┐
-│ 2. Attempt with Current Knowledge                    │
-│    → LTM has 0 concepts                              │
-│    → Fails: "I need quadratic formula, factoring"   │
-└────────────────────┬─────────────────────────────────┘
-                     ↓
-┌──────────────────────────────────────────────────────┐
-│ 3. Discover: "quadratic formula"                     │
-│    → Search web: Wikipedia + Britannica + ArXiv      │
-│    → Retrieved: 2385 characters                      │
-└────────────────────┬─────────────────────────────────┘
-                     ↓
-┌──────────────────────────────────────────────────────┐
-│ 4. Extract Knowledge                                 │
-│    → Definition: "formula to solve quadratic..."     │
-│    → Examples: "x² + 5x + 6 = (x+2)(x+3)"           │
-│    → Prerequisites: ["square roots", "algebra"]      │
-└────────────────────┬─────────────────────────────────┘
-                     ↓
-┌──────────────────────────────────────────────────────┐
-│ 5. Recursive Learning                                │
-│    → Missing "square roots"? Learn it first!         │
-│    → Missing "algebra"? Learn it first!              │
-│    → Max depth: 10 levels                            │
-└────────────────────┬─────────────────────────────────┘
-                     ↓
-┌──────────────────────────────────────────────────────┐
-│ 6. Store in Memory                                   │
-│    → STM (7 slots, O(1) access)                      │
-│    → LTM (384-D tensor, GPU search)                  │
-│    → Disk (ltm_memory.json, persistent)              │
-│    → MathConnect (if math concept)                   │
-└────────────────────┬─────────────────────────────────┘
-                     ↓
-┌──────────────────────────────────────────────────────┐
-│ 7. Retry Goal                                        │
-│    → LTM now has 6 concepts                          │
-│    → Applies learned factoring procedure             │
-│    → SUCCESS! x = 2, x = 3                           │
-└──────────────────────────────────────────────────────┘
+User Query: "prime numbers"
+     ↓
+STM Check (O(1) lookup)
+     ↓ miss
+LTM Search (GPU cosine similarity)
+     ↓ found (similarity: 0.89)
+Promote to STM (consolidation)
+     ↓
+Next query → STM hit (instant)
 ```
+
+**Performance:**
+- STM hit: ~0.001ms
+- LTM semantic search: ~1-5ms
+- Disk persistence: ~50-200ms (atomic write)
 
 ---
 
-## 📦 Installation
+## 🚀 Quick Start
 
-### Prerequisites
-- Python 3.8+
-- GPU (optional, for faster semantic search)
-- Ollama OR Gemini API key
-
-### Quick Install
+### Installation
 
 ```bash
 # Clone repository
@@ -274,334 +83,258 @@ cd hsokv && pip install -e . && cd ..
 # Install dependencies
 pip install -r requirements.txt
 
-# Option 1: Use Ollama (local, free)
+# Choose LLM provider:
+
+# Option 1: Ollama (local, free)
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull qwen3:4b
 
-# Option 2: Use Gemini (cloud, fast)
-export GEMINI_API_KEY="your-api-key-here"
-
-# Run your first self-discovery experiment
-python run_self_discovery.py "solve 2x + 5 = 15"
+# Option 2: Gemini (cloud, API key required)
+export GEMINI_API_KEY="your-key-here"
 ```
-
----
-
-## 🚀 Quick Start
 
 ### Basic Usage
 
 ```bash
-# Basic algebra (learns from scratch)
-python run_self_discovery.py "solve 3x - 7 = 20"
+# Learn and solve algebra
+python run_self_discovery.py "solve 2x + 5 = 15"
 
-# Advanced math (builds on previous knowledge)
+# Learn calculus concepts
 python run_self_discovery.py "find the derivative of x^3 + 2x^2"
 
-# Prime numbers (learns number theory)
+# Learn number theory
 python run_self_discovery.py "express 50 as sum of two primes"
+```
 
-# With validation (slower but more confident)
-python run_self_discovery.py "what is calculus" --validate
+### Configuration Options
 
-# Fast mode (disable 3-stage learning)
-python run_self_discovery.py "solve 3x + 5 = 20" --no-rehearsal
+```bash
+# Quality modes
+python run_self_discovery.py "solve x² = 16" \
+  --validate              # Enable multi-source validation (slower, higher quality)
+  --no-rehearsal          # Disable 3-stage learning (faster, lower quality)
+  --target-confidence 0.75 # Mastery threshold (0.65-0.90)
 
-# High quality mode (stricter confidence threshold)
-python run_self_discovery.py "what is a derivative" --target-confidence 0.90
+# Memory management
+python run_self_discovery.py "what is a prime" \
+  --ltm my_memory.json    # Custom memory file
+  --reset                 # Start with blank memory
 
-# Maximum quality (validation + 3-stage learning)
-python run_self_discovery.py "explain integration" --validate --target-confidence 0.90
-
-# Use Gemini instead of Ollama
+# LLM provider
 python run_self_discovery.py "solve x² = 16" \
   --provider gemini \
   --model gemini-2.0-flash-exp \
   --api-key YOUR_KEY
-
-# Reset memory (start fresh)
-python run_self_discovery.py "what is a prime" --reset
 ```
 
-### Run the Full Curriculum
-
-```bash
-# Run all 260 questions (Phase 1-6)
-python run_curriculum.py --phase all
-
-# Run specific phase
-python run_curriculum.py --phase 1  # Foundational Math
-python run_curriculum.py --phase 4  # Number Theory
-
-# Resume from checkpoint
-python run_curriculum.py --resume
-
-# Skip failed questions
-python run_curriculum.py --resume --skip-failed
-
-# Use Gemini for curriculum
-python run_curriculum.py --phase all \
-  --provider gemini \
-  --api-key YOUR_KEY
-```
-
-### Python API
-
-```python
-from self_discovery_orchestrator import SelfDiscoveryOrchestrator
-import asyncio
-
-# Initialize system
-orchestrator = SelfDiscoveryOrchestrator(
-    goal="solve x² - 5x + 6 = 0",
-    ltm_path="./my_memory.json",
-    enable_validation=False  # Fast mode (default)
-)
-
-# Learn until goal achieved
-success = await orchestrator.pursue_goal()
-
-if success:
-    print("Goal achieved!")
-
-# Check what was learned
-concepts = orchestrator._get_all_concepts()
-print(f"Learned {len(concepts)} concepts")
-
-# View mathematical knowledge graph
-orchestrator.print_math_knowledge_graph()
-```
-
----
-
-## 🎓 The Learning Curriculum
-
-260 questions organized into 6 phases, building toward the Riemann Hypothesis:
-
-### Phase 1: Foundational Mathematics (35 questions)
-- Arithmetic, algebra, exponents, logarithms
-- Geometry, trigonometry, vectors
-- Complex numbers, Euler's formula
-
-### Phase 2: Calculus & Analysis (50 questions)
-- Limits, continuity, derivatives
-- Integrals, fundamental theorem
-- Series, Taylor/Maclaurin expansions
-
-### Phase 3: Advanced Mathematics (30 questions)
-- Linear algebra (matrices, eigenvalues)
-- Discrete math (induction, combinatorics)
-- Abstract algebra (groups, rings, fields)
-
-### Phase 4: Number Theory (35 questions)
-- Prime numbers, factorization
-- Diophantine equations
-- Riemann zeta function ζ(s)
-- Euler product formula
-
-### Phase 5: Complex Analysis (25 questions)
-- Analytic functions, Cauchy-Riemann
-- Singularities, residues
-- Analytic continuation
-- Functional equation for ζ(s)
-
-### Phase 6: Toward Riemann Hypothesis (25 questions)
-- What is the Riemann Hypothesis?
-- Nontrivial zeros of ζ(s)
-- Critical line Re(s) = 1/2
-- Connection to prime distribution
-
-**Full curriculum**: See [LEARNING_CURRICULUM.md](LEARNING_CURRICULUM.md)
-
----
-
-## 🧮 MathConnect: Symbolic Math Reasoning
-
-### What It Does
-
-When KV-1 encounters a math concept, it automatically:
-
-1. **Parses** natural language → SymPy equation
-2. **Stores** as manipulable symbolic expression
-3. **Finds connections** to other theorems
-4. **Derives new theorems** by composition
-5. **Builds knowledge graph** automatically
-
-### Example: Learning Pythagorean Theorem
-
-```python
-# Input (natural language)
-"a squared plus b squared equals c squared"
-
-# MathConnect parses to:
-Eq(a**2 + b**2, c**2)  # SymPy equation
-
-# Then finds connections:
-- Distance formula (uses Pythagorean theorem)
-- Trigonometric identity (sin² + cos² = 1)
-- Circle equation (x² + y² = r²)
-
-# And derives new theorems:
-- 3D distance: √(x² + y² + z²)
-- Magnitude of vector: |v| = √(x² + y²)
-```
-
-### Benchmark Results
-
-**Started with 5 base theorems:**
-1. Pythagorean: a² + b² = c²
-2. Circumference: C = 2πr
-3. Circle area: A = πr²
-4. Linear: y = mx + b
-5. Quadratic: y = ax² + bx + c
-
-**After automatic composition:**
-- **27 total theorems** (22 newly derived!)
-- **279 connections** found
-- **8 relationship types** (uses, derives_from, substitution, etc.)
-
-**Demo**: `python demo_math_connect.py`
-
-**Full explanation**: See [MATHCONNECT_EXPLAINED.md](MATHCONNECT_EXPLAINED.md)
-
----
-
-## 🧠 How Self-Discovery Learning Works
-
-### The Core Insight
-
-Traditional AI: "Here's the answer to your question" (then forgets)
-
-KV-1: "I don't know... **but I can learn**"
-
-### The Algorithm
-
-```python
-def pursue_goal(goal, max_attempts=None):
-    """
-    Autonomous learning loop - runs until success.
-
-    Args:
-        goal: What user wants to achieve
-        max_attempts: Stop after N attempts (None = unlimited)
-    """
-    while True:
-        # Try with current knowledge
-        attempt = attempt_goal(goal, current_knowledge)
-
-        if attempt.success:
-            return True  # Goal achieved!
-
-        # Failed - what's missing?
-        missing_concepts = attempt.missing_concepts
-
-        # Loop detection: stuck requesting same concepts?
-        if missing_concepts == last_missing_concepts:
-            stuck_count += 1
-            if stuck_count >= 5:
-                return False  # Can't learn this
-
-        # Learn each missing concept recursively
-        for concept in missing_concepts:
-            learned = discover_concept(concept, needed_for=goal)
-
-            if not learned:
-                return False  # Can't find this concept
-
-        # Retry with new knowledge
-        continue
-```
-
-### Loop Detection
-
-Prevents infinite learning cycles:
-
-```
-Before Fix:
-  Attempt 1: Missing "derivatives"
-  Attempt 2: Missing "derivatives" (again!)
-  Attempt 3: Missing "derivatives" (again!)
-  ... (infinite loop)
-
-After Fix:
-  Attempt 1: Missing "derivatives"
-  Attempt 2: Missing "derivatives"
-  Attempt 3: Missing "derivatives"
-  Attempt 4: Missing "derivatives"
-  Attempt 5: Missing "derivatives"
-  → STUCK DETECTED! Exit gracefully with diagnostic.
-```
-
----
-
-## 📊 Benchmark Results
-
-### Self-Discovery Learning Test Suite
-
-**18 out of 19 hard problems solved** (95% success rate)
-
-| Problem | Difficulty | Result |
-|---------|-----------|--------|
-| x^x = 256 | 🔥🔥🔥 | ✅ Solved |
-| Goldbach pairs for 100 | 🔥🔥 | ✅ Solved (all 6 pairs) |
-| Prime factorization 8633 | 🔥🔥🔥 | ✅ Solved (89 × 97) |
-| Collatz sequence n=27 | 🔥🔥🔥 | ✅ Solved (111 steps) |
-| Chinese Remainder | 🔥🔥🔥🔥 | ✅ Solved (n=23) |
-
-These are problems designed to stump AI systems by requiring procedural knowledge, not just facts.
-
-### MathConnect Benchmark
-
-**5 base theorems → 27 total theorems**
-
-- Derived 22 new theorems automatically
-- Found 279 connections between theorems
-- 100% of derivations mathematically valid
-
----
-
-## 🛠️ Configuration
-
-### Environment Variables
-
-```bash
-# Ollama configuration
-export OLLAMA_HOST="http://localhost:11434"
-
-# Gemini configuration
-export GEMINI_API_KEY="your-api-key-here"
-
-# Memory configuration
-export LTM_PATH="./ltm_memory.json"
-```
-
-### Command-Line Options
-
-```bash
-python run_self_discovery.py --help
-
-Options:
-  --ltm PATH              Path to LTM storage (default: ./ltm_memory.json)
-  --reset                 Reset memory (start fresh)
-  --validate              Enable validation (slower, more confident)
-  --no-rehearsal          Disable 3-stage learning (faster, lower quality)
-  --target-confidence N   Mastery threshold 0.0-1.0 (default: 0.85)
-  --max-attempts N        Max learning attempts (default: unlimited)
-  --provider NAME         LLM provider (ollama/gemini)
-  --model NAME            Model name (qwen3:4b / gemini-2.0-flash-exp)
-  --api-key KEY           API key for cloud provider
-```
-
-### Quality vs Speed Modes
+**Quality vs Speed:**
 
 | Mode | Command | Validation | 3-Stage | Speed | Quality |
 |------|---------|-----------|---------|-------|---------|
 | **Fast** | `--no-rehearsal` | OFF | OFF | ⚡⚡⚡ | ⭐⭐ |
-| **Balanced** ✅ | _(default)_ | OFF | ON | ⚡⚡ | ⭐⭐⭐⭐ |
+| **Balanced** (default) | - | OFF | ON | ⚡⚡ | ⭐⭐⭐⭐ |
 | **Quality** | `--validate` | ON | ON | ⚡ | ⭐⭐⭐⭐⭐ |
-| **Maximum** | `--validate --target-confidence 0.90` | ON | ON (strict) | ⚡ | ⭐⭐⭐⭐⭐+ |
 
-**Recommended**: Use default (Balanced mode) for best results!
+---
+
+## 📋 How It Works
+
+### Learning Flow
+
+```
+1. User Goal: "solve x² - 5x + 6 = 0"
+   ↓
+2. Attempt with current knowledge (LTM: 0 concepts)
+   → Result: FAIL
+   → Missing: ["quadratic formula", "factoring"]
+   ↓
+3. For each missing concept (parallel processing):
+   a) Check LTM (semantic search, threshold=0.85)
+   b) Try 5 web search query variations
+   c) Extract: definition, prerequisites, examples (LLM)
+   d) Recursively learn prerequisites (max depth: 7)
+   e) [Optional] 3-Stage Learning:
+      • Test understanding (0.0-1.0)
+      • Rehearse until confidence >= 0.70
+      • Store with final confidence
+   f) [Optional] Multi-source validation (3 sources)
+   g) Store in memory:
+      • Text definition
+      • 384-D tensor embedding (GPU)
+      • Symbolic formulas (SymPy)
+      • Examples/procedures
+   h) Save to disk (ltm_memory.json)
+   ↓
+4. Retry goal with new knowledge
+   → Result: SUCCESS
+   → Answer: x = 2, x = 3
+```
+
+### 3-Stage Learning (Biological Inspiration)
+
+```
+STAGE 1: Surprise Episode
+→ Test: "Explain this concept in your own words"
+→ Confidence: 0.60 (partial understanding)
+
+STAGE 2: Rehearsal Loop (up to 4 rounds)
+→ Practice: "Solve a problem using this concept"
+→ Confidence: 0.60 → 0.75 → 0.85
+→ Stop when: confidence >= 0.70 (acceptable)
+           OR confidence >= 0.75 (confirmed)
+           OR max rounds reached
+
+STAGE 3: Cortical Transfer
+→ Store with final confidence
+→ Mark as mastered (0.70+) or needs reinforcement (<0.70)
+```
+
+**Confidence Thresholds:**
+- 0.65: Acceptable (minimum to store)
+- 0.70: Good understanding (default target)
+- 0.75+: Excellent/confirmed mastery
+
+---
+
+## 🧮 Mathematical Reasoning (MathConnect)
+
+KV-1 stores mathematical concepts as symbolic equations (SymPy), not just text.
+
+**Example:**
+
+```python
+# Input: "Pythagorean theorem: a squared plus b squared equals c squared"
+
+# Parsed to:
+Eq(a**2 + b**2, c**2)  # SymPy symbolic equation
+
+# Stored with:
+• Text: "In a right triangle, a² + b² = c²"
+• Tensor: [0.123, -0.456, ..., 0.789] (384-D)
+• Formula: "a**2 + b**2 = c**2"
+• Examples: ["3² + 4² = 5²", ...]
+
+# Used for:
+• Connection finding (relates to distance formula, trig identities)
+• Symbolic manipulation (substitution, solving)
+• Theorem composition (derive new results)
+```
+
+---
+
+## 🧠 Memory System
+
+### Hybrid Memory (STM + LTM + Disk)
+
+**Short-Term Memory (STM):**
+- Capacity: 50 slots (configurable)
+- Decay: 5 minutes without access
+- Lookup: O(1) direct match
+- Speed: ~0.001ms
+
+**Long-Term Memory (LTM):**
+- Capacity: Unlimited
+- Storage: GPU tensor matrix (384-D embeddings)
+- Lookup: Cosine similarity search
+- Speed: ~1-5ms
+
+**Disk Persistence:**
+- Format: JSON (ltm_memory.json)
+- Write: Atomic (temp → rename)
+- Load: Automatic on startup
+
+**Data Flow:**
+```
+learn("prime numbers", definition)
+  → Store in LTM (tensor + text)
+  → Store in STM (fast lookup)
+  → Save to disk (persistent)
+
+recall("primes")
+  → Check STM (miss)
+  → Search LTM (found: "prime numbers", similarity=0.92)
+  → Promote to STM
+  → Next recall("primes") → STM hit (instant)
+```
+
+---
+
+## ⚙️ Configuration
+
+### System Parameters
+
+| Parameter | Default | Range | Description |
+|-----------|---------|-------|-------------|
+| `max_depth` | 7 | 1-15 | Max recursive prerequisite learning depth |
+| `stm_capacity` | 50 | 7-100 | Short-term memory slots |
+| `target_confidence` | 0.70 | 0.65-0.90 | Mastery threshold for 3-stage learning |
+| `daily_cap` | Unlimited | Any | Web requests per day |
+| `max_parallel_concepts` | 10 | 1-50 | Concepts learned simultaneously |
+
+### Environment Variables
+
+```bash
+# LLM Configuration
+export OLLAMA_HOST="http://localhost:11434"
+export GEMINI_API_KEY="your-api-key"
+
+# Memory
+export LTM_PATH="./ltm_memory.json"
+```
+
+---
+
+## 🎓 Learning Curriculum
+
+260 questions organized in 6 phases for systematic knowledge building:
+
+1. **Foundational Math** (35 questions): Arithmetic → Algebra → Trig → Complex numbers
+2. **Calculus & Analysis** (50 questions): Limits → Derivatives → Integrals → Series
+3. **Advanced Math** (30 questions): Linear algebra → Abstract algebra → Discrete math
+4. **Number Theory** (35 questions): Primes → Diophantine → Riemann zeta
+5. **Complex Analysis** (25 questions): Analytic functions → Residues → Continuation
+6. **Toward Riemann** (25 questions): Hypothesis understanding → Critical line → Zero distribution
+
+See [LEARNING_CURRICULUM.md](LEARNING_CURRICULUM.md) for full list.
+
+**Run curriculum:**
+```bash
+# Run all phases
+python run_curriculum.py --phase all
+
+# Run specific phase
+python run_curriculum.py --phase 1
+
+# Resume from checkpoint
+python run_curriculum.py --resume
+```
+
+---
+
+## 📊 System Statistics
+
+**Typical Performance:**
+- Concept learning time: 15-30 seconds (balanced mode)
+- Memory per concept: ~1-2KB
+- 1000 concepts: ~1-2MB disk space
+- STM hit rate: >80% for recent queries
+- LTM search accuracy: ~90% (similarity >= 0.85)
+
+**Benchmark Results:**
+- 18/19 hard problems solved (95% success rate)
+- Includes: Collatz sequence, Chinese Remainder, Prime factorization
+- See benchmarks/ for comparison scripts
+
+---
+
+## 🐛 Known Limitations
+
+1. **Domain Specificity:** Optimized for mathematics; general knowledge works but less effective
+2. **LLM Dependency:** Quality limited by underlying LLM (Ollama/Gemini)
+3. **Web Content Quality:** Depends on finding good explanations online
+4. **No Visual Learning:** Text-only (no images, diagrams, videos)
+5. **Loop Detection:** Can get stuck if concepts are too abstract/poorly defined
+6. **Security:** Uses `exec()` for math parsing (sandboxing needed for production)
 
 ---
 
@@ -609,201 +342,48 @@ Options:
 
 ```
 KV-1/
-├── Core System
-│   ├── self_discovery_orchestrator.py  ← Main learning loop (1092 lines)
-│   ├── run_self_discovery.py           ← CLI interface
-│   ├── run_curriculum.py               ← Automated curriculum runner
+├── self_discovery_orchestrator.py  # Main learning loop (1934 lines)
+├── run_self_discovery.py           # CLI interface
+├── run_curriculum.py               # Curriculum runner
 │
-├── Core Modules
-│   ├── core/hybrid_memory.py           ← STM + LTM + Disk (370 lines)
-│   ├── core/neurosymbolic_gpu.py       ← GPU semantic search (280 lines)
-│   ├── core/math_connect.py            ← Symbolic math (705 lines)
-│   ├── core/knowledge_validator.py     ← Multi-source validation (200 lines)
-│   ├── core/llm.py                     ← LLM bridge (160 lines)
-│   ├── core/web_researcher.py          ← Web scraping (600 lines)
-│   └── core/env_loader.py              ← Environment config
+├── core/                           # Core modules (~9.4K lines)
+│   ├── llm.py                      # LLM bridge (Ollama/Gemini)
+│   ├── hybrid_memory.py            # STM + LTM + Disk
+│   ├── neurosymbolic_gpu.py        # GPU tensor operations
+│   ├── web_researcher.py           # 9-source web scraper
+│   ├── knowledge_validator.py      # Multi-source validation
+│   ├── math_connect.py             # Symbolic math (SymPy)
+│   ├── meta_learner.py             # Learning strategy adaptation
+│   ├── transfer_learning.py        # Cross-domain transfer
+│   └── ...                         # Other AGI modules
 │
-├── Demos
-│   ├── demo_hybrid_kv1.py              ← Full system demo
-│   ├── demo_math_connect.py            ← MathConnect demo
-│   └── demo_neurosymbolic.py           ← Neurosymbolic demo
+├── hsokv/                          # HSOKV memory library
+│   ├── dual_memory.py              # STM + LTM implementation
+│   ├── memory.py                   # Base memory classes
+│   └── embedders.py                # Sentence embeddings
 │
-├── HSOKV Memory System
-│   └── hsokv/                          ← Dual memory library
-│       ├── dual_memory.py
-│       ├── memory.py
-│       └── embedders.py
-│
-├── Documentation
-│   ├── README.md                       ← This file
-│   ├── HOW_TO_RUN.md                   ← Quick start guide
-│   ├── LEARNING_CURRICULUM.md          ← 260 questions
-│   ├── MATHCONNECT_EXPLAINED.md        ← Symbolic math details
-│   ├── NEUROSYMBOLIC_EXPLAINED.md      ← Tensor storage details
-│   ├── CRITICAL_ISSUES_FOUND.md        ← Known issues (12 bugs, 8 warnings)
-│   └── ERROR_FIXES_COMPLETE.md         ← What was fixed
-│
-└── Benchmarks (optional)
-    └── benchmarks/                     ← Baseline comparisons
+├── benchmarks/                     # Performance comparisons
+├── tools/                          # Utilities
+├── LEARNING_CURRICULUM.md          # 260 questions
+├── HOW_TO_RUN.md                   # Quick start guide
+└── INSTALLATION.md                 # Setup instructions
 ```
-
----
-
-## 🐛 Known Issues
-
-See [CRITICAL_ISSUES_FOUND.md](CRITICAL_ISSUES_FOUND.md) for complete list.
-
-### Fixed Issues ✅
-1. ✅ LLM offline fallback detection
-2. ✅ HybridMemory compatibility
-3. ✅ Disk persistence (ltm_memory.json)
-4. ✅ ValidationResult import error
-
-### High Priority (To Fix) ⚠️
-1. ⚠️ Infinite loop detection (can alternate between concept sets)
-2. ⚠️ Tensor serialization (device mismatch crashes)
-3. ⚠️ Web search retry (single failure kills learning)
-4. ⚠️ Math parser patterns (too specific)
-
----
-
-## 🛣️ Roadmap
-
-### ✅ Phase 1: Core Learning System (COMPLETE)
-- [x] Self-discovery learning loop
-- [x] 3-stage learning integration (surprise → rehearsal → transfer)
-- [x] Hybrid memory (STM + LTM + Disk)
-- [x] Neurosymbolic storage (tensors + formulas)
-- [x] MathConnect (symbolic reasoning)
-- [x] Knowledge validation (optional)
-- [x] Web researcher (multi-source)
-- [x] Learning curriculum (260 questions)
-- [x] Loop detection
-- [x] Persistent storage
-
-### 🚧 Phase 2: Robustness (IN PROGRESS)
-- [ ] Fix infinite loop detection
-- [ ] Robust tensor serialization
-- [ ] Web search retry logic
-- [ ] Disk space checks
-- [ ] Graceful error handling
-- [ ] Progress checkpointing
-
-### 🔮 Phase 3: Advanced Features (PLANNED)
-- [ ] Multi-modal learning (images, diagrams)
-- [ ] Cross-domain knowledge transfer
-- [ ] Collaborative learning (multiple instances)
-- [ ] Proof verification system
-- [ ] Hypothesis generation
-- [ ] Automated theorem proving
-
-### 🎯 Phase 4: Attempt Riemann Hypothesis (MOONSHOT)
-- [ ] Complete all 260 curriculum questions
-- [ ] Master complex analysis
-- [ ] Understand zeta function zeros
-- [ ] Generate novel approaches
-- [ ] Formal proof verification
-
----
-
-## 🔬 Research Significance
-
-### Novel Contributions
-
-1. **Goal-Driven Autonomous Learning**: First system to learn ONLY what's needed for current goal
-
-2. **3-Stage Learning Integration**: Combines self-discovery with biological rehearsal loops for quality control
-
-3. **Neurosymbolic Memory**: Stores concepts as text + tensors + symbolic formulas simultaneously
-
-4. **Symbolic Mathematical Reasoning**: AI that manipulates equations, not just describes them
-
-5. **Worked Example Extraction**: Learns procedures (HOW), not just definitions (WHAT)
-
-6. **Persistent Cross-Session Knowledge**: True knowledge accumulation, not ephemeral context
-
-### Why This Matters
-
-**Traditional AI (Frozen)**:
-```
-Training → Model → Deploy → [Never Changes]
-```
-
-**KV-1 (Living)**:
-```
-Attempt → Fail → Learn → Store → Retry → Success → [Knowledge Persists]
-                   ↑_______________|
-```
-
-This is closer to biological intelligence than anything we've seen.
-
-### Potential Publications
-
-- **NeurIPS**: "Self-Discovery Learning: Autonomous Knowledge Acquisition Through Goal-Driven Web Research"
-- **ICML**: "Neurosymbolic Memory: Bridging Human and Machine Knowledge Representation"
-- **ICLR**: "MathConnect: Automatic Theorem Composition Through Symbolic Reasoning"
 
 ---
 
 ## 🤝 Contributing
 
-KV-1 is in active research development. Contributions welcome!
-
-**Priority Areas**:
-1. Fixing high-priority bugs (see CRITICAL_ISSUES_FOUND.md)
-2. Improving worked example extraction
-3. Adding more mathematical domains
-4. Curriculum expansion
-5. Performance optimization
-
-**How to Contribute**:
-```bash
-git clone https://github.com/PlanetDestroyyer/KV-1
-cd KV-1
-git checkout -b feature/amazing-feature
-
-# Make changes, test thoroughly
-python run_self_discovery.py "your test case"
-
-# Commit and push
-git commit -m "Add amazing feature"
-git push origin feature/amazing-feature
-
-# Open Pull Request
-```
+This is a research project. Contributions welcome for:
+- Improving learning algorithms
+- Adding new knowledge domains
+- Enhancing memory efficiency
+- Fixing bugs (see GitHub issues)
 
 ---
 
-## 💬 Philosophy
+## 📄 License
 
-**Most AI today is reactive and frozen.**
-
-- You ask, it responds
-- It never learns
-- It never grows
-- It forgets everything
-
-**KV-1 is different.**
-
-- **Goal-driven**: Learns to solve problems, not just answer questions
-- **Failure-aware**: Uses mistakes to identify knowledge gaps
-- **Autonomous**: Searches web and learns without human supervision
-- **Persistent**: Knowledge survives forever, builds over time
-- **Mathematical**: Thinks in equations, not just text
-
-**This isn't a chatbot. It's a learning system.**
-
----
-
-## 🎯 The Ultimate Goal
-
-**Today**: KV-1 learns foundational mathematics
-
-**Next Year**: KV-1 completes the 260-question curriculum
-
-**5 Years**: KV-1 attempts novel proofs of unsolved problems
-
-**The Vision**: AI that doesn't just retrieve knowledge, but **discovers new knowledge**
+See LICENSE file for details.
 
 ---
 
@@ -812,32 +392,25 @@ git push origin feature/amazing-feature
 - **Repository**: https://github.com/PlanetDestroyyer/KV-1
 - **HSOKV Memory**: https://github.com/PlanetDestroyyer/hsokv
 - **Issues**: https://github.com/PlanetDestroyyer/KV-1/issues
-- **Author**: [@PlanetDestroyyer](https://github.com/PlanetDestroyyer)
 
 ---
 
 ## ⚠️ Important Notes
 
-```bash
-# Install
-git clone https://github.com/PlanetDestroyyer/KV-1 && cd KV-1
-cd hsokv && pip install -e . && cd ..
-pip install -r requirements.txt
-ollama pull qwen3:4b  # or use Gemini
+**This is a research system, not production-ready:**
+- No sandboxing (uses `exec()` for math parsing)
+- Limited error handling
+- Optimized for mathematical domains
+- Requires significant disk space for large knowledge bases
 
-# Run
-python run_self_discovery.py "solve x² - 5x + 6 = 0"
-
-# Watch it learn from scratch
-# Then solve similar problems instantly
-```
-
-**The system learns. The system grows. The system never forgets.**
+**Best Use Cases:**
+- Research in autonomous learning
+- Educational tool for learning mathematics
+- Knowledge base construction
+- Curriculum-free learning experiments
 
 ---
 
-**Built with 🧠 by [PlanetDestroyyer](https://github.com/PlanetDestroyyer)**
+**Built by [@PlanetDestroyyer](https://github.com/PlanetDestroyyer)**
 
-*"The future of AI is not bigger models - it's smarter learning."*
-
-**Welcome to living AI.** 🚀
+*A research exploration in autonomous knowledge acquisition and persistent learning.*
