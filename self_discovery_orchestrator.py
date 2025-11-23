@@ -502,8 +502,10 @@ class SelfDiscoveryOrchestrator:
                 if pattern in concept_lower:
                     return False
 
-        # General domain check
-        return self.goal_domain == "general"
+        # If no irrelevant patterns matched, assume relevant
+        # Let LLM decide if it's truly needed - don't over-filter
+        # This aligns with the philosophy: "let llm decide what is missing"
+        return True
 
     def _get_knowledge_summary(self) -> str:
         """Generate summary of current knowledge for LLM context."""
@@ -715,7 +717,8 @@ REASONING: I need to know exponential decay to work backward from current popula
                     result = str(json_data["solution"])
                 if "missing_concepts" in json_data:
                     if json_data["missing_concepts"]:
-                        missing = json_data["missing_concepts"]
+                        # Clean and normalize each concept to lowercase
+                        missing = [self._clean_concept_name(c) for c in json_data["missing_concepts"]]
                     success = len(json_data["missing_concepts"]) == 0
                 elif "answer" in json_data:
                     result = str(json_data["answer"])
@@ -1250,9 +1253,9 @@ IMPORTANT:
                 if prereq_str.lower() not in ["none", "n/a", ""]:
                     # Split and clean prerequisites
                     raw_prereqs = [p.strip() for p in prereq_str.split(",")]
-                    # Filter out invalid concepts AND irrelevant ones
+                    # Filter out invalid concepts AND irrelevant ones, then normalize to lowercase
                     prerequisites = [
-                        p for p in raw_prereqs
+                        self._clean_concept_name(p) for p in raw_prereqs
                         if self._is_valid_concept(p) and self._is_relevant_to_goal(p)
                     ]
             elif line.startswith("EXAMPLES:"):
