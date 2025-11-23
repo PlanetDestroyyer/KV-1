@@ -1,8 +1,8 @@
 """
 Comprehensive Logging System for KV-1
 
-Saves all output to both console AND timestamped log files.
-Every run creates a new log file in ./logs/ directory.
+Saves all output to both console AND output.txt file.
+All runs append to the same ./logs/output.txt file.
 
 Usage:
     from core.logger import setup_logging, log
@@ -86,8 +86,7 @@ def setup_logging(
         Path to the created log file
 
     Example:
-        setup_logging()  # Creates logs/session_2025-11-22_14-30-45.log
-        setup_logging(session_name="curriculum_phase1")  # logs/curriculum_phase1_2025-11-22_14-30-45.log
+        setup_logging()  # Appends to logs/output.txt
     """
     global _stdout_logger, _stderr_logger, _current_log_file
 
@@ -98,13 +97,9 @@ def setup_logging(
     # Create logs directory
     os.makedirs(log_dir, exist_ok=True)
 
-    # Generate log file name with timestamp
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    if session_name:
-        log_filename = f"{session_name}_{timestamp}.log"
-    else:
-        log_filename = f"session_{timestamp}.log"
-
+    # Use single output.txt file (append mode)
+    # All runs append to the same file
+    log_filename = "output.txt"
     log_file_path = os.path.join(log_dir, log_filename)
     _current_log_file = log_file_path
 
