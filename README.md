@@ -350,7 +350,7 @@ python run_curriculum.py --resume
 3. **Domain Specialization:** Optimized for mathematics; general knowledge works but less effectively
 4. **Web Content Quality:** Depends on finding good explanations online
 5. **No Visual Learning:** Text-only (no images, diagrams, videos)
-6. **Pattern Recognition:** Uses keyword matching and LLM prompts rather than learned pattern discovery
+6. **Limited Abstraction:** Pattern learner extracts structures but doesn't yet abstract or compose them
 7. **Loop Detection:** Can get stuck if concepts are too abstract/poorly defined
 8. **Security:** Uses `exec()` for math parsing (sandboxing needed for production)
 9. **No Embodiment:** Lacks physical grounding or sensory experience
@@ -419,6 +419,7 @@ See LICENSE file for details.
 2. **Dual Memory Architecture** - Psychology-based STM/LTM system with rehearsal, consolidation, and time decay
 3. **Persistent Learning Loop** - Goal → attempt → identify gaps → learn → retry architecture for continuous improvement
 4. **Hybrid Connectivity Model** - Anatomical (permanent structure) + Functional (dynamic activation) edges inspired by brain networks
+5. **🆕 Mathematical Pattern Learning** - Learns patterns from problem-solving experience, automatically discovers problem types via clustering (NOT keyword matching!)
 
 ### **Engineering Highlights:**
 - Clean integration of LLM, SymPy, PyTorch, and sentence-transformers
@@ -441,10 +442,11 @@ See LICENSE file for details.
 
 ...could achieve domain-general analytical intelligence.
 
-**Current status**: Early exploration (~10-15% toward this vision)
+**Current status**: Active development (~25-27% toward this vision)
 - ✅ Foundation: Graph memory, symbolic math integration, transfer learning basics
-- 🚧 Needed: Automatic structure discovery (currently uses LLM + patterns)
-- 🚧 Needed: Deep mathematical abstraction (currently limited)
+- ✅ **Pattern Learning** (Phase 1): Learns mathematical structures from experience, discovers problem types via clustering
+- 🚧 Needed: Compositional reasoning (Phase 2 - combine learned structures)
+- 🚧 Needed: Deep mathematical abstraction (currently extracting, not yet abstracting)
 - 🚧 Needed: Framework invention (currently template-based)
 - 🚧 Needed: Physical grounding (currently text-only)
 
