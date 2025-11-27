@@ -49,6 +49,8 @@ try:
     from core.creative_reasoner import CreativeReasoner
     from core.curiosity_engine import CuriosityEngine
     from core.pattern_learner import MathematicalStructureLearner
+    from core.compositional_reasoner import CompositionEngine, AbstractionBuilder
+    from core.deep_abstraction import DeepAbstractionEngine, FrameworkSelector
     from core.causal_reasoner import CausalReasoner
     from core.parallel_web_search import ParallelWebSearch
     AGI_MODULES_AVAILABLE = True
@@ -236,8 +238,20 @@ class SelfDiscoveryOrchestrator:
             )
             print("[+] 🧠 Pattern Learner: LEARNS mathematical structures from problem-solving!")
 
+            # Initialize Compositional Reasoning - PHASE 2: Combines patterns creatively!
+            self.composition_engine = CompositionEngine()
+            self.abstraction_builder = AbstractionBuilder()
+            print("[+] 🎯 Compositional Reasoning: COMBINES patterns to solve novel problems!")
+
+            # Initialize Deep Abstraction - PHASE 3: Recognizes same math across domains!
+            self.deep_abstraction = DeepAbstractionEngine(
+                storage_path=os.path.join(data_dir, "abstractions.json")
+            )
+            self.framework_selector = FrameworkSelector()
+            print("[+] 🔮 Deep Abstraction: RECOGNIZES when different domains share same mathematical structure!")
+
             self.using_agi_modules = True
-            print("[+] AGI modules ready: Meta-learning, Metacognition, Goal Planning, Creative Reasoning, Curiosity, Causal Reasoning, Pattern Learning")
+            print("[+] AGI modules ready: Meta-learning, Metacognition, Goal Planning, Creative Reasoning, Curiosity, Causal Reasoning, Pattern Learning, Compositional Reasoning, Deep Abstraction")
         else:
             self.meta_learner = None
             self.metacognition = None
@@ -248,6 +262,10 @@ class SelfDiscoveryOrchestrator:
             self.causal_reasoner = None
             self.parallel_web = None
             self.pattern_learner = None
+            self.composition_engine = None
+            self.abstraction_builder = None
+            self.deep_abstraction = None
+            self.framework_selector = None
             self.using_agi_modules = False
 
         # Initialize Unified AGI Learning System
@@ -1630,6 +1648,63 @@ IMPORTANT:
                 print("\n[X] Max attempts reached without achieving goal")
                 return False
 
+            # DEEP ABSTRACTION: Recognize mathematical structure and select framework
+            if self.using_agi_modules and self.deep_abstraction and self.framework_selector:
+                if attempt_num == 1:  # On first attempt, analyze the problem
+                    # Select optimal mathematical framework
+                    framework, confidence = self.framework_selector.select_framework(
+                        self.goal, {'domain': self.goal_domain}
+                    )
+
+                    print(f"\n[🔮] DEEP ABSTRACTION:")
+                    print(f"Optimal framework: {framework.value} ({confidence*100:.1f}% confidence)")
+
+                    # Try to recognize abstract structure
+                    problem_data = {
+                        'domain': self.goal_domain,
+                        'problem': self.goal,
+                        'operations': set(),
+                        'properties': set()
+                    }
+
+                    abstract_structure = self.deep_abstraction.recognize_abstract_structure(problem_data)
+                    if abstract_structure:
+                        explanation = self.deep_abstraction.explain_abstraction(self.goal, abstract_structure)
+                        print(f"\n{explanation}")
+
+                        # Check if we can transfer knowledge from other domains
+                        if abstract_structure.examples_from_domains:
+                            print(f"\n[i] Can apply techniques from: {', '.join(abstract_structure.examples_from_domains.keys())}")
+
+            # COMPOSITIONAL REASONING: Try to solve using pattern composition
+            if self.using_agi_modules and self.composition_engine and self.pattern_learner:
+                if attempt_num > 1 and self.pattern_learner.get_statistics()['total_instances'] >= 3:
+                    # Get all learned patterns
+                    all_patterns = []
+                    for cluster in self.pattern_learner.pattern_clusters:
+                        pattern_data = {
+                            'name': f"cluster_{cluster.cluster_id}",
+                            'operations': cluster.operations,
+                            'object_type': cluster.object_type,
+                            'domain': cluster.domain,
+                            'success_rate': cluster.avg_success_rate
+                        }
+                        all_patterns.append(pattern_data)
+
+                    # Try to create solution strategy through composition
+                    strategy = self.composition_engine.create_solution_strategy(
+                        self.goal, all_patterns
+                    )
+
+                    if strategy['success'] and strategy['total_confidence'] > 0.5:
+                        print("\n[🎯] COMPOSITIONAL REASONING:")
+                        print(f"Found solution strategy with {strategy['total_confidence']*100:.1f}% confidence")
+                        print(f"Strategy: {len(strategy['strategy'])} steps")
+                        for i, step in enumerate(strategy['strategy'], 1):
+                            print(f"  {i}. {step['pattern']} ({step['structure']}) - {step['confidence']*100:.1f}%")
+                        if strategy.get('requires_composition'):
+                            print("[i] Novel problem - combining multiple patterns!")
+
             # Attempt goal
             attempt = await self.attempt_goal()
 
@@ -1708,6 +1783,37 @@ IMPORTANT:
                                 print("\nCluster success rates:")
                                 for cluster_id, rate in stats['cluster_success_rates'].items():
                                     print(f"  Cluster {cluster_id}: {rate*100:.1f}% success")
+                            print("="*60)
+
+                    # COMPOSITIONAL REASONING STATS
+                    if self.composition_engine:
+                        comp_stats = self.composition_engine.get_statistics()
+                        if comp_stats['total_morphisms'] > 0 or comp_stats['composite_patterns'] > 0:
+                            print("\n" + "="*60)
+                            print("🎯 COMPOSITIONAL REASONING SUMMARY")
+                            print("="*60)
+                            print(f"Structure morphisms known: {comp_stats['total_morphisms']}")
+                            print(f"Composite patterns created: {comp_stats['composite_patterns']}")
+                            print(f"Successful compositions: {comp_stats['successful_compositions']}")
+                            if comp_stats['composite_patterns'] > 0:
+                                print(f"Average composition success rate: {comp_stats['average_composition_success']*100:.1f}%")
+                            print("[i] Compositional reasoning enables solving novel problems by combining patterns!")
+                            print("="*60)
+
+                    # DEEP ABSTRACTION STATS
+                    if self.deep_abstraction:
+                        abstraction_stats = self.deep_abstraction.get_statistics()
+                        if abstraction_stats['known_structures'] > 0 or abstraction_stats['discovered_isomorphisms'] > 0:
+                            print("\n" + "="*60)
+                            print("🔮 DEEP ABSTRACTION SUMMARY")
+                            print("="*60)
+                            print(f"Known abstract structures: {abstraction_stats['known_structures']}")
+                            print(f"Discovered isomorphisms: {abstraction_stats['discovered_isomorphisms']}")
+                            print(f"Domains analyzed: {abstraction_stats['domains_covered']}")
+                            if abstraction_stats['discovered_isomorphisms'] > 0:
+                                avg_confidence = sum(abstraction_stats['isomorphism_confidences']) / len(abstraction_stats['isomorphism_confidences'])
+                                print(f"Average isomorphism confidence: {avg_confidence*100:.1f}%")
+                            print("[i] Deep abstraction enables recognizing same math across different domains!")
                             print("="*60)
 
                 # Issue #6: Flush any pending saves
