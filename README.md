@@ -383,9 +383,7 @@ KV-1/
 │
 ├── benchmarks/                     # Performance comparisons
 ├── tools/                          # Utilities
-├── LEARNING_CURRICULUM.md          # 260 questions
-├── HOW_TO_RUN.md                   # Quick start guide
-└── INSTALLATION.md                 # Setup instructions
+└── LEARNING_CURRICULUM.md          # 260 questions
 ```
 
 ---
