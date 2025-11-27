@@ -48,6 +48,7 @@ try:
     from core.goal_planner import GoalPlanner
     from core.creative_reasoner import CreativeReasoner
     from core.curiosity_engine import CuriosityEngine
+    from core.pattern_learner import MathematicalStructureLearner
     from core.causal_reasoner import CausalReasoner
     from core.parallel_web_search import ParallelWebSearch
     AGI_MODULES_AVAILABLE = True
@@ -228,8 +229,15 @@ class SelfDiscoveryOrchestrator:
             self.curiosity_engine = CuriosityEngine(self.llm)
             self.causal_reasoner = CausalReasoner(self.llm)
             self.parallel_web = ParallelWebSearch(self.web_researcher, max_workers=5)
+
+            # Initialize Pattern Learner - LEARNS FROM EXPERIENCE!
+            self.pattern_learner = MathematicalStructureLearner(
+                storage_path=os.path.join(data_dir, "pattern_database.json")
+            )
+            print("[+] 🧠 Pattern Learner: LEARNS mathematical structures from problem-solving!")
+
             self.using_agi_modules = True
-            print("[+] AGI modules ready: Meta-learning, Metacognition, Goal Planning, Creative Reasoning, Curiosity, Causal Reasoning")
+            print("[+] AGI modules ready: Meta-learning, Metacognition, Goal Planning, Creative Reasoning, Curiosity, Causal Reasoning, Pattern Learning")
         else:
             self.meta_learner = None
             self.metacognition = None
@@ -239,6 +247,7 @@ class SelfDiscoveryOrchestrator:
             self.curiosity_engine = None
             self.causal_reasoner = None
             self.parallel_web = None
+            self.pattern_learner = None
             self.using_agi_modules = False
 
         # Initialize Unified AGI Learning System
@@ -1624,6 +1633,26 @@ IMPORTANT:
             # Attempt goal
             attempt = await self.attempt_goal()
 
+            # PATTERN LEARNING: Learn from this attempt (success or failure)
+            if self.using_agi_modules and self.pattern_learner:
+                solution_trace = [
+                    f"Attempted: {self.goal}",
+                    f"Known concepts: {self._get_ltm_size()}",
+                    f"Result: {'SUCCESS' if attempt.success else 'FAILED'}",
+                    f"Missing: {', '.join(attempt.missing_concepts) if attempt.missing_concepts else 'none'}"
+                ]
+                if attempt.success:
+                    solution_trace.append(f"Answer: {attempt.result}")
+
+                # Record this problem-solution pair for pattern learning
+                session_time = (datetime.now() - start_time).total_seconds()
+                self.pattern_learner.observe_problem_solution(
+                    problem=self.goal,
+                    solution_trace=solution_trace,
+                    success=attempt.success,
+                    solution_time=session_time
+                )
+
             if attempt.success:
                 print("\n" + "="*60)
                 print("[OK] GOAL ACHIEVED!")
@@ -1664,6 +1693,22 @@ IMPORTANT:
                         print(self.curiosity_engine.summarize_curiosity())
                     if self.causal_reasoner and len(self.causal_reasoner.causal_graph) > 0:
                         print(self.causal_reasoner.summarize_causal_knowledge())
+
+                    # PATTERN LEARNING STATS
+                    if self.pattern_learner:
+                        stats = self.pattern_learner.get_statistics()
+                        if stats['total_instances'] > 0:
+                            print("\n" + "="*60)
+                            print("🧠 PATTERN LEARNING SUMMARY")
+                            print("="*60)
+                            print(f"Total problems observed: {stats['total_instances']}")
+                            print(f"Pattern clusters discovered: {stats['num_clusters']}")
+                            print(f"Success rate: {stats['successful_instances']}/{stats['total_instances']} ({stats['successful_instances']/stats['total_instances']*100:.1f}%)")
+                            if stats['num_clusters'] > 0:
+                                print("\nCluster success rates:")
+                                for cluster_id, rate in stats['cluster_success_rates'].items():
+                                    print(f"  Cluster {cluster_id}: {rate*100:.1f}% success")
+                            print("="*60)
 
                 # Issue #6: Flush any pending saves
                 if self.using_hybrid and hasattr(self.ltm, 'save'):
