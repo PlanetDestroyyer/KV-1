@@ -1,21 +1,22 @@
 # KV-1 🧠
 
-**An autonomous learning system for goal-driven knowledge acquisition with persistent memory.**
+**An LLM-powered learning system with graph-based memory and persistent knowledge acquisition.**
 
-KV-1 is a research system that learns concepts on-demand by: attempting a goal → identifying knowledge gaps → searching the web → learning prerequisites recursively → storing in persistent memory → retrying until success.
+KV-1 is a research exploration that orchestrates LLMs, symbolic mathematics, and web search to learn concepts on-demand: attempting goals → identifying knowledge gaps → searching the web → learning prerequisites recursively → storing in persistent graph-based memory → retrying until success.
 
 ---
 
 ## 🎯 Core Concept
 
-**Problem**: Most AI systems have static knowledge. They can't learn new concepts during operation.
+**Problem**: Most AI systems have static knowledge and can't dynamically learn new concepts during operation.
 
-**Solution**: KV-1 implements autonomous learning with:
-- Goal-driven knowledge acquisition (learns only what's needed)
-- Recursive prerequisite learning (up to 7 levels deep)
-- Persistent neurosymbolic memory (text + 384-D tensors + symbolic formulas)
-- Multi-source web research (Wikipedia, ArXiv, StackExchange, etc.)
-- Optional 3-stage biological learning (surprise → rehearsal → consolidation)
+**Approach**: KV-1 combines multiple AI techniques:
+- **LLM orchestration** (Ollama/Gemini) for reasoning and understanding
+- **Small-world graph memory** for organizing knowledge with brain-inspired connectivity
+- **Symbolic mathematics** (SymPy) for mathematical problem-solving
+- **Multi-source web research** (Wikipedia, ArXiv, StackExchange, etc.)
+- **Dual memory architecture** (STM + LTM) inspired by human cognitive science
+- **GPU-accelerated semantic search** (PyTorch + sentence-transformers)
 
 ---
 
@@ -227,16 +228,25 @@ Eq(a**2 + b**2, c**2)  # SymPy symbolic equation
 ### Hybrid Memory (STM + LTM + Disk)
 
 **Short-Term Memory (STM):**
-- Capacity: 50 slots (configurable)
-- Decay: 5 minutes without access
-- Lookup: O(1) direct match
+- Capacity: 50 slots (Miller's Law: 7±2, extended)
+- Decay: 5 minutes without rehearsal
+- Lookup: O(1) direct match using OrderedDict
 - Speed: ~0.001ms
+- Implements consolidation via rehearsal threshold
 
 **Long-Term Memory (LTM):**
 - Capacity: Unlimited
-- Storage: GPU tensor matrix (384-D embeddings)
-- Lookup: Cosine similarity search
-- Speed: ~1-5ms
+- Storage: GPU tensor matrix (384-D embeddings via sentence-transformers)
+- Lookup: Cosine similarity search (PyTorch)
+- Speed: ~1-5ms with GPU acceleration
+- Batch operations for efficiency
+
+**Small-World Graph:**
+- Concepts as nodes with connections
+- High clustering + short paths (Watts-Strogatz model)
+- Anatomical (permanent) + Functional (dynamic) edges
+- Automatic analogy discovery via graph shortcuts
+- Hub detection for key concepts
 
 **Disk Persistence:**
 - Format: JSON (ltm_memory.json)
@@ -247,12 +257,14 @@ Eq(a**2 + b**2, c**2)  # SymPy symbolic equation
 ```
 learn("prime numbers", definition)
   → Store in LTM (tensor + text)
+  → Add to graph with connections
   → Store in STM (fast lookup)
   → Save to disk (persistent)
 
 recall("primes")
   → Check STM (miss)
   → Search LTM (found: "prime numbers", similarity=0.92)
+  → Traverse graph for related concepts
   → Promote to STM
   → Next recall("primes") → STM hit (instant)
 ```
@@ -329,12 +341,19 @@ python run_curriculum.py --resume
 
 ## 🐛 Known Limitations
 
-1. **Domain Specificity:** Optimized for mathematics; general knowledge works but less effective
-2. **LLM Dependency:** Quality limited by underlying LLM (Ollama/Gemini)
-3. **Web Content Quality:** Depends on finding good explanations online
-4. **No Visual Learning:** Text-only (no images, diagrams, videos)
-5. **Loop Detection:** Can get stuck if concepts are too abstract/poorly defined
-6. **Security:** Uses `exec()` for math parsing (sandboxing needed for production)
+### **Critical Dependencies:**
+1. **LLM-Powered Intelligence:** The system's reasoning, understanding, and concept extraction are entirely powered by the LLM (Ollama/Gemini). Without LLM access, the system cannot function. The architecture orchestrates the LLM rather than providing independent intelligence.
+
+2. **Mathematical Solving:** SymPy library handles actual equation solving and symbolic manipulation. The system integrates and applies SymPy effectively but doesn't implement novel mathematical reasoning.
+
+### **Technical Limitations:**
+3. **Domain Specialization:** Optimized for mathematics; general knowledge works but less effectively
+4. **Web Content Quality:** Depends on finding good explanations online
+5. **No Visual Learning:** Text-only (no images, diagrams, videos)
+6. **Pattern Recognition:** Uses keyword matching and LLM prompts rather than learned pattern discovery
+7. **Loop Detection:** Can get stuck if concepts are too abstract/poorly defined
+8. **Security:** Uses `exec()` for math parsing (sandboxing needed for production)
+9. **No Embodiment:** Lacks physical grounding or sensory experience
 
 ---
 
@@ -395,22 +414,78 @@ See LICENSE file for details.
 
 ---
 
+## 🌟 What Makes This Interesting
+
+### **Novel Contributions:**
+1. **Small-World Graph Memory for LLMs** - Organizes LLM-learned knowledge using neuroscience-inspired graph topology with high clustering and short paths
+2. **Dual Memory Architecture** - Psychology-based STM/LTM system with rehearsal, consolidation, and time decay
+3. **Persistent Learning Loop** - Goal → attempt → identify gaps → learn → retry architecture for continuous improvement
+4. **Hybrid Connectivity Model** - Anatomical (permanent structure) + Functional (dynamic activation) edges inspired by brain networks
+
+### **Engineering Highlights:**
+- Clean integration of LLM, SymPy, PyTorch, and sentence-transformers
+- GPU-accelerated semantic search with batch operations
+- Proper implementation of Watts-Strogatz small-world model
+- Graph-based analogy discovery via network shortcuts
+- Adaptive meta-learning for strategy optimization
+
+---
+
+## 🔬 Research Vision: Mathematical AGI
+
+**Long-term research direction**: Exploring whether domain-general intelligence can emerge from mathematical abstraction.
+
+**The idea**: Since mathematics is the universal language of patterns (physics = differential equations, biology = dynamical systems, economics = optimization), a system that can:
+1. **Automatically discover** which mathematical structures underlie any domain problem
+2. **Reason abstractly** in pure mathematical forms
+3. **Transfer solutions** by recognizing shared mathematical structure across domains
+4. **Invent new frameworks** when existing mathematics is insufficient
+
+...could achieve domain-general analytical intelligence.
+
+**Current status**: Early exploration (~10-15% toward this vision)
+- ✅ Foundation: Graph memory, symbolic math integration, transfer learning basics
+- 🚧 Needed: Automatic structure discovery (currently uses LLM + patterns)
+- 🚧 Needed: Deep mathematical abstraction (currently limited)
+- 🚧 Needed: Framework invention (currently template-based)
+- 🚧 Needed: Physical grounding (currently text-only)
+
+This is a **10-20 year research program**, not a completed system. Current implementation demonstrates the architecture and validates core concepts.
+
+---
+
 ## ⚠️ Important Notes
 
 **This is a research system, not production-ready:**
+- Primarily an LLM orchestration layer with novel memory architecture
 - No sandboxing (uses `exec()` for math parsing)
 - Limited error handling
 - Optimized for mathematical domains
-- Requires significant disk space for large knowledge bases
+- Requires LLM API access (Ollama or Gemini)
 
 **Best Use Cases:**
-- Research in autonomous learning
+- Research in LLM memory systems and knowledge organization
+- Exploring graph-based knowledge representations
 - Educational tool for learning mathematics
-- Knowledge base construction
-- Curriculum-free learning experiments
+- Prototyping autonomous learning architectures
+- Studying human-inspired memory models in AI
+
+**Not suitable for:**
+- Production deployments (security issues)
+- Independent reasoning (requires LLM)
+- Novel theorem proving (uses SymPy + templates)
+- Real-time applications (web search latency)
+
+---
+
+## 📚 Further Reading
+
+- [BRAIN_ARCHITECTURE.md](BRAIN_ARCHITECTURE.md) - Small-world networks and neuroscience inspiration
+- [DOMAIN_MATH_BRIDGE.md](DOMAIN_MATH_BRIDGE.md) - Mathematical abstraction approach
+- [LEARNING_CURRICULUM.md](LEARNING_CURRICULUM.md) - 260 math questions for testing
 
 ---
 
 **Built by [@PlanetDestroyyer](https://github.com/PlanetDestroyyer)**
 
-*A research exploration in autonomous knowledge acquisition and persistent learning.*
+*A research exploration in LLM orchestration, graph-based memory, and mathematical abstraction for learning systems.*
