@@ -48,7 +48,17 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 try:
     from hsokv.hsokv.dual_memory import ShortTermMemory
     HSOKV_AVAILABLE = True
-except ImportError:
+    print("[DEBUG] HSOKV ShortTermMemory imported successfully!")
+except ImportError as e:
+    print(f"[DEBUG] HSOKV import failed: {e}")
+    import traceback
+    traceback.print_exc()
+    ShortTermMemory = None
+    HSOKV_AVAILABLE = False
+except Exception as e:
+    print(f"[DEBUG] HSOKV import failed with unexpected error: {e}")
+    import traceback
+    traceback.print_exc()
     ShortTermMemory = None
     HSOKV_AVAILABLE = False
 
