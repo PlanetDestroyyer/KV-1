@@ -76,15 +76,57 @@ class NeurosymbolicGPU:
     4. Tensor operations - native PyTorch for max efficiency
     """
 
+    def _select_compatible_device(self) -> str:
+        """
+        Select a compatible device, checking GPU compatibility.
+
+        Returns 'cpu' if:
+        - CUDA not available
+        - GPU compute capability incompatible with PyTorch
+        - GPU test fails
+
+        Returns 'cuda' if GPU is compatible.
+        """
+        if not torch.cuda.is_available():
+            return 'cpu'
+
+        try:
+            # Check GPU compute capability
+            capability = torch.cuda.get_device_capability(0)
+            major, minor = capability
+            compute_capability = major * 10 + minor  # e.g., 6.0 -> 60, 7.5 -> 75
+
+            # PyTorch 2.0+ typically requires sm_70 (7.0) or higher
+            # Tesla P100 is sm_60 (6.0), which is incompatible
+            if compute_capability < 70:
+                gpu_name = torch.cuda.get_device_name(0)
+                print(f"[!] GPU {gpu_name} (sm_{compute_capability}) is not compatible with this PyTorch build")
+                print(f"    PyTorch requires compute capability >= 7.0 (sm_70)")
+                print(f"    Falling back to CPU mode")
+                return 'cpu'
+
+            # Test GPU by creating a small tensor
+            test_tensor = torch.zeros(10, device='cuda')
+            _ = test_tensor + 1  # Simple operation to verify kernel compatibility
+            del test_tensor
+            torch.cuda.empty_cache()
+
+            return 'cuda'
+
+        except Exception as e:
+            print(f"[!] GPU compatibility test failed: {e}")
+            print(f"    Falling back to CPU mode")
+            return 'cpu'
+
     def __init__(
         self,
         embedding_model: str = "all-MiniLM-L6-v2",
         device: Optional[str] = None,
         use_fp16: bool = False
     ):
-        # Device setup
+        # Device setup with GPU compatibility check
         if device is None:
-            self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            self.device = self._select_compatible_device()
         else:
             self.device = device
 

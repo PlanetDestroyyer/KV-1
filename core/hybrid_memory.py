@@ -42,23 +42,28 @@ from typing import Optional, List, Dict, Tuple, Any
 from dataclasses import dataclass
 import time
 
-# Add parent directory to path for HSOKV import
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+# Add project root to path for HSOKV import (works in any environment)
+# This finds the KV-1 directory regardless of where the script is run from
+current_dir = os.path.dirname(os.path.abspath(__file__))  # /path/to/KV-1/core
+project_root = os.path.dirname(current_dir)  # /path/to/KV-1
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+# Also add hsokv parent directory to support both import styles
+hsokv_parent = os.path.join(project_root, 'hsokv')
+if hsokv_parent not in sys.path:
+    sys.path.insert(0, hsokv_parent)
 
 try:
-    from hsokv.hsokv.dual_memory import ShortTermMemory
+    from hsokv.dual_memory import ShortTermMemory
     HSOKV_AVAILABLE = True
     print("[DEBUG] HSOKV ShortTermMemory imported successfully!")
 except ImportError as e:
     print(f"[DEBUG] HSOKV import failed: {e}")
-    import traceback
-    traceback.print_exc()
     ShortTermMemory = None
     HSOKV_AVAILABLE = False
 except Exception as e:
     print(f"[DEBUG] HSOKV import failed with unexpected error: {e}")
-    import traceback
-    traceback.print_exc()
     ShortTermMemory = None
     HSOKV_AVAILABLE = False
 
