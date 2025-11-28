@@ -330,17 +330,20 @@ class HybridMemory:
         Returns:
             True if concept exists
         """
-        # Fast path: check STM
+        # Fast path 1: check STM
         if self._check_stm(name):
             return True
 
-        # Slow path: semantic search in LTM
+        # Fast path 2: exact match in concepts dict (MUST check before semantic search!)
+        if name in self.concepts or name.lower() in self.concepts:
+            return True
+
+        # Slow path: semantic search in LTM (only if exact match failed)
         if semantic:
             result = self._search_ltm(name, threshold=0.60)
             return result is not None
 
-        # Fallback: exact match in concepts dict
-        return name in self.concepts or name.lower() in self.concepts
+        return False
 
     # ===== Compatibility methods for PersistentLTM interface =====
 
