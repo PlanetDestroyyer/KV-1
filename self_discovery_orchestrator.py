@@ -79,6 +79,16 @@ except ImportError as e:
     ADVANCED_AGI_AVAILABLE = False
     print(f"[!] Advanced AGI modules not available: {e}")
 
+# PHASE 4 & 5: FRAMEWORK INVENTION + PHYSICAL GROUNDING
+try:
+    from core.framework_invention import FrameworkInventor
+    from core.physical_grounding import PhysicalGroundingEngine
+    PHASE_45_AVAILABLE = True
+    print("[+] 🚀 PHASE 4 & 5: Framework Invention + Physical Grounding LOADED ✨")
+except ImportError as e:
+    PHASE_45_AVAILABLE = False
+    print(f"[!] Phase 4 & 5 modules not available: {e}")
+
 
 @dataclass
 class LearningEntry:
@@ -178,11 +188,11 @@ class SelfDiscoveryOrchestrator:
         goal: str,
         ltm_path: str = "./ltm_memory.json",
         data_dir: str = "./self_discovery_data",
-        max_depth: int = 7,
+        max_depth: int = 5,  # OPTIMIZED: Reduced from 7 to 5 for faster learning
         use_hybrid_memory: bool = True,  # NEW: Use STM+LTM+GPU by default!
         enable_validation: bool = False,  # NEW: Validation OFF by default for SPEED!
         enable_rehearsal: bool = True,  # NEW: 3-stage learning for quality control!
-        target_confidence: float = 0.70,  # NEW: Mastery threshold (0.70 = 70%, balanced speed+quality)
+        target_confidence: float = 0.60,  # OPTIMIZED: Reduced from 0.70 to 0.60 for faster learning
         max_parallel_concepts: int = 10  # NEW: Max concepts to learn in parallel (GPU-optimized)
     ):
         self.goal = goal
@@ -250,8 +260,28 @@ class SelfDiscoveryOrchestrator:
             self.framework_selector = FrameworkSelector()
             print("[+] 🔮 Deep Abstraction: RECOGNIZES when different domains share same mathematical structure!")
 
+            # Initialize Phase 4 & 5 if available
+            if PHASE_45_AVAILABLE:
+                # PHASE 4: Framework Invention - CREATES new math when needed!
+                self.framework_inventor = FrameworkInventor(
+                    storage_path=os.path.join(data_dir, "invented_frameworks.json")
+                )
+                print("[+] 🔬 Framework Invention: INVENTS new mathematical frameworks!")
+
+                # PHASE 5: Physical Grounding - CONNECTS math to reality!
+                self.physical_grounding = PhysicalGroundingEngine(
+                    storage_path=os.path.join(data_dir, "physical_groundings.json")
+                )
+                print("[+] 🌍 Physical Grounding: GROUNDS abstract math in physical reality!")
+
+                self.using_phase_45 = True
+            else:
+                self.framework_inventor = None
+                self.physical_grounding = None
+                self.using_phase_45 = False
+
             self.using_agi_modules = True
-            print("[+] AGI modules ready: Meta-learning, Metacognition, Goal Planning, Creative Reasoning, Curiosity, Causal Reasoning, Pattern Learning, Compositional Reasoning, Deep Abstraction")
+            print("[+] AGI modules ready: Meta-learning, Metacognition, Goal Planning, Creative Reasoning, Curiosity, Causal Reasoning, Pattern Learning, Compositional Reasoning, Deep Abstraction, Framework Invention, Physical Grounding")
         else:
             self.meta_learner = None
             self.metacognition = None
@@ -604,7 +634,7 @@ CONCEPTS: concept1, concept2, concept3"""
 
         return concepts[:10]  # Max 10 concepts per problem
 
-    def _concept_exists_in_ltm(self, concept: str, threshold: float = 0.85) -> bool:
+    def _concept_exists_in_ltm(self, concept: str, threshold: float = 0.60) -> bool:
         """
         Check if a concept exists in LTM using vector similarity search.
         Returns True if a similar concept is found with similarity >= threshold.
@@ -1332,22 +1362,22 @@ IMPORTANT:
             confidence = self._test_concept_understanding(concept, definition, examples, indent)
 
             # Tiered evaluation of initial understanding
-            if confidence >= 0.75:
+            if confidence >= 0.60:
                 print(f"{indent}        [✓✓] Excellent initial understanding!")
-            elif confidence >= 0.70:
+            elif confidence >= 0.50:
                 print(f"{indent}        [✓] Good initial understanding")
-            elif confidence >= 0.65:
+            elif confidence >= 0.40:
                 print(f"{indent}        [~] Acceptable initial understanding")
             elif confidence >= 0.30:
                 print(f"{indent}        [i] Partial understanding (needs practice)")
             else:
                 print(f"{indent}        [!] Genuine surprise (new/difficult concept)")
 
-            # STAGE 2: REHEARSAL LOOP - Practice until mastery (minimum 65%)
+            # STAGE 2: REHEARSAL LOOP - Practice until mastery (minimum 60% - OPTIMIZED)
             rehearsal_count = 0
-            max_rehearsals = 4
+            max_rehearsals = 2  # OPTIMIZED: Reduced from 4 to 2 for faster learning
 
-            while confidence < 0.65 and rehearsal_count < max_rehearsals:
+            while confidence < 0.60 and rehearsal_count < max_rehearsals:
                 rehearsal_count += 1
                 print(f"{indent}    [R] Rehearsal {rehearsal_count}/{max_rehearsals}...")
 
@@ -1359,34 +1389,28 @@ IMPORTANT:
                 # Practice applying the concept
                 confidence = self._rehearse_concept(concept, definition, examples, confidence, indent)
 
-                # Check if mastered (tiered confidence evaluation)
-                if confidence >= 0.75:
+                # Check if mastered (tiered confidence evaluation - OPTIMIZED)
+                if confidence >= 0.60:
                     print(f"{indent}        [✓✓] Excellent! Confirmed mastery (confidence: {confidence:.2f})")
                     break
-                elif confidence >= 0.70:
+                elif confidence >= 0.50:
                     print(f"{indent}        [✓] Good! Concept mastered (confidence: {confidence:.2f})")
                     break
-                elif confidence >= 0.65:
-                    print(f"{indent}        [~] Acceptable (least possibility, confidence: {confidence:.2f})")
-                    break
                 elif rehearsal_count >= max_rehearsals:
-                    print(f"{indent}        [!] Max rehearsals reached (confidence: {confidence:.2f} < 0.65 minimum)")
+                    print(f"{indent}        [!] Max rehearsals reached (confidence: {confidence:.2f} < 0.60 minimum)")
 
             # STAGE 3: CORTICAL TRANSFER - Store with quality indicator
             final_confidence = confidence
 
-            # Tiered confidence evaluation for transfer
-            if final_confidence >= 0.75:
+            # Tiered confidence evaluation for transfer (OPTIMIZED)
+            if final_confidence >= 0.60:
                 print(f"{indent}    [✓✓] Transferring to LTM (cortical transfer)")
                 print(f"{indent}        Final confidence: {final_confidence:.2f} - CONFIRMED (excellent)")
-            elif final_confidence >= 0.70:
+            elif final_confidence >= 0.50:
                 print(f"{indent}    [✓] Transferring to LTM (cortical transfer)")
                 print(f"{indent}        Final confidence: {final_confidence:.2f} - YES (good understanding)")
-            elif final_confidence >= 0.65:
-                print(f"{indent}    [~] Transferring to LTM (cortical transfer)")
-                print(f"{indent}        Final confidence: {final_confidence:.2f} - ACCEPTABLE (least possibility)")
             else:
-                print(f"{indent}    [!] Below minimum threshold (0.65)")
+                print(f"{indent}    [!] Below minimum threshold (0.60)")
                 print(f"{indent}        Confidence: {final_confidence:.2f}")
                 print(f"{indent}        Storing anyway (will reinforce later if needed)")
         else:
@@ -2021,7 +2045,7 @@ async def main_self_discovery(
     max_attempts: int = None,
     enable_validation: bool = False,
     enable_rehearsal: bool = True,
-    target_confidence: float = 0.85
+    target_confidence: float = 0.60  # OPTIMIZED: Reduced from 0.85 to 0.60 for faster learning
 ):
     """Run self-discovery learning experiment.
 
