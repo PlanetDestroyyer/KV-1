@@ -188,11 +188,11 @@ class SelfDiscoveryOrchestrator:
         goal: str,
         ltm_path: str = "./ltm_memory.json",
         data_dir: str = "./self_discovery_data",
-        max_depth: int = 5,  # OPTIMIZED: Reduced from 7 to 5 for faster learning
+        max_depth: int = 3,  # SPEED: Reduced from 5 to 3 for 30hr Kaggle limit!
         use_hybrid_memory: bool = True,  # NEW: Use STM+LTM+GPU by default!
         enable_validation: bool = False,  # NEW: Validation OFF by default for SPEED!
         enable_rehearsal: bool = True,  # NEW: 3-stage learning for quality control!
-        target_confidence: float = 0.60,  # OPTIMIZED: Reduced from 0.70 to 0.60 for faster learning
+        target_confidence: float = 0.55,  # SPEED: Reduced from 0.60 to 0.55 for faster learning
         max_parallel_concepts: int = 10  # NEW: Max concepts to learn in parallel (GPU-optimized)
     ):
         self.goal = goal
@@ -1361,23 +1361,23 @@ IMPORTANT:
             # STAGE 1: SURPRISE EPISODE - Test initial understanding
             confidence = self._test_concept_understanding(concept, definition, examples, indent)
 
-            # Tiered evaluation of initial understanding
-            if confidence >= 0.60:
+            # Tiered evaluation of initial understanding (SPEED: More lenient thresholds)
+            if confidence >= 0.50:
                 print(f"{indent}        [✓✓] Excellent initial understanding!")
-            elif confidence >= 0.50:
-                print(f"{indent}        [✓] Good initial understanding")
             elif confidence >= 0.40:
-                print(f"{indent}        [~] Acceptable initial understanding")
+                print(f"{indent}        [✓] Good initial understanding")
             elif confidence >= 0.30:
+                print(f"{indent}        [~] Acceptable initial understanding")
+            elif confidence >= 0.20:
                 print(f"{indent}        [i] Partial understanding (needs practice)")
             else:
                 print(f"{indent}        [!] Genuine surprise (new/difficult concept)")
 
             # STAGE 2: REHEARSAL LOOP - Practice until mastery (minimum 60% - OPTIMIZED)
             rehearsal_count = 0
-            max_rehearsals = 2  # OPTIMIZED: Reduced from 4 to 2 for faster learning
+            max_rehearsals = 1  # SPEED: Reduced to 1 for 30hr Kaggle limit!
 
-            while confidence < 0.60 and rehearsal_count < max_rehearsals:
+            while confidence < 0.55 and rehearsal_count < max_rehearsals:  # SPEED: Lowered to 0.55
                 rehearsal_count += 1
                 print(f"{indent}    [R] Rehearsal {rehearsal_count}/{max_rehearsals}...")
 
@@ -1389,28 +1389,28 @@ IMPORTANT:
                 # Practice applying the concept
                 confidence = self._rehearse_concept(concept, definition, examples, confidence, indent)
 
-                # Check if mastered (tiered confidence evaluation - OPTIMIZED)
-                if confidence >= 0.60:
+                # Check if mastered (SPEED: More lenient thresholds)
+                if confidence >= 0.50:
                     print(f"{indent}        [✓✓] Excellent! Confirmed mastery (confidence: {confidence:.2f})")
                     break
-                elif confidence >= 0.50:
+                elif confidence >= 0.40:
                     print(f"{indent}        [✓] Good! Concept mastered (confidence: {confidence:.2f})")
                     break
                 elif rehearsal_count >= max_rehearsals:
-                    print(f"{indent}        [!] Max rehearsals reached (confidence: {confidence:.2f} < 0.60 minimum)")
+                    print(f"{indent}        [!] Max rehearsals reached (confidence: {confidence:.2f})")
 
             # STAGE 3: CORTICAL TRANSFER - Store with quality indicator
             final_confidence = confidence
 
-            # Tiered confidence evaluation for transfer (OPTIMIZED)
-            if final_confidence >= 0.60:
+            # Tiered confidence evaluation for transfer (SPEED: More lenient)
+            if final_confidence >= 0.50:
                 print(f"{indent}    [✓✓] Transferring to LTM (cortical transfer)")
                 print(f"{indent}        Final confidence: {final_confidence:.2f} - CONFIRMED (excellent)")
-            elif final_confidence >= 0.50:
+            elif final_confidence >= 0.35:
                 print(f"{indent}    [✓] Transferring to LTM (cortical transfer)")
                 print(f"{indent}        Final confidence: {final_confidence:.2f} - YES (good understanding)")
             else:
-                print(f"{indent}    [!] Below minimum threshold (0.60)")
+                print(f"{indent}    [!] Below preferred threshold (0.35)")
                 print(f"{indent}        Confidence: {final_confidence:.2f}")
                 print(f"{indent}        Storing anyway (will reinforce later if needed)")
         else:
@@ -1430,7 +1430,7 @@ IMPORTANT:
             else:
                 combined_confidence = validation_result.confidence_score
 
-            should_store = combined_confidence >= 0.6
+            should_store = combined_confidence >= 0.5  # SPEED: Lowered from 0.6
         else:
             # Skip validation for SPEED
             print(f"{indent}    [i] Validation disabled (fast mode)")
@@ -1705,13 +1705,19 @@ IMPORTANT:
                 if attempt_num > 1 and self.pattern_learner.get_statistics()['total_instances'] >= 3:
                     # Get all learned patterns
                     all_patterns = []
-                    for cluster in self.pattern_learner.pattern_clusters:
+                    for cluster_id, instances in self.pattern_learner.pattern_clusters.items():
+                        # Get cluster prototype
+                        prototype = self.pattern_learner.cluster_prototypes.get(cluster_id)
+                        if not prototype:
+                            continue
+
+                        success_rate = self.pattern_learner.cluster_success_rate.get(cluster_id, 0.0)
                         pattern_data = {
-                            'name': f"cluster_{cluster.cluster_id}",
-                            'operations': cluster.operations,
-                            'object_type': cluster.object_type,
-                            'domain': cluster.domain,
-                            'success_rate': cluster.avg_success_rate
+                            'name': f"cluster_{cluster_id}",
+                            'operations': prototype.operations,
+                            'object_type': prototype.object_type,
+                            'domain': prototype.domain,
+                            'success_rate': success_rate
                         }
                         all_patterns.append(pattern_data)
 
@@ -1861,8 +1867,9 @@ IMPORTANT:
             print(f"\n[i] Missing concepts: {', '.join(attempt.missing_concepts)}")
 
             # NEW: Filter irrelevant prerequisites using RelevanceFilter
+            # SPEED: Disabled for 30hr Kaggle limit - filtering is too aggressive
             filtered_concepts = attempt.missing_concepts
-            if self.using_agi_modules and self.relevance_filter:
+            if False and self.using_agi_modules and self.relevance_filter:  # DISABLED FOR SPEED
                 print(f"\n[🔍] Filtering {len(attempt.missing_concepts)} prerequisites for relevance...")
                 relevant, filtered_out = await self.relevance_filter.filter_prerequisites(
                     attempt.missing_concepts,
@@ -1870,10 +1877,15 @@ IMPORTANT:
                     self.goal,
                     self.goal_domain
                 )
-                filtered_concepts = relevant
-                if filtered_out:
-                    print(f"[✓] Filtered out {len(filtered_out)} irrelevant concepts: {', '.join(filtered_out[:5])}")
-                    print(f"[✓] Learning only {len(relevant)} relevant concepts")
+                # FAILSAFE: If everything filtered out, use original list
+                if len(relevant) == 0 and len(attempt.missing_concepts) > 0:
+                    print(f"[!] All concepts filtered out! Using original list for safety.")
+                    filtered_concepts = attempt.missing_concepts
+                else:
+                    filtered_concepts = relevant
+                    if filtered_out:
+                        print(f"[✓] Filtered out {len(filtered_out)} irrelevant concepts: {', '.join(filtered_out[:5])}")
+                        print(f"[✓] Learning only {len(relevant)} relevant concepts")
 
             # NEW: Metacognition - check if we're going off track
             if self.using_agi_modules and self.metacognition and len(self.concepts_learned_this_session) > 0:
