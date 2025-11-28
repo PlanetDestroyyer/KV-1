@@ -186,7 +186,7 @@ class HybridMemory:
     def recall(
         self,
         query: str,
-        threshold: float = 0.7
+        threshold: float = 0.60
     ) -> Optional[Tuple[str, ConceptGPU, float]]:
         """
         Recall a concept (checks STM first, then LTM).
@@ -321,7 +321,7 @@ class HybridMemory:
 
         # Slow path: semantic search in LTM
         if semantic:
-            result = self._search_ltm(name, threshold=0.85)
+            result = self._search_ltm(name, threshold=0.60)
             return result is not None
 
         # Fallback: exact match in concepts dict
@@ -377,7 +377,7 @@ class HybridMemory:
                 return LearningEntryCompat(concept_obj)
 
         # Fall back to semantic search if exact match not found
-        result = self.recall(name, threshold=0.7)
+        result = self.recall(name, threshold=0.60)
         if not result:
             return None
 
