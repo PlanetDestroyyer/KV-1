@@ -4,8 +4,12 @@ KV-1 Core Module
 Core components for KV-1 learning system.
 """
 
-from .env_loader import load_env
-load_env()
+# Load environment variables using python-dotenv
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass  # python-dotenv not installed
 
 from .llm import LLMBridge
 from .web_researcher import WebResearcher
