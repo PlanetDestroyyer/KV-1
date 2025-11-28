@@ -42,8 +42,8 @@ from typing import Optional, List, Dict, Tuple, Any
 from dataclasses import dataclass
 import time
 
-# Add HSOKV to path
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), 'hsokv'))
+# Add parent directory to path for HSOKV import
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 try:
     from hsokv.hsokv.dual_memory import ShortTermMemory
