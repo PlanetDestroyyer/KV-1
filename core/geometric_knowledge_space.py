@@ -47,16 +47,41 @@ class RiemannianKnowledgeManifold:
     Geometry guides exploration!
     """
 
-    def __init__(self, dimension: int = 768, device: str = 'cuda' if torch.cuda.is_available() else 'cpu'):
+    @staticmethod
+    def _select_compatible_device() -> str:
+        """Select GPU only if compatible with current PyTorch build."""
+        if not torch.cuda.is_available():
+            return 'cpu'
+
+        try:
+            # Check GPU compute capability
+            capability = torch.cuda.get_device_capability(0)
+            major, minor = capability
+            compute_capability = major * 10 + minor
+
+            # PyTorch 2.0+ requires sm_70 or higher
+            if compute_capability < 70:
+                return 'cpu'
+
+            # Test GPU
+            test = torch.zeros(10, device='cuda')
+            _ = test + 1
+            del test
+            torch.cuda.empty_cache()
+            return 'cuda'
+        except:
+            return 'cpu'
+
+    def __init__(self, dimension: int = 768, device: str = None):
         self.dimension = dimension
-        self.device = device
+        self.device = device if device is not None else self._select_compatible_device()
 
         # Knowledge points
         self.concepts: Dict[str, ConceptPoint] = {}
 
         # Metric tensor (defines distances)
         # For now, Euclidean metric, but could be learned!
-        self.metric_tensor = torch.eye(dimension, device=device)
+        self.metric_tensor = torch.eye(dimension, device=self.device)
 
         # Cache for computed distances
         self.distance_cache: Dict[Tuple[str, str], float] = {}
