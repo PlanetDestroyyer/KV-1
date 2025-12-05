@@ -410,3 +410,558 @@ Can this framework solve it? Respond YES or NO."""
                 lines.append(f"    Confidence: {fw.confidence:.2f}")
 
         return "\n".join(lines)
+
+
+# =============================================================================
+# ADVANCED SYNTHESIS ENGINE - Phase 4 Enhancement
+# =============================================================================
+
+@dataclass
+class SynthesisPath:
+    """Represents a path for synthesizing frameworks."""
+
+    source_frameworks: List[str]  # Starting frameworks
+    target_capability: str  # What we want to achieve
+    synthesis_steps: List[str]  # Steps to combine/extend
+    expected_properties: List[str]  # Properties of result
+    risk_level: float  # Complexity/uncertainty (0-1)
+
+
+@dataclass
+class AxiomSystem:
+    """Represents a formal axiom system."""
+
+    name: str
+    axioms: List[str]
+    inference_rules: List[str]
+    consistency_score: float  # Estimated consistency (0-1)
+    completeness_score: float  # Estimated completeness (0-1)
+    derived_theorems: List[str]
+
+
+@dataclass
+class ConceptFusion:
+    """Represents fusion of multiple mathematical concepts."""
+
+    concepts: List[str]
+    fusion_type: str  # "product", "coproduct", "tensor", "quotient"
+    result_name: str
+    result_properties: List[str]
+    preservation_map: Dict[str, str]  # What properties are preserved
+
+
+class AdvancedSynthesisEngine:
+    """
+    Advanced Framework Synthesis Engine.
+
+    Goes beyond simple framework invention to perform:
+    1. Multi-framework fusion (tensor products, fibered products)
+    2. Axiom system generation and validation
+    3. Category-theoretic synthesis (functors, natural transformations)
+    4. Automatic theorem discovery
+    5. Consistency checking via proof search
+    """
+
+    def __init__(self, framework_inventor: FrameworkInventor):
+        self.inventor = framework_inventor
+        self.synthesis_history: List[ConceptFusion] = []
+        self.axiom_systems: Dict[str, AxiomSystem] = {}
+        self.discovered_theorems: List[Dict] = []
+
+        # Category-theoretic structures
+        self.functors: Dict[str, Dict] = {}
+        self.natural_transformations: List[Dict] = []
+
+        print("[+] 🧬 Advanced Synthesis Engine: Multi-framework fusion active!")
+
+    def synthesize_frameworks(
+        self,
+        frameworks: List[str],
+        synthesis_type: str,
+        llm_bridge
+    ) -> Optional[MathematicalFramework]:
+        """
+        Synthesize multiple frameworks into a new unified framework.
+
+        Args:
+            frameworks: List of framework names to combine
+            synthesis_type: "product", "coproduct", "tensor", "fiber"
+            llm_bridge: LLM for creative synthesis
+
+        Returns:
+            New synthesized framework if successful
+        """
+        print(f"[🧬] Synthesizing {len(frameworks)} frameworks via {synthesis_type}...")
+
+        # Get source frameworks
+        sources = []
+        for fw_name in frameworks:
+            if fw_name in self.inventor.frameworks:
+                sources.append(self.inventor.frameworks[fw_name])
+
+        if len(sources) < 2:
+            print("[!] Need at least 2 valid frameworks to synthesize")
+            return None
+
+        # Build synthesis prompt based on type
+        synthesis_prompts = {
+            "product": self._product_synthesis_prompt,
+            "coproduct": self._coproduct_synthesis_prompt,
+            "tensor": self._tensor_synthesis_prompt,
+            "fiber": self._fiber_synthesis_prompt
+        }
+
+        prompt_builder = synthesis_prompts.get(synthesis_type, self._product_synthesis_prompt)
+        prompt = prompt_builder(sources)
+
+        response = llm_bridge.generate(prompt)
+
+        try:
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                data = json.loads(json_match.group())
+
+                # Create new framework
+                framework = MathematicalFramework(
+                    name=data.get("name", f"{synthesis_type}_synthesis"),
+                    description=data.get("description", "Synthesized framework"),
+                    axioms=data.get("axioms", []),
+                    operations=data.get("operations", []),
+                    objects=data.get("objects", []),
+                    applications=data.get("applications", []),
+                    invented_at=datetime.now().isoformat(),
+                    confidence=0.6,  # Medium confidence for synthesis
+                    parent_frameworks=frameworks
+                )
+
+                # Record fusion
+                fusion = ConceptFusion(
+                    concepts=frameworks,
+                    fusion_type=synthesis_type,
+                    result_name=framework.name,
+                    result_properties=framework.operations,
+                    preservation_map=data.get("preservation_map", {})
+                )
+                self.synthesis_history.append(fusion)
+
+                # Store framework
+                self.inventor.frameworks[framework.name] = framework
+                self.inventor.save()
+
+                print(f"[✓] Synthesized: {framework.name}")
+                return framework
+
+        except Exception as e:
+            print(f"[!] Synthesis failed: {e}")
+            return None
+
+    def _product_synthesis_prompt(self, sources: List[MathematicalFramework]) -> str:
+        """Generate prompt for product synthesis (A × B)."""
+        fw_descriptions = "\n".join([
+            f"- {fw.name}: {fw.description}\n  Operations: {', '.join(fw.operations[:5])}"
+            for fw in sources
+        ])
+
+        return f"""You are a mathematical framework synthesizer using PRODUCT construction.
+
+Source frameworks:
+{fw_descriptions}
+
+Create a PRODUCT framework that combines ALL operations from both frameworks.
+The product should:
+1. Include operations from BOTH frameworks
+2. Allow paired objects (a, b) where a is from first, b is from second
+3. Have projection operations to access individual components
+4. Preserve properties componentwise
+
+Respond in JSON:
+{{
+    "name": "product_framework_name",
+    "description": "what the product does",
+    "axioms": ["axiom1", "axiom2"],
+    "operations": ["op1", "op2", "proj1", "proj2"],
+    "objects": ["paired objects"],
+    "applications": ["application1"],
+    "preservation_map": {{"original_op": "product_op"}}
+}}
+"""
+
+    def _coproduct_synthesis_prompt(self, sources: List[MathematicalFramework]) -> str:
+        """Generate prompt for coproduct synthesis (A + B)."""
+        fw_descriptions = "\n".join([
+            f"- {fw.name}: {fw.description}"
+            for fw in sources
+        ])
+
+        return f"""You are a mathematical framework synthesizer using COPRODUCT construction.
+
+Source frameworks:
+{fw_descriptions}
+
+Create a COPRODUCT (disjoint union) framework that:
+1. Includes ALL objects from BOTH frameworks
+2. Has injection operations to embed each framework
+3. Has universal property for mapping out
+4. Preserves individual framework structures
+
+Respond in JSON:
+{{
+    "name": "coproduct_framework_name",
+    "description": "what the coproduct does",
+    "axioms": ["axiom1", "axiom2"],
+    "operations": ["inj1", "inj2", "case_analysis"],
+    "objects": ["tagged union objects"],
+    "applications": ["application1"],
+    "preservation_map": {{"original_op": "coproduct_op"}}
+}}
+"""
+
+    def _tensor_synthesis_prompt(self, sources: List[MathematicalFramework]) -> str:
+        """Generate prompt for tensor product synthesis (A ⊗ B)."""
+        fw_descriptions = "\n".join([
+            f"- {fw.name}: operations={fw.operations[:3]}"
+            for fw in sources
+        ])
+
+        return f"""You are a mathematical framework synthesizer using TENSOR PRODUCT construction.
+
+Source frameworks:
+{fw_descriptions}
+
+Create a TENSOR PRODUCT framework that:
+1. Captures bilinear combinations of objects
+2. Has tensor operation: a ⊗ b
+3. Satisfies universal property for bilinear maps
+4. Operations distribute over tensor
+
+Respond in JSON:
+{{
+    "name": "tensor_framework_name",
+    "description": "tensor product description",
+    "axioms": ["bilinearity", "universal property"],
+    "operations": ["tensor", "distribute", "bilinear_map"],
+    "objects": ["tensor objects"],
+    "applications": ["multilinear algebra"],
+    "preservation_map": {{}}
+}}
+"""
+
+    def _fiber_synthesis_prompt(self, sources: List[MathematicalFramework]) -> str:
+        """Generate prompt for fiber product synthesis (pullback)."""
+        fw_descriptions = "\n".join([
+            f"- {fw.name}: {fw.description}"
+            for fw in sources
+        ])
+
+        return f"""You are a mathematical framework synthesizer using FIBER PRODUCT (pullback).
+
+Source frameworks:
+{fw_descriptions}
+
+Create a FIBER PRODUCT framework that:
+1. Combines frameworks over a common base
+2. Objects satisfy compatibility condition
+3. Has projection to both source frameworks
+4. Universal property for compatible pairs
+
+Respond in JSON:
+{{
+    "name": "fiber_framework_name",
+    "description": "fiber product over common structure",
+    "axioms": ["compatibility", "universal property"],
+    "operations": ["fiber_proj1", "fiber_proj2", "lift"],
+    "objects": ["compatible pairs"],
+    "applications": ["application1"],
+    "preservation_map": {{}}
+}}
+"""
+
+    def generate_axiom_system(
+        self,
+        domain: str,
+        desired_properties: List[str],
+        llm_bridge
+    ) -> Optional[AxiomSystem]:
+        """
+        Generate a formal axiom system for a mathematical domain.
+
+        Args:
+            domain: Mathematical domain name
+            desired_properties: Properties the axiom system should capture
+            llm_bridge: LLM for axiom generation
+
+        Returns:
+            AxiomSystem if successful
+        """
+        print(f"[🧬] Generating axiom system for: {domain}")
+
+        prompt = f"""You are a mathematical logician designing formal axiom systems.
+
+Domain: {domain}
+Desired properties: {', '.join(desired_properties)}
+
+Design a MINIMAL, CONSISTENT axiom system that captures these properties.
+
+Requirements:
+1. Axioms should be independent (no redundancy)
+2. Include inference rules for deriving theorems
+3. Aim for consistency (no contradictions)
+4. Aim for completeness (capture all true statements)
+
+Respond in JSON:
+{{
+    "name": "{domain}_axiom_system",
+    "axioms": ["axiom1: formal statement", "axiom2: formal statement"],
+    "inference_rules": ["modus ponens", "universal instantiation"],
+    "sample_theorems": ["theorem1", "theorem2"],
+    "consistency_argument": "why this is consistent",
+    "completeness_argument": "what this can prove"
+}}
+"""
+
+        response = llm_bridge.generate(prompt)
+
+        try:
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                data = json.loads(json_match.group())
+
+                axiom_system = AxiomSystem(
+                    name=data.get("name", f"{domain}_axioms"),
+                    axioms=data.get("axioms", []),
+                    inference_rules=data.get("inference_rules", []),
+                    consistency_score=0.7,  # Initial estimate
+                    completeness_score=0.5,  # Conservative estimate
+                    derived_theorems=data.get("sample_theorems", [])
+                )
+
+                self.axiom_systems[axiom_system.name] = axiom_system
+                print(f"[✓] Generated axiom system: {axiom_system.name}")
+                print(f"    Axioms: {len(axiom_system.axioms)}")
+                print(f"    Rules: {len(axiom_system.inference_rules)}")
+
+                return axiom_system
+
+        except Exception as e:
+            print(f"[!] Axiom system generation failed: {e}")
+            return None
+
+    def discover_theorems(
+        self,
+        axiom_system: AxiomSystem,
+        search_depth: int = 3,
+        llm_bridge = None
+    ) -> List[Dict]:
+        """
+        Discover theorems from axiom system via proof search.
+
+        Args:
+            axiom_system: The axiom system to explore
+            search_depth: How many inference steps to try
+            llm_bridge: LLM for guided proof search
+
+        Returns:
+            List of discovered theorems with proofs
+        """
+        if not llm_bridge:
+            return []
+
+        print(f"[🧬] Discovering theorems from {axiom_system.name}...")
+
+        prompt = f"""You are a theorem prover exploring an axiom system.
+
+Axiom System: {axiom_system.name}
+Axioms:
+{chr(10).join(f'  {i+1}. {ax}' for i, ax in enumerate(axiom_system.axioms))}
+
+Inference Rules:
+{chr(10).join(f'  - {rule}' for rule in axiom_system.inference_rules)}
+
+Discover {search_depth} NEW theorems by applying inference rules to axioms.
+Each theorem must have a valid proof from the axioms.
+
+Respond in JSON:
+{{
+    "theorems": [
+        {{
+            "statement": "theorem statement",
+            "proof_steps": ["step1", "step2"],
+            "used_axioms": [1, 2],
+            "significance": "why this matters"
+        }}
+    ]
+}}
+"""
+
+        response = llm_bridge.generate(prompt)
+
+        try:
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                data = json.loads(json_match.group())
+                theorems = data.get("theorems", [])
+
+                # Add to discovered theorems
+                for theorem in theorems:
+                    theorem["axiom_system"] = axiom_system.name
+                    theorem["discovered_at"] = datetime.now().isoformat()
+                    self.discovered_theorems.append(theorem)
+                    axiom_system.derived_theorems.append(theorem["statement"])
+
+                print(f"[✓] Discovered {len(theorems)} theorems")
+                return theorems
+
+        except Exception as e:
+            print(f"[!] Theorem discovery failed: {e}")
+            return []
+
+    def define_functor(
+        self,
+        source_framework: str,
+        target_framework: str,
+        llm_bridge
+    ) -> Optional[Dict]:
+        """
+        Define a functor (structure-preserving map) between frameworks.
+
+        Args:
+            source_framework: Domain framework
+            target_framework: Codomain framework
+            llm_bridge: LLM for functor construction
+
+        Returns:
+            Functor definition if successful
+        """
+        if source_framework not in self.inventor.frameworks:
+            print(f"[!] Source framework '{source_framework}' not found")
+            return None
+        if target_framework not in self.inventor.frameworks:
+            print(f"[!] Target framework '{target_framework}' not found")
+            return None
+
+        source = self.inventor.frameworks[source_framework]
+        target = self.inventor.frameworks[target_framework]
+
+        print(f"[🧬] Defining functor: {source_framework} → {target_framework}")
+
+        prompt = f"""You are a category theorist defining functors between mathematical frameworks.
+
+Source Framework: {source.name}
+  Objects: {', '.join(source.objects)}
+  Operations: {', '.join(source.operations)}
+
+Target Framework: {target.name}
+  Objects: {', '.join(target.objects)}
+  Operations: {', '.join(target.operations)}
+
+Define a FUNCTOR F: {source.name} → {target.name} that:
+1. Maps objects to objects
+2. Maps operations to operations
+3. Preserves composition
+4. Preserves identity
+
+Respond in JSON:
+{{
+    "functor_name": "F",
+    "object_map": {{"source_obj": "target_obj"}},
+    "operation_map": {{"source_op": "target_op"}},
+    "preservation_proof": "why this preserves structure",
+    "is_faithful": true/false,
+    "is_full": true/false
+}}
+"""
+
+        response = llm_bridge.generate(prompt)
+
+        try:
+            json_match = re.search(r'\{.*\}', response, re.DOTALL)
+            if json_match:
+                functor = json.loads(json_match.group())
+                functor["source"] = source_framework
+                functor["target"] = target_framework
+                functor["defined_at"] = datetime.now().isoformat()
+
+                # Store functor
+                functor_key = f"{source_framework}_to_{target_framework}"
+                self.functors[functor_key] = functor
+
+                print(f"[✓] Defined functor: {functor.get('functor_name', 'F')}")
+                return functor
+
+        except Exception as e:
+            print(f"[!] Functor definition failed: {e}")
+            return None
+
+    def check_consistency(
+        self,
+        axiom_system: AxiomSystem,
+        llm_bridge
+    ) -> Tuple[bool, str]:
+        """
+        Check axiom system for consistency via proof search.
+
+        Args:
+            axiom_system: System to check
+            llm_bridge: LLM for proof search
+
+        Returns:
+            (is_consistent, explanation)
+        """
+        print(f"[🧬] Checking consistency of {axiom_system.name}...")
+
+        prompt = f"""You are a mathematical logician checking axiom consistency.
+
+Axiom System: {axiom_system.name}
+Axioms:
+{chr(10).join(f'  {i+1}. {ax}' for i, ax in enumerate(axiom_system.axioms))}
+
+Check if these axioms are CONSISTENT (cannot derive a contradiction).
+
+Analysis:
+1. Look for potential contradictions
+2. Check for conflicting axioms
+3. Consider independence of axioms
+4. Identify any issues
+
+Respond: CONSISTENT or INCONSISTENT, followed by detailed explanation.
+"""
+
+        response = llm_bridge.generate(prompt)
+
+        is_consistent = "CONSISTENT" in response.upper() and "INCONSISTENT" not in response.upper()
+
+        # Update consistency score
+        if is_consistent:
+            axiom_system.consistency_score = min(1.0, axiom_system.consistency_score + 0.1)
+        else:
+            axiom_system.consistency_score = max(0.0, axiom_system.consistency_score - 0.2)
+
+        return (is_consistent, response.strip())
+
+    def get_synthesis_stats(self) -> Dict:
+        """Get statistics about synthesis operations."""
+        return {
+            "total_fusions": len(self.synthesis_history),
+            "axiom_systems": len(self.axiom_systems),
+            "discovered_theorems": len(self.discovered_theorems),
+            "defined_functors": len(self.functors),
+            "fusion_types": list(set(f.fusion_type for f in self.synthesis_history))
+        }
+
+    def summarize(self) -> str:
+        """Get human-readable summary."""
+        stats = self.get_synthesis_stats()
+        lines = [
+            "Advanced Synthesis Engine Status:",
+            f"  Framework fusions: {stats['total_fusions']}",
+            f"  Axiom systems: {stats['axiom_systems']}",
+            f"  Discovered theorems: {stats['discovered_theorems']}",
+            f"  Defined functors: {stats['defined_functors']}"
+        ]
+
+        if self.synthesis_history:
+            lines.append("\nRecent fusions:")
+            for fusion in self.synthesis_history[-3:]:
+                lines.append(f"  - {' + '.join(fusion.concepts)} → {fusion.result_name}")
+
+        return "\n".join(lines)
