@@ -1,57 +1,132 @@
 # KV-1 AGI System - All Dependencies
 # Install: pip install -r requirements.txt
+# Version: 0.2.0 - Enhanced with Phases 4-7 + Unified AGI Controller
 
+# ==============================================================================
 # Core Math & Tensors
+# ==============================================================================
 torch>=2.0.0
 numpy>=1.24.0
 sympy>=1.12
 scipy>=1.10.0
 
+# ==============================================================================
 # Embeddings & NLP
+# ==============================================================================
 sentence-transformers>=2.2.0
 transformers>=4.30.0
 
+# ==============================================================================
+# Multimodal Processing (Phase 6)
+# ==============================================================================
+# Vision
+Pillow>=10.0.0  # Image processing
+opencv-python>=4.8.0  # Computer vision (optional, for advanced vision)
+# Audio
+librosa>=0.10.0  # Audio analysis (optional)
+soundfile>=0.12.0  # Audio file I/O (optional)
+# CLIP for multimodal embeddings
+# Note: transformers already includes CLIP support
+
+# ==============================================================================
+# Physical Simulation (Phase 5 Enhancement)
+# ==============================================================================
+# scipy already included above - provides solve_ivp for ODE integration
+# Additional simulation tools (optional)
+# numba>=0.58.0  # JIT compilation for fast simulations (optional)
+
+# ==============================================================================
 # Web & HTTP
+# ==============================================================================
 requests>=2.31.0
 beautifulsoup4>=4.12.0
 lxml>=4.9.0
 urllib3>=2.0.0
 
+# ==============================================================================
 # LLM Integration
+# ==============================================================================
 ollama>=0.3.0
 google-generativeai>=0.3.0
 openai>=1.0.0
 
+# ==============================================================================
 # Utilities
+# ==============================================================================
 pydantic>=2.0.0
 python-dotenv>=1.0.0
 dataclasses-json>=0.6.0
+uuid6>=2024.1.12  # Enhanced UUID generation for agents
 
-# Async & Parallel
+# ==============================================================================
+# Async & Parallel (for Agent System - Phase 7)
+# ==============================================================================
 asyncio-pool>=0.6.0
 aiohttp>=3.9.0
+anyio>=4.0.0  # Modern async utilities
 
-# Logging
+# ==============================================================================
+# Logging & Monitoring
+# ==============================================================================
 colorlog>=6.7.0
 tqdm>=4.65.0
+rich>=13.0.0  # Rich terminal output for agent status
 
+# ==============================================================================
 # Testing
+# ==============================================================================
 pytest>=7.0.0
 pytest-asyncio>=0.21.0
 pytest-cov>=4.0.0
 
+# ==============================================================================
 # Development
+# ==============================================================================
 black>=23.0.0
 mypy>=1.0.0
+ruff>=0.1.0  # Fast Python linter
 
+# ==============================================================================
 # Visualization
+# ==============================================================================
 matplotlib>=3.5.0
 seaborn>=0.12.0
 plotly>=5.14.0
 pandas>=2.0.0
+networkx>=3.1  # For framework/concept graph visualization
 
+# ==============================================================================
 # ML Libraries
+# ==============================================================================
 datasets>=2.14.0
 accelerate>=0.20.0
 safetensors>=0.3.0
 scikit-learn>=1.3.0  # For pattern clustering in MathematicalStructureLearner
+
+# ==============================================================================
+# Knowledge & Reasoning (Phase 4 Enhancement)
+# ==============================================================================
+# Category theory / abstract algebra support
+# sympy already provides basic algebraic structures
+
+# ==============================================================================
+# Agent System (Phase 7)
+# ==============================================================================
+# Core agent dependencies already covered above
+# Additional tools for agent coordination
+tenacity>=8.2.0  # Retry logic for agent actions
+
+# ==============================================================================
+# Optional: GPU Acceleration
+# ==============================================================================
+# Uncomment if using CUDA:
+# cupy>=12.0.0
+# faiss-gpu>=1.7.0
+
+# ==============================================================================
+# Optional: Advanced Multimodal
+# ==============================================================================
+# Uncomment for advanced multimodal capabilities:
+# timm>=0.9.0  # PyTorch Image Models
+# torchvision>=0.15.0  # Vision utilities
+# torchaudio>=2.0.0  # Audio utilities
