@@ -135,11 +135,23 @@ class UnifiedAGIController:
             for cap in CognitiveCapability
         }
 
+        # Discovery system components (NEW: FEP + Compound + CoT)
+        self._discovery_systems = {}
+        self._init_discovery_systems()
+
+        # Connection engine (NEW: Connects everything together!)
+        self.connection_engine = None
+        self.self_improvement = None
+        self._init_connection_systems()
+
         # Load state
         self.load()
 
         print("[+] Unified AGI Controller initialized")
-        print("    Integrating 7 cognitive phases into unified intelligence")
+        print("    Integrating 7 cognitive phases + autonomous discovery")
+        print("    Discovery systems: FEP, Bayesian, Contradictions, Compound Growth")
+        print("    Connection systems: AGI Connection Engine, Self-Improvement Loop")
+        print("    🎯 READY FOR RECURSIVE SELF-IMPROVEMENT!")
 
     def _get_system(self, capability: CognitiveCapability) -> Optional[Any]:
         """Lazy load and return cognitive system for capability."""
@@ -193,6 +205,200 @@ class UnifiedAGIController:
             print(f"[!] Could not load system for {capability.value}: {e}")
             self._system_status[capability.value] = "unavailable"
             return None
+
+    def _init_discovery_systems(self):
+        """
+        Initialize autonomous discovery system components.
+
+        NEW: FEP + Compound Knowledge Growth + CoT Pattern Mining
+        """
+        try:
+            # 1. FAISS Vector Store (for RAG and similarity search)
+            from .faiss_vector_store import FAISSVectorStore
+            self._discovery_systems['vector_store'] = FAISSVectorStore(dimension=384)
+
+            # 2. FEP-Guided Knowledge Graph
+            from .fep_knowledge_graph import FEPGuidedKnowledgeGraph
+            self._discovery_systems['knowledge_graph'] = FEPGuidedKnowledgeGraph(
+                vector_store=self._discovery_systems['vector_store']
+            )
+
+            # 3. Bayesian Evidence Evaluator
+            from .bayesian_evidence_evaluator import BayesianEvidenceEvaluator
+            self._discovery_systems['bayesian'] = BayesianEvidenceEvaluator()
+
+            # 4. Contradiction Detector
+            from .contradiction_detector import ContradictionDetector
+            self._discovery_systems['contradictions'] = ContradictionDetector(
+                vector_store=self._discovery_systems['vector_store'],
+                bayesian_evaluator=self._discovery_systems['bayesian'],
+                knowledge_graph=self._discovery_systems['knowledge_graph']
+            )
+
+            # 5. Compound Growth Tracker
+            from .compound_growth_tracker import CompoundGrowthTracker
+            self._discovery_systems['compound'] = CompoundGrowthTracker()
+
+            # 6. Hypothesis Generator
+            from .hypothesis_generator import HypothesisGenerator
+            self._discovery_systems['hypothesis_gen'] = HypothesisGenerator(
+                llm_bridge=self.llm,
+                knowledge_graph=self._discovery_systems['knowledge_graph'],
+                fep_learner=None  # Optional FEP learner
+            )
+
+            # 7. CoT Pattern Miner
+            from .cot_pattern_miner import CoTPatternMiner
+            self._discovery_systems['cot_miner'] = CoTPatternMiner()
+
+            # 8. Experiment Designer
+            from .experiment_designer import ExperimentDesigner
+            self._discovery_systems['experiment_designer'] = ExperimentDesigner(
+                llm_bridge=self.llm
+            )
+
+            # 9. Theory Synthesizer
+            from .theory_synthesizer import TheorySynthesizer
+            self._discovery_systems['theory_synth'] = TheorySynthesizer(
+                llm_bridge=self.llm,
+                bayesian_evaluator=self._discovery_systems['bayesian'],
+                knowledge_graph=self._discovery_systems['knowledge_graph']
+            )
+
+            # 10. Discovery Orchestrator (THE HEART!)
+            from .discovery_orchestrator import DiscoveryOrchestrator
+            self._discovery_systems['orchestrator'] = DiscoveryOrchestrator(
+                knowledge_graph=self._discovery_systems['knowledge_graph'],
+                hypothesis_generator=self._discovery_systems['hypothesis_gen'],
+                bayesian_evaluator=self._discovery_systems['bayesian'],
+                contradiction_detector=self._discovery_systems['contradictions'],
+                compound_tracker=self._discovery_systems['compound'],
+                experiment_designer=self._discovery_systems['experiment_designer'],
+                theory_synthesizer=self._discovery_systems['theory_synth'],
+                cot_miner=self._discovery_systems['cot_miner'],
+                llm_bridge=self.llm
+            )
+
+            print("[✓] Discovery systems initialized successfully")
+            print(f"    Components: {len(self._discovery_systems)}")
+
+        except ImportError as e:
+            print(f"[!] Could not initialize discovery systems: {e}")
+            print("    Discovery capabilities will be unavailable")
+
+    def _init_connection_systems(self):
+        """
+        Initialize connection and self-improvement systems.
+
+        NEW: THE INTEGRATION LAYER!
+        This connects everything together and enables recursive self-improvement!
+        """
+        try:
+            # 1. AGI Connection Engine
+            from .agi_connection_engine import AGIConnectionEngine
+            self.connection_engine = AGIConnectionEngine(
+                world_model=self.world_model,
+                discovery_systems=self._discovery_systems,
+                cognitive_systems=self._systems
+            )
+
+            # 2. Self-Improvement Loop
+            from .self_improvement_loop import SelfImprovementLoop
+            self.self_improvement = SelfImprovementLoop(
+                connection_engine=self.connection_engine,
+                discovery_systems=self._discovery_systems,
+                cognitive_systems=self._systems,
+                world_model=self.world_model
+            )
+
+            print("[✓] Connection systems initialized successfully")
+            print("    AGI Connection Engine: Active")
+            print("    Self-Improvement Loop: Active")
+            print("    🚀 RECURSIVE SELF-IMPROVEMENT ENABLED!")
+
+        except ImportError as e:
+            print(f"[!] Could not initialize connection systems: {e}")
+            print("    Self-improvement will be limited")
+
+    def improve(self, iterations: int = 5, target_capability: float = 0.99):
+        """
+        Run self-improvement loop!
+
+        NEW: RECURSIVE SELF-IMPROVEMENT!
+
+        This is the key to reaching AGI:
+        - Each iteration improves the system
+        - Learning accelerates (compound growth)
+        - Capabilities compound
+        - Eventually: 99.99% AGI!
+
+        Args:
+            iterations: Number of improvement iterations
+            target_capability: Target capability level (0-1)
+
+        Returns:
+            Improvement summary
+        """
+        if not self.self_improvement:
+            print("[!] Self-improvement loop not available")
+            return None
+
+        return self.self_improvement.run_loop(
+            max_iterations=iterations,
+            target_capability=target_capability
+        )
+
+    def sync_all_systems(self, discovery_session=None):
+        """
+        Synchronize all systems together.
+
+        NEW: FULL SYSTEM INTEGRATION!
+
+        This connects:
+        - Discoveries → World Model
+        - World Model → Discovery
+        - Patterns → Reasoning
+        - Theories → Frameworks
+
+        Args:
+            discovery_session: Optional discovery session to sync
+
+        Returns:
+            List of information flows
+        """
+        if not self.connection_engine:
+            print("[!] Connection engine not available")
+            return None
+
+        return self.connection_engine.full_system_sync(discovery_session)
+
+    def discover(self, domain: str, initial_observations: Optional[List[str]] = None,
+                max_iterations: int = 5, verbose: bool = True):
+        """
+        Run autonomous discovery loop!
+
+        NEW: Full autonomous discovery using FEP + Compound Growth + CoT
+
+        Args:
+            domain: Domain to explore
+            initial_observations: Starting observations
+            max_iterations: Max discovery iterations
+            verbose: Print progress
+
+        Returns:
+            DiscoverySession with all discoveries
+        """
+        if 'orchestrator' not in self._discovery_systems:
+            print("[!] Discovery orchestrator not available")
+            return None
+
+        orchestrator = self._discovery_systems['orchestrator']
+        return orchestrator.discover(
+            domain=domain,
+            initial_observations=initial_observations,
+            max_iterations=max_iterations,
+            verbose=verbose
+        )
 
     def analyze_task(self, description: str, context: Dict = None) -> CognitiveTask:
         """
@@ -504,19 +710,22 @@ class UnifiedAGIController:
                 # Identify patterns in the task
                 if hasattr(system, 'identify_pattern'):
                     return system.identify_pattern(task.description)
-                return {"patterns": "analyzed"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.COMPOSITIONAL_REASONING:
                 # Compose solution from components
                 if hasattr(system, 'compose'):
                     return system.compose(task.description, info.get("relevant_concepts", []))
-                return {"composition": "applied"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.DEEP_ABSTRACTION:
                 # Find abstract structure
                 if hasattr(system, 'abstract'):
                     return system.abstract(task.description)
-                return {"abstraction": "identified"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.FRAMEWORK_INVENTION:
                 # Invent new framework if needed
@@ -530,7 +739,8 @@ class UnifiedAGIController:
                         gap_severity=0.5
                     )
                     return system.invent_framework(gap, self.llm)
-                return {"framework": "considered"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.ADVANCED_SYNTHESIS:
                 # Synthesize frameworks
@@ -539,13 +749,15 @@ class UnifiedAGIController:
                     frameworks = list(system.inventor.frameworks.keys())[:2]
                     if len(frameworks) >= 2:
                         return system.synthesize_frameworks(frameworks, "product", self.llm)
-                return {"synthesis": "applied"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.PHYSICAL_GROUNDING:
                 # Ground in physical reality
                 if hasattr(system, 'ground_concept') and self.llm:
                     return system.ground_concept(task.description, task.description, self.llm)
-                return {"grounding": "attempted"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.PHYSICAL_SIMULATION:
                 # Run simulation
@@ -556,7 +768,8 @@ class UnifiedAGIController:
                         initial_conditions={"x": 1.0, "v": 0.0},
                         time_span=(0, 1)
                     )
-                return {"simulation": "skipped"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.MULTIMODAL_REASONING:
                 # Process multimodal inputs
@@ -567,7 +780,8 @@ class UnifiedAGIController:
                         content=task.description
                     )]
                     return system.reason_multimodally(task.description, inputs, self.llm)
-                return {"multimodal": "processed"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.AUTONOMOUS_AGENT:
                 # Use agent for autonomous processing
@@ -575,13 +789,15 @@ class UnifiedAGIController:
                     goal = system.set_goal(task.description)
                     plan = system.plan(goal.id)
                     return {"agent_plan": plan.id if plan else None}
-                return {"agent": "engaged"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.META_LEARNING:
                 # Apply meta-learning
                 if hasattr(system, 'adapt'):
                     return system.adapt(task.description)
-                return {"meta_learning": "applied"}
+                # No placeholder - return None if capability not available
+                return None
 
         except Exception as e:
             return {"error": str(e), "capability": capability.value}
