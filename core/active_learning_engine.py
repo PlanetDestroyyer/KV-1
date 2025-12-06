@@ -156,8 +156,8 @@ class ActiveLearningEngine:
         if self.kg:
             stats = self.kg.get_statistics()
 
-            # High free energy = interesting!
-            if stats['avg_free_energy'] > 0.3:
+            # Check if graph has data
+            if stats.get('status') == 'active' and stats.get('avg_free_energy', 0) > 0.3:
                 curiosity = CuriousItem(
                     id=f"curiosity_{self.curiosity_count}",
                     description=f"Knowledge gaps in graph (avg FE: {stats['avg_free_energy']:.2f})",
@@ -176,12 +176,15 @@ class ActiveLearningEngine:
         if self.bayesian:
             stats = self.bayesian.get_statistics()
 
-            if stats.get('unverified_claims', 0) > 0:
-                unverified_ratio = stats['unverified_claims'] / stats['total_claims'] if stats['total_claims'] > 0 else 0
+            # Check if there are claims to analyze
+            if stats.get('status') == 'active' and stats.get('unverified_claims', 0) > 0:
+                unverified_claims = stats.get('unverified_claims', 0)
+                total_claims = stats.get('total_claims', 1)
+                unverified_ratio = unverified_claims / total_claims if total_claims > 0 else 0
 
                 curiosity = CuriousItem(
                     id=f"curiosity_{self.curiosity_count}",
-                    description=f"Unverified claims need evidence ({stats['unverified_claims']} claims)",
+                    description=f"Unverified claims need evidence ({unverified_claims} claims)",
                     curiosity_type=CuriosityType.SPECIFIC,
                     information_gain=0.6,
                     novelty=0.3,

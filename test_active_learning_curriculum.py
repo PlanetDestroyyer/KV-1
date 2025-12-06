@@ -206,8 +206,10 @@ def test_active_learning_curriculum(max_questions: int = None):
 
     if controller.active_learning:
         print(f"\n🔍 ACTIVE LEARNING:")
-        print(f"  Curiosities tracked: {len(controller.active_learning.curiosities)}")
-        print(f"  Learning goals: {len(controller.active_learning.learning_goals)}")
+        curiosities = getattr(controller.active_learning, 'curiosities', [])
+        goals = getattr(controller.active_learning, 'learning_goals', [])
+        print(f"  Curiosities tracked: {len(curiosities)}")
+        print(f"  Learning goals: {len(goals)}")
 
     print("\n" + "="*80)
     print(" "*20 + "ACTIVE LEARNING COMPLETE!")
