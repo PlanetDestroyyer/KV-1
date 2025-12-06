@@ -1,71 +1,211 @@
 # KV-1 🧠
 
-**An LLM-powered learning system with graph-based memory and persistent knowledge acquisition.**
+**A self-discovering AI research system powered by Free Energy Principle, compound knowledge growth, and emergent pattern recognition.**
 
-KV-1 is a research exploration that orchestrates LLMs, symbolic mathematics, and web search to learn concepts on-demand: attempting goals → identifying knowledge gaps → searching the web → learning prerequisites recursively → storing in persistent graph-based memory → retrying until success.
+KV-1 is evolving from a learning system into a **discovery machine** that: generates hypotheses autonomously → tests them through experiments → discovers connections → synthesizes theories → presents findings with evidence.
+
+**Core Innovation**: Uses **Free Energy Principle** to organize knowledge (minimize surprise), leverages **compound interest effect** (each concept learned accelerates future learning), and mines **chain-of-thought patterns** from LLM reasoning to discover emergent insights.
 
 ---
 
-## 🎯 Core Concept
+## 🎯 Vision: From Learning to Discovery
 
-**Problem**: Most AI systems have static knowledge and can't dynamically learn new concepts during operation.
+### **Current State (v0.5): Learning System**
+```
+User provides goal → KV-1 learns needed concepts → Solves problem
+```
+**What it does:** Reactive learning with persistent memory
+**What it can't do:** Autonomous hypothesis generation, theory formation, scientific discovery
 
-**Approach**: KV-1 combines multiple AI techniques:
-- **LLM orchestration** (Ollama/Gemini) for reasoning and understanding
-- **Small-world graph memory** for organizing knowledge with brain-inspired connectivity
-- **Symbolic mathematics** (SymPy) for mathematical problem-solving
-- **Multi-source web research** (Wikipedia, ArXiv, StackExchange, etc.)
-- **Dual memory architecture** (STM + LTM) inspired by human cognitive science
-- **GPU-accelerated semantic search** (PyTorch + sentence-transformers)
+### **Target State (v1.0): Discovery Machine**
+```
+┌─────────────────────────────────────────────────────────┐
+│                  DISCOVERY LOOP                         │
+└─────────────────────────────────────────────────────────┘
+
+OBSERVE → QUESTION → HYPOTHESIZE → PREDICT → TEST →
+ANALYZE → THEORIZE → EXPLAIN → ITERATE → DISCOVER
+
+↓ Powered by ↓
+
+1. Free Energy Principle (FEP)
+   → Knowledge connections minimize "surprise"
+   → Graph organizes for maximum explanatory power
+   → Identifies gaps = high free energy regions
+
+2. Compound Knowledge Growth
+   → Learning accelerates as knowledge accumulates
+   → Concept N+1 learned faster than concept N
+   → Measurable growth rate: L(t) = L₀ × (1 + r)ᵗ
+
+3. Chain-of-Thought Pattern Mining
+   → Extract reasoning strategies from LLM traces
+   → Learn problem-solving patterns from success
+   → Reuse discovered strategies automatically
+```
+
+**What it will do:**
+- ✅ Generate hypotheses from knowledge gaps
+- ✅ Design experiments to test predictions
+- ✅ Discover connections autonomously
+- ✅ Synthesize theories from observations
+- ✅ Present findings with evidence trails
 
 ---
 
 ## 🏗️ Architecture
 
-### Core Components
+### **Current Architecture (v0.5)**
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  Self-Discovery Orchestrator                            │
 │  • Goal pursuit loop                                    │
-│  • Concept discovery with recursive learning            │
-│  • Parallel batch processing (up to 10 concepts)        │
+│  • Recursive prerequisite learning                      │
+│  • Parallel concept acquisition (up to 10)              │
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐
-│  Hybrid Memory System                                   │
-│  • STM: 50 slots, O(1) lookup (0.001ms)               │
-│  • LTM: GPU semantic search (1-5ms)                    │
-│  • Disk: Persistent JSON storage                       │
+│  Hybrid Memory System (FEP-Guided)                      │
+│  • STM: 50 slots, O(1) lookup (~0.001ms)               │
+│  • LTM: GPU semantic search (~1-5ms)                    │
+│  • Small-World Graph: Watts-Strogatz topology           │
+│  • FEP: Minimizes prediction error + complexity         │
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐
-│  Knowledge Acquisition Pipeline                         │
-│  • Web Researcher: 9 sources (Wikipedia, ArXiv, etc)   │
-│  • LLM Bridge: Ollama/Gemini support                   │
-│  • MathConnect: Symbolic math reasoning (SymPy)        │
-│  • Validator: Optional multi-source verification       │
+│  Cognitive Modules (Phases 1-7)                         │
+│  • Pattern Learner: Discovers mathematical structures   │
+│  • Compositional Reasoner: Combines patterns            │
+│  • Deep Abstraction: Cross-domain isomorphisms          │
+│  • Framework Inventor: Creates new frameworks           │
+│  • Physical Grounding: Connects math to reality         │
+│  • Causal Reasoner: Cause-effect relationships          │
+│  • Meta-Learner: Strategy optimization                  │
+└─────────────────────────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────┐
+│  Knowledge Acquisition                                  │
+│  • Web Research: 9 sources (Wikipedia, ArXiv, etc.)     │
+│  • LLM Bridge: Ollama/Gemini orchestration              │
+│  • Symbolic Math: SymPy integration                     │
+│  • Validator: Multi-source verification (optional)      │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Memory Architecture
+### **Target Architecture (v1.0) - Discovery Machine**
 
 ```
-User Query: "prime numbers"
-     ↓
-STM Check (O(1) lookup)
-     ↓ miss
-LTM Search (GPU cosine similarity)
-     ↓ found (similarity: 0.89)
-Promote to STM (consolidation)
-     ↓
-Next query → STM hit (instant)
+┌─────────────────────────────────────────────────────────┐
+│            DISCOVERY ORCHESTRATOR                        │
+│  Manages: Observe→Question→Hypothesize→Test→Theorize    │
+└──────────────┬──────────────────────────────┬───────────┘
+               │                              │
+               ↓                              ↓
+┌──────────────────────────┐   ┌──────────────────────────┐
+│  OBSERVATION LAYER       │   │  THEORY LAYER            │
+│  • Anomaly detector      │   │  • Theory synthesizer    │
+│  • Pattern recognizer    │   │  • Causal modeler        │
+│  • Gap identifier (FEP)  │   │  • Law discoverer        │
+└──────────────┬───────────┘   └───────────┬──────────────┘
+               │                           │
+               ↓                           ↓
+┌──────────────────────────┐   ┌──────────────────────────┐
+│  HYPOTHESIS LAYER        │   │  VALIDATION LAYER        │
+│  • Hypothesis generator  │←─→│  • Evidence evaluator    │
+│  • Prediction generator  │   │  • Contradiction detector│
+│  • Novelty scorer        │   │  • Experiment designer   │
+└──────────────┬───────────┘   └───────────┬──────────────┘
+               │                           │
+               ↓                           ↓
+┌─────────────────────────────────────────────────────────┐
+│               REASONING CORE                             │
+│  • Causal inference (Pearl-style)                        │
+│  • Uncertainty quantification (Bayesian)                 │
+│  • CoT pattern mining (from LLM traces)                  │
+│  • Compound growth tracking (learning acceleration)      │
+└──────────────┬──────────────────────────────────────────┘
+               │
+               ↓
+┌─────────────────────────────────────────────────────────┐
+│           FEP-GUIDED KNOWLEDGE GRAPH                     │
+│  Facts (verified) • Hypotheses (testable)                │
+│  Theories (explanatory) • Evidence (supporting)          │
+│  Free Energy: Prediction Error + Complexity              │
+└─────────────────────────────────────────────────────────┘
 ```
 
-**Performance:**
-- STM hit: ~0.001ms
-- LTM semantic search: ~1-5ms
-- Disk persistence: ~50-200ms (atomic write)
+---
+
+## 🔬 Key Innovations
+
+### **1. Free Energy Principle (FEP) for Knowledge Organization**
+
+**Concept:** Knowledge graph connections minimize "surprise" (prediction error + complexity)
+
+```python
+Free Energy = Prediction Error + Complexity
+
+Prediction Error: How well can we predict related concepts?
+Complexity: How unusual is this connection? (KL divergence)
+
+Goal: Organize knowledge to minimize free energy
+→ Most efficient, explanatory knowledge structure
+```
+
+**Implementation:**
+- `core/fep_learner.py`: Recognition network (observations → beliefs) + Generative network (beliefs → predictions)
+- Knowledge connections evaluated by free energy reduction
+- High FEP regions = knowledge gaps = discovery opportunities
+
+**Status:** ✅ Basic FEP implemented, 🚧 Not yet integrated with graph connections
+
+---
+
+### **2. Compound Knowledge Growth**
+
+**Concept:** Learning accelerates exponentially as knowledge accumulates
+
+```
+Learning Efficiency: L(t) = L₀ × (1 + r)ᵗ
+
+Where:
+- L(t) = Time to learn concept at step t
+- r = Compound growth rate (measured empirically)
+- t = Total concepts learned
+
+Expected: Concept #100 learned 2-5x faster than concept #10
+```
+
+**Observable Effects:**
+- Early concepts: 30-60 seconds to learn
+- Later concepts: 10-20 seconds (with 100+ concepts known)
+- Acceleration: ~5-15% per 10 concepts learned
+
+**Status:** ✅ Empirically observed, 🚧 Not explicitly tracked/optimized
+
+---
+
+### **3. Chain-of-Thought (CoT) Pattern Mining**
+
+**Concept:** Extract reasoning patterns from LLM's successful problem-solving traces
+
+```
+LLM generates:
+"First, I recognize this is a quadratic equation.
+Second, I check if it factors easily.
+Third, since it doesn't, I use the quadratic formula.
+Fourth, I simplify the discriminant..."
+
+Pattern extracted:
+[Recognition → Simple approach → General method → Simplification]
+
+Learned strategy: "Try simple first, fall back to general"
+```
+
+**Application:** System reuses successful patterns on similar problems
+
+**Status:** ⚠️ Pattern extraction exists (`pattern_learner.py`), 🚧 CoT-specific mining not implemented
 
 ---
 
@@ -140,7 +280,7 @@ python run_self_discovery.py "solve x² = 16" \
 
 ## 📋 How It Works
 
-### Learning Flow
+### Current Learning Flow (v0.5)
 
 ```
 1. User Goal: "solve x² - 5x + 6 = 0"
@@ -171,35 +311,44 @@ python run_self_discovery.py "solve x² = 16" \
    → Answer: x = 2, x = 3
 ```
 
-### 3-Stage Learning (Biological Inspiration)
+### Target Discovery Flow (v1.0)
 
 ```
-STAGE 1: Surprise Episode
-→ Test: "Explain this concept in your own words"
-→ Confidence: 0.60 (partial understanding)
+1. OBSERVE
+   ↓ Identify anomalies, patterns, gaps in knowledge graph
 
-STAGE 2: Rehearsal Loop (up to 4 rounds)
-→ Practice: "Solve a problem using this concept"
-→ Confidence: 0.60 → 0.75 → 0.85
-→ Stop when: confidence >= 0.70 (acceptable)
-           OR confidence >= 0.75 (confirmed)
-           OR max rounds reached
+2. QUESTION
+   ↓ Generate questions about unexplained phenomena
 
-STAGE 3: Cortical Transfer
-→ Store with final confidence
-→ Mark as mastered (0.70+) or needs reinforcement (<0.70)
+3. HYPOTHESIZE
+   ↓ Generate possible explanations (minimize free energy)
+
+4. PREDICT
+   ↓ What should happen if hypothesis is true?
+
+5. TEST
+   ↓ Design experiment (thought or computational)
+
+6. ANALYZE
+   ↓ Evaluate evidence, update beliefs (Bayesian)
+
+7. THEORIZE
+   ↓ Synthesize discoveries into unified explanation
+
+8. EXPLAIN
+   ↓ Generate human-understandable presentation
+
+9. ITERATE
+   ↓ Refine based on new evidence
+
+→ DISCOVERY (novel insight with evidence trail)
 ```
-
-**Confidence Thresholds:**
-- 0.65: Acceptable (minimum to store)
-- 0.70: Good understanding (default target)
-- 0.75+: Excellent/confirmed mastery
 
 ---
 
-## 🧮 Mathematical Reasoning (MathConnect)
+## 🧮 Mathematical Reasoning
 
-KV-1 stores mathematical concepts as symbolic equations (SymPy), not just text.
+KV-1 stores mathematical concepts as **symbolic equations** (SymPy), not just text.
 
 **Example:**
 
@@ -211,42 +360,55 @@ Eq(a**2 + b**2, c**2)  # SymPy symbolic equation
 
 # Stored with:
 • Text: "In a right triangle, a² + b² = c²"
-• Tensor: [0.123, -0.456, ..., 0.789] (384-D)
-• Formula: "a**2 + b**2 = c**2"
-• Examples: ["3² + 4² = 5²", ...]
+• Tensor: [0.123, -0.456, ..., 0.789] (384-D embedding)
+• Formula: "a**2 + b**2 = c**2" (SymPy expression)
+• Examples: ["3² + 4² = 5²", "5² + 12² = 13²"]
+• Domain: "geometry"
+• Prerequisites: ["right triangle", "square", "hypotenuse"]
 
 # Used for:
 • Connection finding (relates to distance formula, trig identities)
 • Symbolic manipulation (substitution, solving)
 • Theorem composition (derive new results)
+• Proof search (mathematical_exploration_engine.py)
 ```
+
+**Capabilities:**
+- ✅ Symbolic equation solving (SymPy)
+- ✅ Proof verification (computational)
+- ✅ Pattern discovery in sequences
+- ✅ Goldbach conjecture exploration
+- 🚧 Autonomous theorem generation (planned)
 
 ---
 
 ## 🧠 Memory System
 
-### Hybrid Memory (STM + LTM + Disk)
+### Hybrid Memory (STM + LTM + Graph)
 
 **Short-Term Memory (STM):**
 - Capacity: 50 slots (Miller's Law: 7±2, extended)
 - Decay: 5 minutes without rehearsal
 - Lookup: O(1) direct match using OrderedDict
 - Speed: ~0.001ms
-- Implements consolidation via rehearsal threshold
+- Purpose: Fast recall of recent concepts
 
 **Long-Term Memory (LTM):**
 - Capacity: Unlimited
-- Storage: GPU tensor matrix (384-D embeddings via sentence-transformers)
+- Storage: GPU tensor matrix (384-D embeddings)
 - Lookup: Cosine similarity search (PyTorch)
 - Speed: ~1-5ms with GPU acceleration
-- Batch operations for efficiency
+- Purpose: Persistent knowledge base
 
 **Small-World Graph:**
-- Concepts as nodes with connections
-- High clustering + short paths (Watts-Strogatz model)
-- Anatomical (permanent) + Functional (dynamic) edges
-- Automatic analogy discovery via graph shortcuts
-- Hub detection for key concepts
+- Topology: Watts-Strogatz (high clustering + short paths)
+- Nodes: Concepts with properties
+- Edges: Anatomical (permanent) + Functional (dynamic)
+- **FEP-Guided:** Connections minimize free energy
+- Features:
+  - Automatic analogy discovery via shortcuts
+  - Hub detection for key concepts
+  - Cross-domain transfer learning
 
 **Disk Persistence:**
 - Format: JSON (ltm_memory.json)
@@ -256,8 +418,9 @@ Eq(a**2 + b**2, c**2)  # SymPy symbolic equation
 **Data Flow:**
 ```
 learn("prime numbers", definition)
-  → Store in LTM (tensor + text)
-  → Add to graph with connections
+  → FEP evaluation (does this connection reduce surprise?)
+  → Store in LTM (tensor + text + formula)
+  → Add to graph with minimal free energy connections
   → Store in STM (fast lookup)
   → Save to disk (persistent)
 
@@ -271,89 +434,195 @@ recall("primes")
 
 ---
 
-## ⚙️ Configuration
-
-### System Parameters
-
-| Parameter | Default | Range | Description |
-|-----------|---------|-------|-------------|
-| `max_depth` | 7 | 1-15 | Max recursive prerequisite learning depth |
-| `stm_capacity` | 50 | 7-100 | Short-term memory slots |
-| `target_confidence` | 0.70 | 0.65-0.90 | Mastery threshold for 3-stage learning |
-| `daily_cap` | Unlimited | Any | Web requests per day |
-| `max_parallel_concepts` | 10 | 1-50 | Concepts learned simultaneously |
-
-### Environment Variables
-
-```bash
-# LLM Configuration
-export OLLAMA_HOST="http://localhost:11434"
-export GEMINI_API_KEY="your-api-key"
-
-# Memory
-export LTM_PATH="./ltm_memory.json"
-```
-
----
-
-## 🎓 Learning Curriculum
-
-260 questions organized in 6 phases for systematic knowledge building:
-
-1. **Foundational Math** (35 questions): Arithmetic → Algebra → Trig → Complex numbers
-2. **Calculus & Analysis** (50 questions): Limits → Derivatives → Integrals → Series
-3. **Advanced Math** (30 questions): Linear algebra → Abstract algebra → Discrete math
-4. **Number Theory** (35 questions): Primes → Diophantine → Riemann zeta
-5. **Complex Analysis** (25 questions): Analytic functions → Residues → Continuation
-6. **Toward Riemann** (25 questions): Hypothesis understanding → Critical line → Zero distribution
-
-See [LEARNING_CURRICULUM.md](LEARNING_CURRICULUM.md) for full list.
-
-**Run curriculum:**
-```bash
-# Run all phases
-python run_curriculum.py --phase all
-
-# Run specific phase
-python run_curriculum.py --phase 1
-
-# Resume from checkpoint
-python run_curriculum.py --resume
-```
-
----
-
 ## 📊 System Statistics
 
-**Typical Performance:**
+**Current Performance (v0.5):**
 - Concept learning time: 15-30 seconds (balanced mode)
 - Memory per concept: ~1-2KB
 - 1000 concepts: ~1-2MB disk space
 - STM hit rate: >80% for recent queries
 - LTM search accuracy: ~90% (similarity >= 0.85)
+- Compound growth: Observable but not measured
 
 **Benchmark Results:**
 - 18/19 hard problems solved (95% success rate)
 - Includes: Collatz sequence, Chinese Remainder, Prime factorization
-- See benchmarks/ for comparison scripts
+- See `benchmarks/` for comparison scripts
+
+**Target Performance (v1.0):**
+- Hypothesis generation: 5-10 novel hypotheses per domain
+- Discovery rate: 2-5 non-obvious connections per 100 concepts
+- Evidence quality: >90% claims supported by multiple sources
+- Compound growth rate: 5-15% acceleration per 10 concepts
+- Free energy: Decreases from ~1.0 to ~0.3 as knowledge grows
+
+---
+
+## 🔬 Research Roadmap
+
+### **Phase 0: Foundation (CURRENT - v0.5)** ✅
+```
+✅ Self-discovery learning loop
+✅ Hybrid STM/LTM memory
+✅ Small-world graph topology
+✅ Pattern learning from experience
+✅ Compositional reasoning
+✅ Deep abstraction (cross-domain)
+✅ FEP learner (basic)
+✅ Causal reasoning (LLM-based)
+✅ Meta-learning
+```
+
+### **Phase 1: Discovery Foundation (v0.6-0.7)** 🚧
+**Timeline:** 3-4 months
+
+```
+Priority 1: Hypothesis Generator
+├─ Anomaly detection in knowledge graph
+├─ Gap identification (high FEP regions)
+├─ Hypothesis generation from patterns
+├─ Prediction generation
+├─ Novelty & testability scoring
+└─ Status: 🚧 Not started
+
+Priority 2: Evidence Evaluator
+├─ Claim-evidence assessment
+├─ Bayesian belief updating
+├─ Confidence tracking (posterior probabilities)
+├─ Multi-source verification
+└─ Status: ⚠️ Basic validator exists, needs Bayesian upgrade
+
+Priority 3: Contradiction Detector
+├─ Logical contradiction scanning
+├─ Conflict identification
+├─ Resolution proposals
+├─ Investigation triggering
+└─ Status: 🚧 Not started
+
+Priority 4: Discovery Orchestrator
+├─ Discovery loop management
+├─ Component coordination
+├─ Priority queue for investigations
+└─ Status: 🚧 Not started
+```
+
+**Deliverable:** System can generate hypotheses, evaluate evidence, detect contradictions
+
+### **Phase 2: Experimentation & Theory (v0.8-0.9)** 🔮
+**Timeline:** 4-5 months
+
+```
+Priority 5: Experiment Designer
+├─ Thought experiment framework
+├─ Computational test design
+├─ Outcome prediction
+└─ Information gain estimation
+
+Priority 6: Theory Synthesizer
+├─ Multi-observation synthesis
+├─ Principle extraction
+├─ Causal model building
+└─ Law discovery
+
+Priority 7: Causal Inference (Rigorous)
+├─ Pearl-style causal DAGs
+├─ Do-calculus implementation
+├─ Confounder identification
+└─ Counterfactual reasoning
+```
+
+**Deliverable:** System can design experiments, synthesize theories, infer causation
+
+### **Phase 3: Integration & Emergence (v1.0)** 🔮
+**Timeline:** 3-4 months
+
+```
+Priority 8: Uncertainty Quantification
+├─ Bayesian belief networks
+├─ Uncertainty propagation
+├─ Confidence intervals
+└─ Source tracking
+
+Priority 9: CoT Pattern Mining
+├─ Extract reasoning patterns from LLM traces
+├─ Strategy library building
+├─ Automatic pattern reuse
+└─ Meta-strategy learning
+
+Priority 10: Compound Growth Optimization
+├─ Explicit growth rate tracking
+├─ Learning acceleration measurement
+├─ Prerequisite optimization
+└─ Knowledge compounding maximization
+```
+
+**Deliverable:** Fully integrated discovery machine with measurable emergent capabilities
+
+---
+
+## 🎯 Success Criteria
+
+**KV-1 v1.0 will be validated when it can:**
+
+1. **The Goldbach Test** ✅
+   - Input: "Explore Goldbach's conjecture"
+   - Expected: Generate hypothesis → Design test → Execute → Present findings with evidence
+   - Status: Partial (can compute, can't autonomously hypothesize)
+
+2. **The Contradiction Test** 🚧
+   - Input: Add conflicting claims to knowledge base
+   - Expected: Detect automatically → Analyze → Propose resolution → Trigger investigation
+   - Status: Not implemented
+
+3. **The Cross-Domain Discovery Test** 🚧
+   - Input: "Find connections between quantum mechanics and thermodynamics"
+   - Expected: Identify deep analogies → Propose testable hypothesis → Evaluate depth
+   - Status: Has analogy engine, lacks autonomous discovery trigger
+
+4. **The Novel Hypothesis Test** 🚧
+   - Input: Unexplained phenomenon
+   - Expected: Generate multiple hypotheses → Rank by plausibility → Design experiments
+   - Status: Not implemented
+
+5. **The Compound Growth Test** ⚠️
+   - Input: Learn 100 concepts sequentially
+   - Expected: Measure learning acceleration, prove L(t) = L₀ × (1 + r)ᵗ with r > 0
+   - Status: Observable, not measured
 
 ---
 
 ## 🐛 Known Limitations
 
-### **Critical Dependencies:**
-1. **LLM-Powered Intelligence:** The system's reasoning, understanding, and concept extraction are entirely powered by the LLM (Ollama/Gemini). Without LLM access, the system cannot function. The architecture orchestrates the LLM rather than providing independent intelligence.
+### **Current Limitations (v0.5):**
 
-2. **Mathematical Solving:** SymPy library handles actual equation solving and symbolic manipulation. The system integrates and applies SymPy effectively but doesn't implement novel mathematical reasoning.
+**Fundamental:**
+1. **LLM-Dependent:** All reasoning powered by LLM (Ollama/Gemini). Without LLM access, system cannot function.
+2. **Reactive, Not Proactive:** Only learns when prompted; doesn't autonomously generate hypotheses
+3. **No Hypothesis Testing:** Can't design or execute experiments
+4. **No Theory Formation:** Stores facts, doesn't synthesize theories
+5. **No Contradiction Detection:** Accepts conflicting information without resolution
+6. **Shallow Evidence Evaluation:** Multi-source validation exists but not rigorous/Bayesian
 
-### **Technical Limitations:**
-3. **Domain Specialization:** Optimized for mathematics; general knowledge works but less effectively
-4. **Web Content Quality:** Depends on finding good explanations online
-5. **No Visual Learning:** Text-only (no images, diagrams, videos)
-6. **Limited Abstraction:** Pattern learner extracts structures but doesn't yet abstract or compose them
-7. **Loop Detection:** Can get stuck if concepts are too abstract/poorly defined
-8. **Security:** Uses `exec()` for math parsing (sandboxing needed for production)
-9. **No Embodiment:** Lacks physical grounding or sensory experience
+**Technical:**
+7. **Security:** Uses `exec()` for math parsing (needs sandboxing)
+8. **Domain Specialization:** Optimized for mathematics; general knowledge works but less effectively
+9. **No Visual Learning:** Text-only (no images, diagrams, videos)
+10. **Limited Embodiment:** No physical grounding or sensory experience
+
+### **Target Limitations (v1.0):**
+
+**Will Still Have:**
+- LLM dependency (orchestration layer, not standalone AI)
+- Limited to computational/thought experiments (no physical lab)
+- Mathematical domain bias (though cross-domain improving)
+- Requires human validation for critical discoveries
+
+**Will Overcome:**
+- ✅ Autonomous hypothesis generation
+- ✅ Evidence-based belief updating
+- ✅ Contradiction detection and resolution
+- ✅ Theory synthesis from observations
+- ✅ Experiment design (computational)
 
 ---
 
@@ -365,16 +634,31 @@ KV-1/
 ├── run_self_discovery.py           # CLI interface
 ├── run_curriculum.py               # Curriculum runner
 │
-├── core/                           # Core modules (~9.4K lines)
+├── core/                           # Core modules (~26.6K lines)
 │   ├── llm.py                      # LLM bridge (Ollama/Gemini)
 │   ├── hybrid_memory.py            # STM + LTM + Disk
 │   ├── neurosymbolic_gpu.py        # GPU tensor operations
 │   ├── web_researcher.py           # 9-source web scraper
 │   ├── knowledge_validator.py      # Multi-source validation
 │   ├── math_connect.py             # Symbolic math (SymPy)
-│   ├── meta_learner.py             # Learning strategy adaptation
+│   │
+│   ├── fep_learner.py              # Free Energy Principle
+│   ├── pattern_learner.py          # Mathematical structure learning
+│   ├── compositional_reasoner.py   # Pattern composition
+│   ├── deep_abstraction.py         # Cross-domain isomorphisms
+│   ├── framework_invention.py      # Novel framework creation
+│   ├── physical_grounding.py       # Math-reality connection
+│   ├── causal_reasoner.py          # Cause-effect relationships
+│   ├── meta_learner.py             # Strategy optimization
 │   ├── transfer_learning.py        # Cross-domain transfer
-│   └── ...                         # Other AGI modules
+│   ├── analogical_reasoning.py     # Structural analogies
+│   ├── curiosity_engine.py         # Intrinsic motivation
+│   ├── explainable_reasoning.py    # Explanation generation
+│   │
+│   ├── symbolic_math_engine.py     # Proof verification
+│   ├── mathematical_exploration_engine.py  # Proof search
+│   ├── geometric_knowledge_space.py  # Riemannian manifold
+│   └── unified_agi_controller.py   # System orchestration
 │
 ├── hsokv/                          # HSOKV memory library
 │   ├── dual_memory.py              # STM + LTM implementation
@@ -383,24 +667,59 @@ KV-1/
 │
 ├── benchmarks/                     # Performance comparisons
 ├── tools/                          # Utilities
-└── LEARNING_CURRICULUM.md          # 260 questions
+└── docs/
+    ├── LEARNING_CURRICULUM.md      # 260 math questions
+    ├── BRAIN_ARCHITECTURE.md       # Small-world networks
+    └── DOMAIN_MATH_BRIDGE.md       # Mathematical abstraction
 ```
 
 ---
 
-## 🤝 Contributing
+## 🌟 What Makes This Interesting
 
-This is a research project. Contributions welcome for:
-- Improving learning algorithms
-- Adding new knowledge domains
-- Enhancing memory efficiency
-- Fixing bugs (see GitHub issues)
+### **Novel Contributions:**
 
----
+1. **FEP-Guided Knowledge Organization**
+   - First LLM system to use Free Energy Principle for knowledge graph connections
+   - Connections minimize "surprise" (prediction error + complexity)
+   - Knowledge organizes itself for maximum explanatory power
 
-## 📄 License
+2. **Compound Knowledge Growth**
+   - Explicitly tracks learning acceleration
+   - Each concept makes future learning faster (measurable)
+   - Targets exponential capability growth
 
-See LICENSE file for details.
+3. **CoT Pattern Mining** (planned)
+   - Extract reasoning strategies from LLM's own reasoning traces
+   - Learn meta-strategies without explicit meta-training
+   - Self-improving problem-solving
+
+4. **Small-World Graph Memory**
+   - Neuroscience-inspired topology (Watts-Strogatz)
+   - High clustering + short paths = efficient retrieval
+   - Anatomical (permanent) + Functional (dynamic) edges
+
+5. **Dual Memory Architecture**
+   - Psychology-based STM/LTM with rehearsal and consolidation
+   - 3-stage learning: Surprise → Rehearsal → Transfer
+   - Time decay and confidence tracking
+
+6. **Mathematical Pattern Learning**
+   - Learns from problem-solving experience (not hardcoded)
+   - Discovers problem types via clustering
+   - Composes patterns for novel solutions
+
+7. **Deep Cross-Domain Abstraction**
+   - Recognizes structural isomorphisms (linear algebra ≅ group theory)
+   - Transfers solutions across domains
+   - Meta-reasoning for framework selection
+
+### **Engineering Highlights:**
+- Clean integration of LLM, SymPy, PyTorch, and sentence-transformers
+- GPU-accelerated semantic search with batch operations
+- Lazy-loaded modular architecture (10 cognitive subsystems)
+- Persistent learning with atomic disk writes
+- Bayesian confidence tracking (planned v1.0)
 
 ---
 
@@ -412,75 +731,59 @@ See LICENSE file for details.
 
 ---
 
-## 🌟 What Makes This Interesting
-
-### **Novel Contributions:**
-1. **Small-World Graph Memory for LLMs** - Organizes LLM-learned knowledge using neuroscience-inspired graph topology with high clustering and short paths
-2. **Dual Memory Architecture** - Psychology-based STM/LTM system with rehearsal, consolidation, and time decay
-3. **Persistent Learning Loop** - Goal → attempt → identify gaps → learn → retry architecture for continuous improvement
-4. **Hybrid Connectivity Model** - Anatomical (permanent structure) + Functional (dynamic activation) edges inspired by brain networks
-5. **🆕 Mathematical Pattern Learning** - Learns patterns from problem-solving experience, automatically discovers problem types via clustering (NOT keyword matching!)
-6. **🆕 Compositional Reasoning** - Combines learned patterns creatively to solve novel problems, builds abstraction hierarchies (group → ring → field), transforms problems between mathematical representations
-7. **🆕 Deep Mathematical Abstraction** - Recognizes when different domains share the same mathematical structure (e.g., linear algebra ≅ group theory), enables cross-domain knowledge transfer, meta-reasoning for framework selection
-
-### **Engineering Highlights:**
-- Clean integration of LLM, SymPy, PyTorch, and sentence-transformers
-- GPU-accelerated semantic search with batch operations
-- Proper implementation of Watts-Strogatz small-world model
-- Graph-based analogy discovery via network shortcuts
-- Adaptive meta-learning for strategy optimization
-
----
-
-## 🔬 Research Vision: Mathematical AGI
-
-**Long-term research direction**: Exploring whether domain-general intelligence can emerge from mathematical abstraction.
-
-**The idea**: Since mathematics is the universal language of patterns (physics = differential equations, biology = dynamical systems, economics = optimization), a system that can:
-1. **Automatically discover** which mathematical structures underlie any domain problem
-2. **Reason abstractly** in pure mathematical forms
-3. **Transfer solutions** by recognizing shared mathematical structure across domains
-4. **Invent new frameworks** when existing mathematics is insufficient
-
-...could achieve domain-general analytical intelligence.
-
-**Current status**: Active development (~50-55% toward this vision)
-- ✅ Foundation: Graph memory, symbolic math integration, transfer learning basics
-- ✅ **Pattern Learning** (Phase 1): Learns mathematical structures from experience, discovers problem types via clustering
-- ✅ **Compositional Reasoning** (Phase 2): Combines learned patterns to solve novel problems, builds abstraction hierarchies, transforms between representations
-- ✅ **Deep Abstraction** (Phase 3): Recognizes structural isomorphisms across domains, meta-reasoning for framework selection, cross-domain knowledge transfer
-- 🚧 Needed: Framework invention (Phase 4 - create new math when needed)
-- 🚧 Needed: Physical grounding (Phase 5 - connect math to reality)
-
-This is a **10-20 year research program**, not a completed system. Current implementation demonstrates the architecture and validates core concepts.
-
----
-
 ## ⚠️ Important Notes
 
 **This is a research system, not production-ready:**
-- Primarily an LLM orchestration layer with novel memory architecture
+- Primarily an LLM orchestration layer with novel memory/discovery architecture
 - No sandboxing (uses `exec()` for math parsing)
 - Limited error handling
 - Optimized for mathematical domains
 - Requires LLM API access (Ollama or Gemini)
 
 **Best Use Cases:**
-- Research in LLM memory systems and knowledge organization
-- Exploring graph-based knowledge representations
-- Educational tool for learning mathematics
+- Research in AI discovery systems
+- Exploring FEP-based knowledge organization
+- Studying compound knowledge growth
+- Educational tool for mathematics
 - Prototyping autonomous learning architectures
-- Studying human-inspired memory models in AI
 
-**Not suitable for:**
+**Not Suitable For:**
 - Production deployments (security issues)
 - Independent reasoning (requires LLM)
-- Novel theorem proving (uses SymPy + templates)
+- Physical experiments (computational only)
 - Real-time applications (web search latency)
+- **Building time machines** (despite what some vision docs might claim 😄)
 
 ---
 
-## 📚 Further Reading
+## 🤝 Contributing
+
+This is an active research project. Contributions welcome for:
+- Implementing discovery components (hypothesis generator, evidence evaluator, etc.)
+- Improving FEP integration with knowledge graph
+- Adding compound growth tracking
+- CoT pattern mining implementation
+- Bayesian belief updating
+- Causal inference (Pearl-style)
+- Bug fixes and optimizations
+
+See [GitHub Issues](https://github.com/PlanetDestroyyer/KV-1/issues) for current priorities.
+
+---
+
+## 📄 License
+
+See LICENSE file for details.
+
+---
+
+**Built by [@PlanetDestroyyer](https://github.com/PlanetDestroyyer)**
+
+*A research exploration in Free Energy Principle-guided knowledge organization, compound learning growth, and emergent scientific discovery through AI.*
+
+---
+
+## 🎓 Further Reading
 
 - [BRAIN_ARCHITECTURE.md](BRAIN_ARCHITECTURE.md) - Small-world networks and neuroscience inspiration
 - [DOMAIN_MATH_BRIDGE.md](DOMAIN_MATH_BRIDGE.md) - Mathematical abstraction approach
@@ -488,6 +791,6 @@ This is a **10-20 year research program**, not a completed system. Current imple
 
 ---
 
-**Built by [@PlanetDestroyyer](https://github.com/PlanetDestroyyer)**
-
-*A research exploration in LLM orchestration, graph-based memory, and mathematical abstraction for learning systems.*
+**Status:** v0.5 (Learning System) → v1.0 (Discovery Machine)
+**Progress:** ~35% complete toward discovery machine vision
+**Next Milestone:** Hypothesis Generator + Evidence Evaluator (v0.6)
