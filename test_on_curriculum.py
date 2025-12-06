@@ -101,7 +101,7 @@ def test_curriculum(
 
     # Parse curriculum
     print("\n[1/5] Loading curriculum...")
-    curriculum_path = '/home/user/KV-1/LEARNING_CURRICULUM.md'
+    curriculum_path = 'LEARNING_CURRICULUM.md'
     questions = parse_curriculum(curriculum_path)
 
     total_questions = len(questions)
