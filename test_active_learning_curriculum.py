@@ -63,7 +63,8 @@ def test_active_learning_curriculum(max_questions: int = None):
 
     # Load curriculum
     print("[1/4] Loading curriculum...")
-    questions = parse_curriculum('/home/user/KV-1/LEARNING_CURRICULUM.md')
+    curriculum_path = os.path.join(os.path.dirname(__file__), 'LEARNING_CURRICULUM.md')
+    questions = parse_curriculum(curriculum_path)
 
     if max_questions:
         questions = questions[:max_questions]
