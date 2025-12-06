@@ -1,0 +1,46 @@
+{
+  "growth_rate": 0.0,
+  "base_learning_time": 30.0,
+  "learning_history": [
+    {
+      "concept": "prob_1",
+      "time_seconds": 12.016536474227905,
+      "total_concepts_before": 0,
+      "prereqs_count": 0,
+      "timestamp": "2025-12-06T12:58:20.789623",
+      "confidence": 0.09
+    },
+    {
+      "concept": "prob_2",
+      "time_seconds": 12.010901927947998,
+      "total_concepts_before": 1,
+      "prereqs_count": 0,
+      "timestamp": "2025-12-06T12:58:33.801949",
+      "confidence": 0.265
+    },
+    {
+      "concept": "prob_3",
+      "time_seconds": 12.010610103607178,
+      "total_concepts_before": 2,
+      "prereqs_count": 0,
+      "timestamp": "2025-12-06T12:58:46.813383",
+      "confidence": 0.19
+    },
+    {
+      "concept": "prob_4",
+      "time_seconds": 12.008962154388428,
+      "total_concepts_before": 3,
+      "prereqs_count": 0,
+      "timestamp": "2025-12-06T12:58:59.823042",
+      "confidence": 0.265
+    },
+    {
+      "concept": "prob_5",
+      "time_seconds": 12.010429859161377,
+      "total_concepts_before": 4,
+      "prereqs_count": 0,
+      "timestamp": "2025-12-06T12:59:12.833859",
+      "confidence": 0.19
+    }
+  ]
+}
