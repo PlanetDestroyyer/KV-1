@@ -1,7 +1,7 @@
 """
 LLM plugin bridge for KV-1.
 
-Integrates with Ollama (Gemma3) so KV-1 can issue live calls or run in
+Integrates with Ollama (Qwen3) so KV-1 can issue live calls or run in
 fallback mode when the local daemon is unavailable.
 """
 
@@ -22,7 +22,7 @@ try:
 except ImportError:  # pragma: no cover
     genai = None
 
-DEFAULT_OLLAMA_MODEL = "gemma3:4b"
+DEFAULT_OLLAMA_MODEL = "qwen3:4b"
 DEFAULT_GEMINI_MODEL = "gemini-1.5-flash"
 
 

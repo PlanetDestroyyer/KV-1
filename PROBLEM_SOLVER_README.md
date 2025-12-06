@@ -55,7 +55,7 @@ A **REAL, WORKING** problem-solving system based on solid AI principles:
 
 ### 8. **Problem-Solving Engine**
 - Orchestrates all components
-- **Real LLM integration** with Gemma3:4b via Ollama
+- **Real LLM integration** with Qwen3:4b via Ollama
 - Builds comprehensive prompts using:
   - Learned patterns from past successes
   - Similar problem solutions from memory
@@ -117,7 +117,7 @@ This is measured and tracked by the Compound Growth Tracker.
 ollama serve
 
 # In another terminal, pull the model
-ollama pull gemma3:4b
+ollama pull qwen3:4b
 
 # Run the demo
 python demo_problem_solver.py
@@ -136,7 +136,7 @@ python demo_problem_solver.py
 
 ```
 [1/4] Initializing LLM Bridge...
-  ✓ LLM ready (Gemma3:4b via Ollama)
+  ✓ LLM ready (Qwen3:4b via Ollama)
 
 [2/4] Initializing Problem-Solving Engine...
   ✓ Vector Store (FAISS)

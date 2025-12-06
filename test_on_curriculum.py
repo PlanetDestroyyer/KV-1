@@ -117,8 +117,8 @@ def test_curriculum(
     # Initialize LLM
     print("\n[2/5] Initializing LLM Bridge...")
     try:
-        llm = LLMBridge(provider="ollama", default_model="gemma3:4b")
-        print("  ✓ LLM ready (Gemma3:4b via Ollama)")
+        llm = LLMBridge(provider="ollama", default_model="qwen3:4b")
+        print("  ✓ LLM ready (Qwen3:4b via Ollama)")
         print("  Note: Will use fallback if Ollama unavailable")
     except Exception as e:
         print(f"  ⚠️  LLM initialization warning: {e}")

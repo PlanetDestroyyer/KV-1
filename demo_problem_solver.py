@@ -37,13 +37,13 @@ def demo_problem_solving():
     print("  • FEP: Organize knowledge to minimize surprise")
     print("  • Compound Interest: Learn faster over time")
     print("  • CoT Patterns: Learn from successful reasoning")
-    print("\n💡 This is a REAL, WORKING system using Gemma3:4b LLM!")
+    print("\n💡 This is a REAL, WORKING system using Qwen3:4b LLM!")
     print("="*80 + "\n")
 
     # Initialize LLM
     print("[1/4] Initializing LLM Bridge...")
-    llm = LLMBridge(provider="ollama", default_model="gemma3:4b")
-    print("  ✓ LLM ready (Gemma3:4b via Ollama)\n")
+    llm = LLMBridge(provider="ollama", default_model="qwen3:4b")
+    print("  ✓ LLM ready (Qwen3:4b via Ollama)\n")
 
     # Initialize problem solver
     print("[2/4] Initializing Problem-Solving Engine...")
@@ -153,7 +153,7 @@ def demo_problem_solving():
     print("="*80)
 
     print("\n✅ Core Capabilities:")
-    print("  ✓ Real LLM integration (Gemma3:4b)")
+    print("  ✓ Real LLM integration (Qwen3:4b)")
     print("  ✓ FEP-guided knowledge organization")
     print("  ✓ Compound learning acceleration")
     print("  ✓ CoT pattern mining and reuse")

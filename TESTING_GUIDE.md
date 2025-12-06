@@ -53,7 +53,7 @@ python test_on_curriculum.py --max 20 --no-save
   Testing on 50 questions (#1 to #50)
 
 [2/5] Initializing LLM Bridge...
-  ✓ LLM ready (Gemma3:4b via Ollama)
+  ✓ LLM ready (Qwen3:4b via Ollama)
 
 [3/5] Initializing Problem-Solving Engine...
   ✓ Vector Store (FAISS)
