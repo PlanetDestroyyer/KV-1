@@ -504,19 +504,22 @@ class UnifiedAGIController:
                 # Identify patterns in the task
                 if hasattr(system, 'identify_pattern'):
                     return system.identify_pattern(task.description)
-                return {"patterns": "analyzed"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.COMPOSITIONAL_REASONING:
                 # Compose solution from components
                 if hasattr(system, 'compose'):
                     return system.compose(task.description, info.get("relevant_concepts", []))
-                return {"composition": "applied"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.DEEP_ABSTRACTION:
                 # Find abstract structure
                 if hasattr(system, 'abstract'):
                     return system.abstract(task.description)
-                return {"abstraction": "identified"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.FRAMEWORK_INVENTION:
                 # Invent new framework if needed
@@ -530,7 +533,8 @@ class UnifiedAGIController:
                         gap_severity=0.5
                     )
                     return system.invent_framework(gap, self.llm)
-                return {"framework": "considered"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.ADVANCED_SYNTHESIS:
                 # Synthesize frameworks
@@ -539,13 +543,15 @@ class UnifiedAGIController:
                     frameworks = list(system.inventor.frameworks.keys())[:2]
                     if len(frameworks) >= 2:
                         return system.synthesize_frameworks(frameworks, "product", self.llm)
-                return {"synthesis": "applied"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.PHYSICAL_GROUNDING:
                 # Ground in physical reality
                 if hasattr(system, 'ground_concept') and self.llm:
                     return system.ground_concept(task.description, task.description, self.llm)
-                return {"grounding": "attempted"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.PHYSICAL_SIMULATION:
                 # Run simulation
@@ -556,7 +562,8 @@ class UnifiedAGIController:
                         initial_conditions={"x": 1.0, "v": 0.0},
                         time_span=(0, 1)
                     )
-                return {"simulation": "skipped"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.MULTIMODAL_REASONING:
                 # Process multimodal inputs
@@ -567,7 +574,8 @@ class UnifiedAGIController:
                         content=task.description
                     )]
                     return system.reason_multimodally(task.description, inputs, self.llm)
-                return {"multimodal": "processed"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.AUTONOMOUS_AGENT:
                 # Use agent for autonomous processing
@@ -575,13 +583,15 @@ class UnifiedAGIController:
                     goal = system.set_goal(task.description)
                     plan = system.plan(goal.id)
                     return {"agent_plan": plan.id if plan else None}
-                return {"agent": "engaged"}
+                # No placeholder - return None if capability not available
+                return None
 
             elif capability == CognitiveCapability.META_LEARNING:
                 # Apply meta-learning
                 if hasattr(system, 'adapt'):
                     return system.adapt(task.description)
-                return {"meta_learning": "applied"}
+                # No placeholder - return None if capability not available
+                return None
 
         except Exception as e:
             return {"error": str(e), "capability": capability.value}
