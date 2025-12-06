@@ -168,42 +168,42 @@ class UnifiedAGIController:
 
         try:
             if capability == CognitiveCapability.PATTERN_LEARNING:
-                from .pattern_learner import MathematicalStructureLearner
+                from pattern_learner import MathematicalStructureLearner
                 self._systems[capability.value] = MathematicalStructureLearner()
 
             elif capability == CognitiveCapability.COMPOSITIONAL_REASONING:
-                from .compositional_reasoner import CompositionEngine
+                from compositional_reasoner import CompositionEngine
                 self._systems[capability.value] = CompositionEngine()
 
             elif capability == CognitiveCapability.DEEP_ABSTRACTION:
-                from .deep_abstraction import DeepAbstractionEngine
+                from deep_abstraction import DeepAbstractionEngine
                 self._systems[capability.value] = DeepAbstractionEngine()
 
             elif capability in [CognitiveCapability.FRAMEWORK_INVENTION, CognitiveCapability.ADVANCED_SYNTHESIS]:
-                from .framework_invention import FrameworkInventor, AdvancedSynthesisEngine
+                from framework_invention import FrameworkInventor, AdvancedSynthesisEngine
                 inventor = FrameworkInventor()
                 self._systems[CognitiveCapability.FRAMEWORK_INVENTION.value] = inventor
                 self._systems[CognitiveCapability.ADVANCED_SYNTHESIS.value] = AdvancedSynthesisEngine(inventor)
 
             elif capability in [CognitiveCapability.PHYSICAL_GROUNDING, CognitiveCapability.PHYSICAL_SIMULATION]:
-                from .physical_grounding import PhysicalGroundingEngine, PhysicalSimulationEngine
+                from physical_grounding import PhysicalGroundingEngine, PhysicalSimulationEngine
                 grounding = PhysicalGroundingEngine()
                 self._systems[CognitiveCapability.PHYSICAL_GROUNDING.value] = grounding
                 self._systems[CognitiveCapability.PHYSICAL_SIMULATION.value] = PhysicalSimulationEngine(grounding)
 
             elif capability == CognitiveCapability.MULTIMODAL_REASONING:
-                from .multimodal_reasoning import MultimodalReasoningEngine
+                from multimodal_reasoning import MultimodalReasoningEngine
                 self._systems[capability.value] = MultimodalReasoningEngine()
 
             elif capability == CognitiveCapability.AUTONOMOUS_AGENT:
-                from .autonomous_agent import AutonomousAgent
+                from autonomous_agent import AutonomousAgent
                 self._systems[capability.value] = AutonomousAgent(
                     name="AGI_Core",
                     llm_bridge=self.llm
                 )
 
             elif capability == CognitiveCapability.META_LEARNING:
-                from .meta_learner import MetaLearner
+                from meta_learner import MetaLearner
                 self._systems[capability.value] = MetaLearner()
 
             self._system_status[capability.value] = "active"
@@ -222,21 +222,21 @@ class UnifiedAGIController:
         """
         try:
             # 1. FAISS Vector Store (for RAG and similarity search)
-            from .faiss_vector_store import FAISSVectorStore
+            from faiss_vector_store import FAISSVectorStore
             self._discovery_systems['vector_store'] = FAISSVectorStore(dimension=384)
 
             # 2. FEP-Guided Knowledge Graph
-            from .fep_knowledge_graph import FEPGuidedKnowledgeGraph
+            from fep_knowledge_graph import FEPGuidedKnowledgeGraph
             self._discovery_systems['knowledge_graph'] = FEPGuidedKnowledgeGraph(
                 vector_store=self._discovery_systems['vector_store']
             )
 
             # 3. Bayesian Evidence Evaluator
-            from .bayesian_evidence_evaluator import BayesianEvidenceEvaluator
+            from bayesian_evidence_evaluator import BayesianEvidenceEvaluator
             self._discovery_systems['bayesian'] = BayesianEvidenceEvaluator()
 
             # 4. Contradiction Detector
-            from .contradiction_detector import ContradictionDetector
+            from contradiction_detector import ContradictionDetector
             self._discovery_systems['contradictions'] = ContradictionDetector(
                 vector_store=self._discovery_systems['vector_store'],
                 bayesian_evaluator=self._discovery_systems['bayesian'],
@@ -244,11 +244,11 @@ class UnifiedAGIController:
             )
 
             # 5. Compound Growth Tracker
-            from .compound_growth_tracker import CompoundGrowthTracker
+            from compound_growth_tracker import CompoundGrowthTracker
             self._discovery_systems['compound'] = CompoundGrowthTracker()
 
             # 6. Hypothesis Generator
-            from .hypothesis_generator import HypothesisGenerator
+            from hypothesis_generator import HypothesisGenerator
             self._discovery_systems['hypothesis_gen'] = HypothesisGenerator(
                 llm_bridge=self.llm,
                 knowledge_graph=self._discovery_systems['knowledge_graph'],
@@ -256,17 +256,17 @@ class UnifiedAGIController:
             )
 
             # 7. CoT Pattern Miner
-            from .cot_pattern_miner import CoTPatternMiner
+            from cot_pattern_miner import CoTPatternMiner
             self._discovery_systems['cot_miner'] = CoTPatternMiner()
 
             # 8. Experiment Designer
-            from .experiment_designer import ExperimentDesigner
+            from experiment_designer import ExperimentDesigner
             self._discovery_systems['experiment_designer'] = ExperimentDesigner(
                 llm_bridge=self.llm
             )
 
             # 9. Theory Synthesizer
-            from .theory_synthesizer import TheorySynthesizer
+            from theory_synthesizer import TheorySynthesizer
             self._discovery_systems['theory_synth'] = TheorySynthesizer(
                 llm_bridge=self.llm,
                 bayesian_evaluator=self._discovery_systems['bayesian'],
@@ -274,7 +274,7 @@ class UnifiedAGIController:
             )
 
             # 10. Discovery Orchestrator (THE HEART!)
-            from .discovery_orchestrator import DiscoveryOrchestrator
+            from discovery_orchestrator import DiscoveryOrchestrator
             self._discovery_systems['orchestrator'] = DiscoveryOrchestrator(
                 knowledge_graph=self._discovery_systems['knowledge_graph'],
                 hypothesis_generator=self._discovery_systems['hypothesis_gen'],
@@ -303,7 +303,7 @@ class UnifiedAGIController:
         """
         try:
             # 1. AGI Connection Engine
-            from .agi_connection_engine import AGIConnectionEngine
+            from agi_connection_engine import AGIConnectionEngine
             self.connection_engine = AGIConnectionEngine(
                 world_model=self.world_model,
                 discovery_systems=self._discovery_systems,
@@ -311,7 +311,7 @@ class UnifiedAGIController:
             )
 
             # 2. Self-Improvement Loop
-            from .self_improvement_loop import SelfImprovementLoop
+            from self_improvement_loop import SelfImprovementLoop
             self.self_improvement = SelfImprovementLoop(
                 connection_engine=self.connection_engine,
                 discovery_systems=self._discovery_systems,
@@ -337,7 +337,7 @@ class UnifiedAGIController:
         """
         try:
             # 1. Active Learning Engine (Curiosity-driven autonomous learning)
-            from .active_learning_engine import ActiveLearningEngine
+            from active_learning_engine import ActiveLearningEngine
             self.active_learning = ActiveLearningEngine(
                 knowledge_graph=self._discovery_systems.get('knowledge_graph'),
                 bayesian_evaluator=self._discovery_systems.get('bayesian'),
@@ -346,13 +346,13 @@ class UnifiedAGIController:
             )
 
             # 2. Memory Consolidation System (Multi-level memory hierarchy)
-            from .memory_consolidation import MemoryConsolidationSystem
+            from memory_consolidation import MemoryConsolidationSystem
             self.memory_system = MemoryConsolidationSystem(
                 working_memory_capacity=7  # 7±2 items
             )
 
             # 3. Meta-Cognitive Monitor (Self-awareness and confidence calibration)
-            from .metacognitive_monitor import MetaCognitiveMonitor
+            from metacognitive_monitor import MetaCognitiveMonitor
             self.metacognition = MetaCognitiveMonitor()
 
             print("[✓] Cognitive architecture initialized successfully")
@@ -858,7 +858,7 @@ class UnifiedAGIController:
             elif capability == CognitiveCapability.FRAMEWORK_INVENTION:
                 # Invent new framework if needed
                 if hasattr(system, 'invent_framework') and self.llm:
-                    from .framework_invention import FrameworkGap
+                    from framework_invention import FrameworkGap
                     gap = FrameworkGap(
                         problem_domain=task.task_type,
                         required_capabilities=[],
@@ -902,7 +902,7 @@ class UnifiedAGIController:
             elif capability == CognitiveCapability.MULTIMODAL_REASONING:
                 # Process multimodal inputs
                 if hasattr(system, 'reason_multimodally') and self.llm:
-                    from .multimodal_reasoning import ModalityInput, Modality
+                    from multimodal_reasoning import ModalityInput, Modality
                     inputs = [ModalityInput(
                         modality=Modality.TEXT,
                         content=task.description
