@@ -1,0 +1,72 @@
+{
+  "metadata": {
+    "timestamp": "20251206_130900",
+    "total_questions": 3,
+    "success_rate": 1.0,
+    "total_time_seconds": 36.038392782211304,
+    "start_question": 1,
+    "end_question": 3
+  },
+  "summary": {
+    "problems_solved": 3,
+    "patterns_learned": 1,
+    "speedup_factor": 1.0,
+    "compound_growth": {
+      "status": "active",
+      "total_concepts": 8,
+      "growth_rate": 0.0,
+      "base_learning_time": 30.0,
+      "mean_time": 12.011900842189789,
+      "std_time": 0.0024513299717168853,
+      "avg_time_early": 12.013719201087952,
+      "avg_time_late": 12.011204600334167,
+      "speedup_factor": 1.0002093545849444,
+      "acceleration_percent": 0.020935458494442116,
+      "projected_speedup_at_1000": 1.0,
+      "formula": "L(t) = 30.0 \u00d7 exp(-0.0000 \u00d7 t)",
+      "interpretation": "Learning accelerates by 0.0% per concept learned"
+    }
+  },
+  "domain_stats": {
+    "arithmetic": {
+      "attempted": 3,
+      "solved": 3,
+      "total_time": 36.037766218185425
+    }
+  },
+  "results": [
+    {
+      "question_number": 1,
+      "question": "What is addition and how does it work?",
+      "domain": "arithmetic",
+      "difficulty": 0.1,
+      "solution": "Problem: What is addition and how does it work?\n\n\nSolution approach for arithmetic problem with difficulty 0.1",
+      "confidence": 0.09,
+      "time_taken": 12.01535701751709,
+      "patterns_used": 0,
+      "success": true
+    },
+    {
+      "question_number": 2,
+      "question": "What is multiplication and how does it relate to addition?",
+      "domain": "arithmetic",
+      "difficulty": 0.1,
+      "solution": "Problem: What is multiplication and how does it relate to addition?\n\nApplying learned patterns:\n- decomposition: Break complex problems into smaller, manageable subproblems\n\nSolution approach for arit...",
+      "confidence": 0.265,
+      "time_taken": 12.011524677276611,
+      "patterns_used": 1,
+      "success": true
+    },
+    {
+      "question_number": 3,
+      "question": "What are prime numbers and why are they important?",
+      "domain": "arithmetic",
+      "difficulty": 0.1,
+      "solution": "Problem: What are prime numbers and why are they important?\n\nApplying learned patterns:\n- decomposition: Break complex problems into smaller, manageable subproblems\n\nSolution approach for arithmetic p...",
+      "confidence": 0.2785,
+      "time_taken": 12.010884523391724,
+      "patterns_used": 1,
+      "success": true
+    }
+  ]
+}
