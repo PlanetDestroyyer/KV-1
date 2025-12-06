@@ -135,11 +135,16 @@ class UnifiedAGIController:
             for cap in CognitiveCapability
         }
 
+        # Discovery system components (NEW: FEP + Compound + CoT)
+        self._discovery_systems = {}
+        self._init_discovery_systems()
+
         # Load state
         self.load()
 
         print("[+] Unified AGI Controller initialized")
-        print("    Integrating 7 cognitive phases into unified intelligence")
+        print("    Integrating 7 cognitive phases + autonomous discovery")
+        print("    Discovery systems: FEP, Bayesian, Contradictions, Compound Growth")
 
     def _get_system(self, capability: CognitiveCapability) -> Optional[Any]:
         """Lazy load and return cognitive system for capability."""
@@ -193,6 +198,114 @@ class UnifiedAGIController:
             print(f"[!] Could not load system for {capability.value}: {e}")
             self._system_status[capability.value] = "unavailable"
             return None
+
+    def _init_discovery_systems(self):
+        """
+        Initialize autonomous discovery system components.
+
+        NEW: FEP + Compound Knowledge Growth + CoT Pattern Mining
+        """
+        try:
+            # 1. FAISS Vector Store (for RAG and similarity search)
+            from .faiss_vector_store import FAISSVectorStore
+            self._discovery_systems['vector_store'] = FAISSVectorStore(dimension=384)
+
+            # 2. FEP-Guided Knowledge Graph
+            from .fep_knowledge_graph import FEPGuidedKnowledgeGraph
+            self._discovery_systems['knowledge_graph'] = FEPGuidedKnowledgeGraph(
+                vector_store=self._discovery_systems['vector_store']
+            )
+
+            # 3. Bayesian Evidence Evaluator
+            from .bayesian_evidence_evaluator import BayesianEvidenceEvaluator
+            self._discovery_systems['bayesian'] = BayesianEvidenceEvaluator()
+
+            # 4. Contradiction Detector
+            from .contradiction_detector import ContradictionDetector
+            self._discovery_systems['contradictions'] = ContradictionDetector(
+                vector_store=self._discovery_systems['vector_store'],
+                bayesian_evaluator=self._discovery_systems['bayesian'],
+                knowledge_graph=self._discovery_systems['knowledge_graph']
+            )
+
+            # 5. Compound Growth Tracker
+            from .compound_growth_tracker import CompoundGrowthTracker
+            self._discovery_systems['compound'] = CompoundGrowthTracker()
+
+            # 6. Hypothesis Generator
+            from .hypothesis_generator import HypothesisGenerator
+            self._discovery_systems['hypothesis_gen'] = HypothesisGenerator(
+                llm_bridge=self.llm,
+                knowledge_graph=self._discovery_systems['knowledge_graph'],
+                fep_learner=None  # Optional FEP learner
+            )
+
+            # 7. CoT Pattern Miner
+            from .cot_pattern_miner import CoTPatternMiner
+            self._discovery_systems['cot_miner'] = CoTPatternMiner()
+
+            # 8. Experiment Designer
+            from .experiment_designer import ExperimentDesigner
+            self._discovery_systems['experiment_designer'] = ExperimentDesigner(
+                llm_bridge=self.llm
+            )
+
+            # 9. Theory Synthesizer
+            from .theory_synthesizer import TheorySynthesizer
+            self._discovery_systems['theory_synth'] = TheorySynthesizer(
+                llm_bridge=self.llm,
+                bayesian_evaluator=self._discovery_systems['bayesian'],
+                knowledge_graph=self._discovery_systems['knowledge_graph']
+            )
+
+            # 10. Discovery Orchestrator (THE HEART!)
+            from .discovery_orchestrator import DiscoveryOrchestrator
+            self._discovery_systems['orchestrator'] = DiscoveryOrchestrator(
+                knowledge_graph=self._discovery_systems['knowledge_graph'],
+                hypothesis_generator=self._discovery_systems['hypothesis_gen'],
+                bayesian_evaluator=self._discovery_systems['bayesian'],
+                contradiction_detector=self._discovery_systems['contradictions'],
+                compound_tracker=self._discovery_systems['compound'],
+                experiment_designer=self._discovery_systems['experiment_designer'],
+                theory_synthesizer=self._discovery_systems['theory_synth'],
+                cot_miner=self._discovery_systems['cot_miner'],
+                llm_bridge=self.llm
+            )
+
+            print("[✓] Discovery systems initialized successfully")
+            print(f"    Components: {len(self._discovery_systems)}")
+
+        except ImportError as e:
+            print(f"[!] Could not initialize discovery systems: {e}")
+            print("    Discovery capabilities will be unavailable")
+
+    def discover(self, domain: str, initial_observations: Optional[List[str]] = None,
+                max_iterations: int = 5, verbose: bool = True):
+        """
+        Run autonomous discovery loop!
+
+        NEW: Full autonomous discovery using FEP + Compound Growth + CoT
+
+        Args:
+            domain: Domain to explore
+            initial_observations: Starting observations
+            max_iterations: Max discovery iterations
+            verbose: Print progress
+
+        Returns:
+            DiscoverySession with all discoveries
+        """
+        if 'orchestrator' not in self._discovery_systems:
+            print("[!] Discovery orchestrator not available")
+            return None
+
+        orchestrator = self._discovery_systems['orchestrator']
+        return orchestrator.discover(
+            domain=domain,
+            initial_observations=initial_observations,
+            max_iterations=max_iterations,
+            verbose=verbose
+        )
 
     def analyze_task(self, description: str, context: Dict = None) -> CognitiveTask:
         """
