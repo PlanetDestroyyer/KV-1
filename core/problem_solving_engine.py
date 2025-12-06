@@ -486,7 +486,11 @@ Solve this problem step-by-step, showing your reasoning clearly. Use the pattern
         confidence: float
     ):
         """Learn from solving this problem."""
-        # 1. Store in memory
+        print("\n  📚 LEARNING PROCESS:")
+
+        # 1. Store in memory with consolidation visualization
+        print("    [1/5] Memory Consolidation:")
+        print(f"      • Working Memory → Storing solution")
         self.memory.store(
             content={
                 'problem': problem.description,
@@ -496,8 +500,15 @@ Solve this problem step-by-step, showing your reasoning clearly. Use the pattern
             importance=confidence,
             context={'domain': problem.domain}
         )
+        print(f"      • Importance: {confidence:.1%} (will consolidate to long-term if >60%)")
+
+        mem_stats = self.memory.get_statistics()
+        print(f"      • Memory levels: Working({mem_stats.get('working_memory', 0)}), "
+              f"Short-term({mem_stats.get('short_term', 0)}), "
+              f"Long-term({mem_stats.get('long_term', 0)})")
 
         # 2. Mine CoT patterns
+        print("    [2/5] Pattern Extraction:")
         cot_text = "\n".join(f"{i+1}. {step}" for i, step in enumerate(reasoning_steps))
 
         self.pattern_miner.add_trace(
@@ -505,18 +516,25 @@ Solve this problem step-by-step, showing your reasoning clearly. Use the pattern
             problem=problem.description,
             solution=solution,
             cot_text=cot_text,
-            success=True,  # Assume success for now
+            success=True,
             domain=problem.domain
         )
+        print(f"      • Extracted {len(reasoning_steps)} reasoning steps")
+        print(f"      • Total patterns in library: {len(self.pattern_miner.patterns)}")
 
-        # 3. Update domain expertise
+        # 3. Update domain expertise with learning insights
+        print("    [3/5] Domain Expertise Update:")
+        old_expertise = self.metacognition.domain_expertise.get(problem.domain, 0.5)
         self.metacognition.update_domain_expertise(
             domain=problem.domain,
             success=True,
             learning_rate=0.1
         )
+        new_expertise = self.metacognition.domain_expertise.get(problem.domain, 0.5)
+        print(f"      • {problem.domain}: {old_expertise:.1%} → {new_expertise:.1%}")
 
-        # 4. Add knowledge to graph
+        # 4. Add knowledge to graph with FEP gap analysis
+        print("    [4/5] Knowledge Graph Update (FEP):")
         if problem.domain not in [c.domain for c in self.knowledge_graph.concepts.values()]:
             self.knowledge_graph.add_concept(
                 concept_id=f"concept_{problem.id}",
@@ -524,6 +542,47 @@ Solve this problem step-by-step, showing your reasoning clearly. Use the pattern
                 domain=problem.domain,
                 confidence=confidence
             )
+            print(f"      • NEW concept added: {problem.domain}")
+            print(f"      • FEP: Reduced surprise in {problem.domain} domain")
+        else:
+            print(f"      • Reinforced existing {problem.domain} knowledge")
+
+        # 5. Identify knowledge gaps (FEP-based)
+        print("    [5/5] Knowledge Gap Analysis:")
+        self._identify_knowledge_gaps(problem, confidence)
+
+    def _identify_knowledge_gaps(self, problem: Problem, confidence: float):
+        """Identify what knowledge is missing (FEP principle)."""
+        gaps = []
+
+        # Low confidence = knowledge gap
+        if confidence < 0.3:
+            gaps.append(f"LOW EXPERTISE in {problem.domain} - need more examples")
+        elif confidence < 0.6:
+            gaps.append(f"MODERATE EXPERTISE in {problem.domain} - building understanding")
+
+        # No similar solutions = gap in memory
+        similar_count = len(self._find_similar_solutions(problem))
+        if similar_count == 0:
+            gaps.append(f"NO SIMILAR PROBLEMS in memory - first time seeing this type")
+        elif similar_count < 3:
+            gaps.append(f"FEW SIMILAR PROBLEMS ({similar_count}) - need more practice")
+
+        # Missing patterns = gap in reasoning strategies
+        patterns = self._get_applicable_patterns(problem)
+        if len(patterns) < 3:
+            gaps.append(f"LIMITED PATTERNS ({len(patterns)}) - learning new strategies")
+
+        if gaps:
+            print("      ⚠️  KNOWLEDGE GAPS IDENTIFIED:")
+            for gap in gaps:
+                print(f"          • {gap}")
+            print("      💡 LEARNING RECOMMENDATION:")
+            print(f"          → Solve more {problem.domain} problems")
+            print(f"          → Build pattern library for this domain")
+        else:
+            print("      ✓ No significant gaps - strong understanding!")
+            print(f"      ✓ Ready for harder {problem.domain} problems")
 
     def get_statistics(self) -> Dict:
         """Get problem-solving statistics."""
