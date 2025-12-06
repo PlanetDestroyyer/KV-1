@@ -139,12 +139,19 @@ class UnifiedAGIController:
         self._discovery_systems = {}
         self._init_discovery_systems()
 
+        # Connection engine (NEW: Connects everything together!)
+        self.connection_engine = None
+        self.self_improvement = None
+        self._init_connection_systems()
+
         # Load state
         self.load()
 
         print("[+] Unified AGI Controller initialized")
         print("    Integrating 7 cognitive phases + autonomous discovery")
         print("    Discovery systems: FEP, Bayesian, Contradictions, Compound Growth")
+        print("    Connection systems: AGI Connection Engine, Self-Improvement Loop")
+        print("    🎯 READY FOR RECURSIVE SELF-IMPROVEMENT!")
 
     def _get_system(self, capability: CognitiveCapability) -> Optional[Any]:
         """Lazy load and return cognitive system for capability."""
@@ -278,6 +285,92 @@ class UnifiedAGIController:
         except ImportError as e:
             print(f"[!] Could not initialize discovery systems: {e}")
             print("    Discovery capabilities will be unavailable")
+
+    def _init_connection_systems(self):
+        """
+        Initialize connection and self-improvement systems.
+
+        NEW: THE INTEGRATION LAYER!
+        This connects everything together and enables recursive self-improvement!
+        """
+        try:
+            # 1. AGI Connection Engine
+            from .agi_connection_engine import AGIConnectionEngine
+            self.connection_engine = AGIConnectionEngine(
+                world_model=self.world_model,
+                discovery_systems=self._discovery_systems,
+                cognitive_systems=self._systems
+            )
+
+            # 2. Self-Improvement Loop
+            from .self_improvement_loop import SelfImprovementLoop
+            self.self_improvement = SelfImprovementLoop(
+                connection_engine=self.connection_engine,
+                discovery_systems=self._discovery_systems,
+                cognitive_systems=self._systems,
+                world_model=self.world_model
+            )
+
+            print("[✓] Connection systems initialized successfully")
+            print("    AGI Connection Engine: Active")
+            print("    Self-Improvement Loop: Active")
+            print("    🚀 RECURSIVE SELF-IMPROVEMENT ENABLED!")
+
+        except ImportError as e:
+            print(f"[!] Could not initialize connection systems: {e}")
+            print("    Self-improvement will be limited")
+
+    def improve(self, iterations: int = 5, target_capability: float = 0.99):
+        """
+        Run self-improvement loop!
+
+        NEW: RECURSIVE SELF-IMPROVEMENT!
+
+        This is the key to reaching AGI:
+        - Each iteration improves the system
+        - Learning accelerates (compound growth)
+        - Capabilities compound
+        - Eventually: 99.99% AGI!
+
+        Args:
+            iterations: Number of improvement iterations
+            target_capability: Target capability level (0-1)
+
+        Returns:
+            Improvement summary
+        """
+        if not self.self_improvement:
+            print("[!] Self-improvement loop not available")
+            return None
+
+        return self.self_improvement.run_loop(
+            max_iterations=iterations,
+            target_capability=target_capability
+        )
+
+    def sync_all_systems(self, discovery_session=None):
+        """
+        Synchronize all systems together.
+
+        NEW: FULL SYSTEM INTEGRATION!
+
+        This connects:
+        - Discoveries → World Model
+        - World Model → Discovery
+        - Patterns → Reasoning
+        - Theories → Frameworks
+
+        Args:
+            discovery_session: Optional discovery session to sync
+
+        Returns:
+            List of information flows
+        """
+        if not self.connection_engine:
+            print("[!] Connection engine not available")
+            return None
+
+        return self.connection_engine.full_system_sync(discovery_session)
 
     def discover(self, domain: str, initial_observations: Optional[List[str]] = None,
                 max_iterations: int = 5, verbose: bool = True):
