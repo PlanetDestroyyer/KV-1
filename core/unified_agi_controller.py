@@ -893,6 +893,7 @@ Provide a clear, step-by-step solution using your learned knowledge."""
             print(f"  ✓ LLM solved (confidence: {confidence:.1%})")
 
             return CognitiveResult(
+                task_id=task.id,
                 success=True,
                 output=solution,
                 confidence=confidence,
