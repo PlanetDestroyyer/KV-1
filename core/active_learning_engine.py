@@ -179,7 +179,7 @@ List the specific concepts needed (comma-separated, one word or snake_case each)
             try:
                 result = self.llm.generate(
                     system_prompt=system_prompt,
-                    user_prompt=user_prompt,
+                    user_input=user_prompt,
                     execute=True
                 )
 
@@ -270,7 +270,7 @@ PREREQUISITES: [comma-separated list of concepts needed first, or "none"]"""
             try:
                 result = self.llm.generate(
                     system_prompt=system_prompt,
-                    user_prompt=user_prompt,
+                    user_input=user_prompt,
                     execute=True
                 )
 
@@ -315,11 +315,13 @@ PREREQUISITES: [comma-separated list of concepts needed first, or "none"]"""
 
         # Also store in world model if available
         if self.world_model:
-            self.world_model.add_concept(
-                concept_id=concept,
-                concept_type='mathematical_concept',
-                content=learned
-            )
+            # Store as a concept in world model
+            self.world_model.concepts[concept] = {
+                'type': 'mathematical_concept',
+                'definition': learned.get('definition', ''),
+                'learned_from': 'active_learning',
+                'timestamp': learned['timestamp']
+            }
             print(f"      ✓ Stored in world model")
 
         return learned

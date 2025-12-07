@@ -872,7 +872,7 @@ Provide a clear, step-by-step solution using your learned knowledge."""
         try:
             result = self.llm.generate(
                 system_prompt=system_prompt,
-                user_prompt=user_prompt,
+                user_input=user_prompt,
                 execute=True
             )
 
