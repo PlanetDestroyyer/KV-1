@@ -342,7 +342,8 @@ class UnifiedAGIController:
                 knowledge_graph=self._discovery_systems.get('knowledge_graph'),
                 bayesian_evaluator=self._discovery_systems.get('bayesian'),
                 world_model=self.world_model,
-                discovery_orchestrator=self._discovery_systems.get('orchestrator')
+                discovery_orchestrator=self._discovery_systems.get('orchestrator'),
+                llm_bridge=self.llm  # Pass LLM for intelligent concept learning!
             )
 
             # 2. Memory Consolidation System (Multi-level memory hierarchy)
@@ -706,6 +707,13 @@ class UnifiedAGIController:
             })
             relevant_info = self._gather_information(task)
 
+            # DIRECT LLM SOLVE PATH (for "solve" type tasks)
+            if hasattr(task, 'task_type') and task.task_type == "solve":
+                print("  Using direct LLM solve with learned concepts...")
+                llm_result = self._solve_with_llm(task, relevant_info)
+                if llm_result:
+                    return llm_result
+
             # Phase 2: Capability orchestration
             for capability in task.required_capabilities:
                 system = self._get_system(capability)
@@ -796,6 +804,110 @@ class UnifiedAGIController:
         print(f"    Time: {processing_time:.2f}s")
 
         return result
+
+    def _solve_with_llm(self, task: CognitiveTask, relevant_info: Dict) -> CognitiveResult:
+        """
+        Solve task directly with LLM using learned concepts.
+
+        THIS IS THE REAL PROBLEM SOLVING!
+
+        Builds prompt with:
+        - Learned concepts from active learning
+        - Relevant information from world model
+        - Past memories
+        """
+        if not self.llm:
+            return None
+
+        # Build comprehensive prompt with learned knowledge
+        system_prompt = "You are a problem-solving AI with active learning capabilities. Use your learned knowledge to solve problems."
+
+        # Gather learned concepts
+        learned_concepts_text = ""
+        if self.active_learning and hasattr(self.active_learning, 'learned_concepts'):
+            learned = self.active_learning.learned_concepts
+            if learned:
+                learned_concepts_text = "\n**LEARNED CONCEPTS:**\n"
+                for concept, data in learned.items():
+                    definition = data.get('definition', '')
+                    if definition:
+                        learned_concepts_text += f"- {concept}: {definition}\n"
+                    how_it_works = data.get('how_it_works', '')
+                    if how_it_works:
+                        learned_concepts_text += f"  How: {how_it_works}\n"
+                    example = data.get('example', '')
+                    if example:
+                        learned_concepts_text += f"  Example: {example}\n"
+
+        # Gather relevant concepts from world model
+        world_concepts_text = ""
+        if relevant_info.get('relevant_concepts'):
+            world_concepts_text = "\n**RELEVANT KNOWLEDGE:**\n"
+            for concept in relevant_info['relevant_concepts'][:3]:
+                world_concepts_text += f"- {concept['name']}: {str(concept['data'])[:100]}\n"
+
+        # Recall from memory
+        memory_text = ""
+        if self.memory_system:
+            # Try to recall similar problems
+            memories = self.recall(task.description, k=2)
+            if memories:
+                memory_text = "\n**SIMILAR PAST PROBLEMS:**\n"
+                for mem in memories:
+                    q = mem.content.get('question', '')
+                    s = mem.content.get('solution', '')
+                    if q and s:
+                        memory_text += f"- Q: {q[:60]}...\n  A: {s[:60]}...\n"
+
+        # Build user prompt
+        user_prompt = f"""{learned_concepts_text}{world_concepts_text}{memory_text}
+
+**PROBLEM TO SOLVE:**
+{task.description}
+
+Provide a clear, step-by-step solution using your learned knowledge."""
+
+        print(f"    LLM prompt includes: {len(learned) if self.active_learning and hasattr(self.active_learning, 'learned_concepts') and self.active_learning.learned_concepts else 0} learned concepts")
+
+        try:
+            result = self.llm.generate(
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                execute=True
+            )
+
+            solution = result.get('text', '')
+
+            # Compute confidence based on:
+            # - How many learned concepts we had
+            # - How many relevant concepts
+            # - Memory recall
+            confidence = 0.3  # Base
+            if learned_concepts_text:
+                confidence += 0.3
+            if world_concepts_text:
+                confidence += 0.2
+            if memory_text:
+                confidence += 0.2
+
+            print(f"  ✓ LLM solved (confidence: {confidence:.1%})")
+
+            return CognitiveResult(
+                success=True,
+                output=solution,
+                confidence=confidence,
+                reasoning_trace=[{
+                    "phase": "llm_solve",
+                    "learned_concepts": len(self.active_learning.learned_concepts) if self.active_learning and hasattr(self.active_learning, 'learned_concepts') else 0,
+                    "solution": solution[:200]
+                }],
+                processing_time=0.0,
+                capabilities_used=["llm_reasoning"]
+            )
+
+        except Exception as e:
+            print(f"  ✗ LLM solve failed: {e}")
+            return None
 
     def _gather_information(self, task: CognitiveTask) -> Dict:
         """Gather relevant information for processing."""

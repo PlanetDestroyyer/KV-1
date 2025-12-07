@@ -117,23 +117,28 @@ def test_active_learning_curriculum(max_questions: int = None):
         if not confidence:
             print(f"  ⚠️  LOW CONFIDENCE - Knowledge gap detected!")
 
-            # [ACTIVE LEARNING] Identify what's missing
+            # [ACTIVE LEARNING] Identify what's missing using LLM
             print("\n  🔍 KNOWLEDGE GAP ANALYSIS:")
-            print("    Missing:")
 
-            # Simple gap detection (can be made more sophisticated)
-            keywords = extract_keywords(q['question'])
-            print(f"    • Key concepts: {', '.join(keywords[:3])}")
-
-            # [LEARNING PHASE] Autonomous exploration
-            print("\n  📚 ACTIVE LEARNING:")
-            print("    → Generating curiosity for missing concepts...")
-
-            # Use active learning to explore
+            # Use active learning engine to detect missing concepts
             if controller.active_learning:
-                print("    → Autonomous exploration (curiosity-driven)...")
-                exploration = controller.explore_autonomously(iterations=1)
-                print(f"    ✓ Explored {exploration.get('curiosities_explored', 0) if exploration else 0} curiosities")
+                print("    → LLM analyzing question for missing concepts...")
+
+                # Scan for curiosities with this specific question
+                curiosities = controller.active_learning.scan_for_curiosities(question=q['question'])
+
+                if curiosities:
+                    print(f"\n  📚 LEARNING PHASE ({len(curiosities)} concepts to learn):")
+
+                    # Learn each missing concept
+                    for curiosity in curiosities[:3]:  # Top 3
+                        if curiosity.curiosity_type.value == 'specific':
+                            # Explore (learn) this concept
+                            result = controller.active_learning.explore(curiosity.id)
+                            if result.get('success'):
+                                print(f"    ✓ Learned: {curiosity.description}")
+
+                print("\n  ✓ Concept learning complete!")
 
             # [ATTEMPT 2] Retry with learned knowledge
             print("\n[ATTEMPT 2] Retrying with new knowledge...")

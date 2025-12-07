@@ -106,12 +106,14 @@ class ActiveLearningEngine:
         knowledge_graph=None,
         bayesian_evaluator=None,
         world_model=None,
-        discovery_orchestrator=None
+        discovery_orchestrator=None,
+        llm_bridge=None
     ):
         self.kg = knowledge_graph
         self.bayesian = bayesian_evaluator
         self.world_model = world_model
         self.discovery = discovery_orchestrator
+        self.llm = llm_bridge  # For concept learning
 
         # Curiosity tracking
         self.curious_items: Dict[str, CuriousItem] = {}
@@ -135,15 +137,234 @@ class ActiveLearningEngine:
         # Interest decay (curiosity fades over time)
         self.curiosity_decay = 0.95  # 5% decay per cycle
 
+        # Learned concepts cache
+        self.learned_concepts: Dict[str, Dict] = {}
+
         print("[Active Learning Engine] Initialized")
         print("  Curiosity-driven learning active!")
         print("  System will autonomously seek interesting problems")
 
-    def scan_for_curiosities(self) -> List[CuriousItem]:
+    def extract_concepts_from_question(self, question: str) -> List[str]:
+        """
+        Extract specific concepts mentioned in a question.
+
+        THIS IS TARGETED CONCEPT DETECTION!
+
+        Uses LLM to intelligently identify what concepts are needed.
+
+        Args:
+            question: The question to analyze
+
+        Returns:
+            List of specific concepts
+        """
+        # Use LLM to intelligently detect concepts
+        if self.llm:
+            system_prompt = """You are analyzing a question to identify what mathematical concepts are needed to answer it.
+
+Your task: List the specific concepts/knowledge needed (NOT general domains).
+
+Examples:
+- "What is 2 + 3?" → addition
+- "Solve x² - 5x + 6 = 0" → quadratic_equations, factoring, quadratic_formula
+- "What is a prime number?" → prime_numbers, number_theory
+- "Find derivative of x²" → derivatives, calculus, power_rule
+
+Be specific! List individual concepts, not general domains like "mathematics"."""
+
+            user_prompt = f"""Question: {question}
+
+List the specific concepts needed (comma-separated, one word or snake_case each):"""
+
+            try:
+                result = self.llm.generate(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    execute=True
+                )
+
+                # Parse LLM response
+                concepts_text = result.get('text', '').strip()
+
+                # Extract concepts (comma-separated or newline-separated)
+                import re
+                concepts = []
+                # Remove common words
+                concepts_text = re.sub(r'\b(concepts?|needed|are|the|is)\b', '', concepts_text, flags=re.IGNORECASE)
+                # Split by comma, newline, or bullet
+                parts = re.split(r'[,\n•\-]', concepts_text)
+                for part in parts:
+                    concept = part.strip().lower().replace(' ', '_')
+                    if concept and len(concept) > 2:  # Skip very short fragments
+                        concepts.append(concept)
+
+                if concepts:
+                    print(f"    LLM identified concepts: {concepts}")
+                    return concepts[:5]  # Top 5
+
+            except Exception as e:
+                print(f"    ⚠️  LLM concept detection failed: {e}")
+
+        # Fallback: Keyword-based detection
+        concepts = []
+        question_lower = question.lower()
+
+        # Quick keyword matching
+        if 'addition' in question_lower or '+' in question:
+            concepts.append('addition')
+        if 'multiplication' in question_lower or '×' in question or '*' in question:
+            concepts.append('multiplication')
+        if 'prime' in question_lower:
+            concepts.append('prime_numbers')
+        if 'quadratic' in question_lower or 'x²' in question or 'x^2' in question:
+            concepts.append('quadratic_equations')
+        if 'derivative' in question_lower:
+            concepts.append('derivatives')
+
+        return concepts if concepts else ['general_mathematics']
+
+    def learn_concept(self, concept: str) -> Dict:
+        """
+        Actually LEARN a specific concept using LLM.
+
+        THIS IS TARGETED CONCEPT LEARNING!
+
+        Instead of generic domain exploration, we learn the SPECIFIC concept:
+        - What is it? (definition)
+        - How does it work? (explanation)
+        - Examples (concrete cases)
+        - Prerequisites (what you need to know first)
+
+        Args:
+            concept: The specific concept to learn (e.g., "addition", "quadratic_formula")
+
+        Returns:
+            Dictionary with learned knowledge about the concept
+        """
+        # Check if already learned
+        if concept in self.learned_concepts:
+            print(f"    ✓ Already learned '{concept}' - retrieving from cache")
+            return self.learned_concepts[concept]
+
+        print(f"    📚 Learning concept: '{concept}'...")
+
+        # Use LLM to learn about this concept
+        if self.llm:
+            system_prompt = """You are a teacher explaining mathematical concepts clearly and concisely.
+Provide:
+1. Definition (1-2 sentences)
+2. How it works (1-2 sentences)
+3. Simple example
+4. Prerequisites (what you need to know first)
+
+Keep it brief and practical."""
+
+            user_prompt = f"""Explain the concept: {concept.replace('_', ' ')}
+
+Format your response as:
+DEFINITION: [brief definition]
+HOW IT WORKS: [brief explanation]
+EXAMPLE: [one simple example]
+PREREQUISITES: [comma-separated list of concepts needed first, or "none"]"""
+
+            try:
+                result = self.llm.generate(
+                    system_prompt=system_prompt,
+                    user_prompt=user_prompt,
+                    execute=True
+                )
+
+                learned = {
+                    'concept': concept,
+                    'content': result.get('text', ''),
+                    'timestamp': datetime.now().isoformat(),
+                    'source': 'llm_learning'
+                }
+
+                # Parse the response for structured storage
+                content = result.get('text', '')
+                learned['definition'] = self._extract_section(content, 'DEFINITION')
+                learned['how_it_works'] = self._extract_section(content, 'HOW IT WORKS')
+                learned['example'] = self._extract_section(content, 'EXAMPLE')
+                learned['prerequisites'] = self._extract_section(content, 'PREREQUISITES')
+
+                print(f"      ✓ Learned from LLM")
+                print(f"      Definition: {learned['definition'][:60]}...")
+
+            except Exception as e:
+                print(f"      ⚠️  LLM learning failed: {e}")
+                # Fallback to basic concept storage
+                learned = {
+                    'concept': concept,
+                    'definition': f"Mathematical concept: {concept.replace('_', ' ')}",
+                    'timestamp': datetime.now().isoformat(),
+                    'source': 'fallback'
+                }
+        else:
+            # No LLM - basic concept storage
+            learned = {
+                'concept': concept,
+                'definition': f"Mathematical concept: {concept.replace('_', ' ')}",
+                'timestamp': datetime.now().isoformat(),
+                'source': 'basic'
+            }
+            print(f"      ⚠️  No LLM - stored basic concept info")
+
+        # Store in learned concepts
+        self.learned_concepts[concept] = learned
+
+        # Also store in world model if available
+        if self.world_model:
+            self.world_model.add_concept(
+                concept_id=concept,
+                concept_type='mathematical_concept',
+                content=learned
+            )
+            print(f"      ✓ Stored in world model")
+
+        return learned
+
+    def _extract_section(self, text: str, section_name: str) -> str:
+        """Extract a section from formatted LLM response."""
+        import re
+        pattern = f"{section_name}:(.+?)(?=\\n[A-Z]+:|$)"
+        match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
+        if match:
+            return match.group(1).strip()
+        return ""
+
+    def identify_missing_concepts(self, question: str, current_knowledge: List[str] = None) -> List[str]:
+        """
+        Identify which concepts are MISSING for this question.
+
+        THIS IS KNOWLEDGE GAP DETECTION!
+
+        Args:
+            question: The question we're trying to solve
+            current_knowledge: List of concepts we already know
+
+        Returns:
+            List of missing concepts that need to be learned
+        """
+        # Extract all concepts mentioned in question
+        needed_concepts = self.extract_concepts_from_question(question)
+
+        # Check which ones we don't have yet
+        if current_knowledge is None:
+            current_knowledge = list(self.learned_concepts.keys())
+
+        missing = [c for c in needed_concepts if c not in current_knowledge]
+
+        return missing
+
+    def scan_for_curiosities(self, question: str = None) -> List[CuriousItem]:
         """
         Scan knowledge base for interesting things to explore.
 
         THIS IS THE CURIOSITY SCAN!
+
+        Args:
+            question: Optional specific question to analyze for missing concepts
 
         Returns:
             List of things the system is curious about
@@ -152,7 +373,33 @@ class ActiveLearningEngine:
 
         curiosities = []
 
-        # 1. Knowledge gaps (high FE regions)
+        # PRIORITY 1: Missing concepts from specific question
+        if question:
+            print(f"  Analyzing question for missing concepts...")
+            missing_concepts = self.identify_missing_concepts(question)
+
+            if missing_concepts:
+                print(f"  Found {len(missing_concepts)} missing concepts: {missing_concepts}")
+
+                for concept in missing_concepts:
+                    curiosity = CuriousItem(
+                        id=f"curiosity_{self.curiosity_count}",
+                        description=f"Learn specific concept: {concept}",
+                        curiosity_type=CuriosityType.SPECIFIC,
+                        information_gain=0.9,  # Very high - needed for question!
+                        novelty=0.8,
+                        uncertainty=1.0,  # Don't know it yet
+                        impact=1.0,  # Critical for solving question
+                        related_concepts=[concept]
+                    )
+
+                    curiosity.curiosity_score = self._compute_curiosity_score(curiosity)
+                    curiosities.append(curiosity)
+                    self.curiosity_count += 1
+            else:
+                print(f"  ✓ All concepts for question already learned!")
+
+        # 2. Knowledge gaps (high FE regions)
         if self.kg:
             stats = self.kg.get_statistics()
 
@@ -165,7 +412,7 @@ class ActiveLearningEngine:
                     information_gain=stats['avg_free_energy'],  # High FE = high info gain
                     novelty=0.7,
                     uncertainty=stats['avg_free_energy'],
-                    impact=0.8  # Filling gaps is useful
+                    impact=0.6  # Lower priority than specific concepts
                 )
 
                 curiosity.curiosity_score = self._compute_curiosity_score(curiosity)
@@ -345,7 +592,27 @@ class ActiveLearningEngine:
         }
 
         # Execute exploration based on type
-        if curiosity.curiosity_type == CuriosityType.EPISTEMIC:
+        if curiosity.curiosity_type == CuriosityType.SPECIFIC:
+            # Learn specific concept using LLM!
+            print("  Learning specific concept...")
+
+            # Extract concept from related_concepts
+            if curiosity.related_concepts:
+                concepts_learned = []
+                for concept in curiosity.related_concepts:
+                    learned = self.learn_concept(concept)
+                    if learned:
+                        concepts_learned.append(learned)
+
+                results['discoveries'] = concepts_learned
+                results['knowledge_gained'] = len(concepts_learned)
+                results['success'] = True
+                print(f"  ✓ Learned {len(concepts_learned)} concepts!")
+            else:
+                print("  ⚠️  No specific concepts to learn")
+                results['success'] = False
+
+        elif curiosity.curiosity_type == CuriosityType.EPISTEMIC:
             # Run discovery in high FE regions
             if self.discovery:
                 print("  Running autonomous discovery...")
@@ -360,7 +627,7 @@ class ActiveLearningEngine:
                 results['success'] = True
 
         elif curiosity.curiosity_type == CuriosityType.DIVERSIVE:
-            # Explore new domain
+            # Explore new domain (lower priority now)
             print(f"  Exploring new domain: {curiosity.domain}")
             # Would add foundational concepts for new domain
             results['knowledge_gained'] = 5  # Simulated
