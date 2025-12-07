@@ -186,21 +186,26 @@ List the specific concepts needed (comma-separated, one word or snake_case each)
                 # Parse LLM response
                 concepts_text = result.get('text', '').strip()
 
-                # Extract concepts (comma-separated or newline-separated)
-                import re
-                concepts = []
-                # Remove common words
-                concepts_text = re.sub(r'\b(concepts?|needed|are|the|is)\b', '', concepts_text, flags=re.IGNORECASE)
-                # Split by comma, newline, or bullet
-                parts = re.split(r'[,\n•\-]', concepts_text)
-                for part in parts:
-                    concept = part.strip().lower().replace(' ', '_')
-                    if concept and len(concept) > 2:  # Skip very short fragments
-                        concepts.append(concept)
+                # Check if this is a real response or fallback
+                if '[offline_fallback]' in concepts_text or len(concepts_text) > 200:
+                    # LLM fallback - use keyword matching instead
+                    print(f"    ⚠️  LLM offline - using keyword matching")
+                else:
+                    # Extract concepts (comma-separated or newline-separated)
+                    import re
+                    concepts = []
+                    # Remove common words
+                    concepts_text = re.sub(r'\b(concepts?|needed|are|the|is)\b', '', concepts_text, flags=re.IGNORECASE)
+                    # Split by comma, newline, or bullet
+                    parts = re.split(r'[,\n•\-]', concepts_text)
+                    for part in parts:
+                        concept = part.strip().lower().replace(' ', '_')
+                        if concept and len(concept) > 2 and len(concept) < 30:  # Skip very short and very long fragments
+                            concepts.append(concept)
 
-                if concepts:
-                    print(f"    LLM identified concepts: {concepts}")
-                    return concepts[:5]  # Top 5
+                    if concepts:
+                        print(f"    ✓ LLM identified concepts: {concepts}")
+                        return concepts[:5]  # Top 5
 
             except Exception as e:
                 print(f"    ⚠️  LLM concept detection failed: {e}")
@@ -274,29 +279,37 @@ PREREQUISITES: [comma-separated list of concepts needed first, or "none"]"""
                     execute=True
                 )
 
+                content = result.get('text', '')
+
+                # Check if this is a real response or fallback
+                if '[offline_fallback]' in content or len(content) < 20:
+                    raise ValueError("LLM offline or returned invalid response")
+
                 learned = {
                     'concept': concept,
-                    'content': result.get('text', ''),
+                    'content': content,
                     'timestamp': datetime.now().isoformat(),
                     'source': 'llm_learning'
                 }
 
                 # Parse the response for structured storage
-                content = result.get('text', '')
                 learned['definition'] = self._extract_section(content, 'DEFINITION')
                 learned['how_it_works'] = self._extract_section(content, 'HOW IT WORKS')
                 learned['example'] = self._extract_section(content, 'EXAMPLE')
                 learned['prerequisites'] = self._extract_section(content, 'PREREQUISITES')
 
                 print(f"      ✓ Learned from LLM")
-                print(f"      Definition: {learned['definition'][:60]}...")
+                if learned['definition']:
+                    print(f"      Definition: {learned['definition'][:60]}...")
 
             except Exception as e:
-                print(f"      ⚠️  LLM learning failed: {e}")
+                print(f"      ⚠️  LLM offline - using basic concept definition")
                 # Fallback to basic concept storage
                 learned = {
                     'concept': concept,
                     'definition': f"Mathematical concept: {concept.replace('_', ' ')}",
+                    'how_it_works': f"Used in mathematical operations",
+                    'example': f"Example of {concept.replace('_', ' ')}",
                     'timestamp': datetime.now().isoformat(),
                     'source': 'fallback'
                 }
