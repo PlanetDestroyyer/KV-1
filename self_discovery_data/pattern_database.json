@@ -1,0 +1,27 @@
+{
+  "pattern_instances": [
+    {
+      "problem": "What is addition and how does it work?",
+      "structure": {
+        "operations": [],
+        "object_type": "unknown",
+        "equation_type": "exponential",
+        "symmetries": [],
+        "conservation_laws": [],
+        "relationships": [],
+        "domain": "general",
+        "confidence": 0.8
+      },
+      "solution_trace": [
+        "Attempted: What is addition and how does it work?",
+        "Known concepts: 0",
+        "Result: FAILED",
+        "Missing: exponential growth formula, division"
+      ],
+      "success": false,
+      "solution_time": 12.033484,
+      "timestamp": "2025-12-09T20:40:20.771221"
+    }
+  ],
+  "cluster_success_rates": {}
+}
