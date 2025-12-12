@@ -3,6 +3,8 @@ Key-Value memory with 3-stage lifecycle.
 
 This is the core data structure that stores and retrieves memories
 using the revolutionary 3-stage lifecycle.
+
+Now with Faiss GPU-accelerated similarity search!
 """
 
 import logging
@@ -11,6 +13,14 @@ from typing import Dict, List, Tuple, Optional
 import numpy as np
 import torch
 import torch.nn.functional as F
+
+try:
+    import faiss
+    FAISS_AVAILABLE = True
+except ImportError:
+    FAISS_AVAILABLE = False
+    LOGGER = logging.getLogger(__name__)
+    LOGGER.warning("Faiss not available, falling back to PyTorch similarity search")
 
 from .config import MemoryConfig
 from .lifecycle import MemoryLifecycle, MemoryStage
@@ -32,7 +42,7 @@ class KeyValueMemory:
 
     def __init__(self, embedding_dim: int, config: MemoryConfig):
         """
-        Initialize memory system.
+        Initialize memory system with Faiss GPU index.
 
         Args:
             embedding_dim: Dimension of embedding vectors
@@ -48,6 +58,30 @@ class KeyValueMemory:
         self.values: List[torch.Tensor] = []
         self.metadata: List[Dict] = []
         self.labels: List[str] = []  # Human-readable labels
+
+        # Faiss index for GPU-accelerated similarity search
+        self.use_faiss = FAISS_AVAILABLE
+        self.faiss_index = None
+        if self.use_faiss:
+            self._init_faiss_index()
+
+    def _init_faiss_index(self):
+        """Initialize Faiss GPU index for fast similarity search."""
+        # IndexFlatIP = Inner Product (for normalized vectors, same as cosine similarity)
+        cpu_index = faiss.IndexFlatIP(self.embedding_dim)
+
+        # Move to GPU if CUDA available
+        if self.config.device == "cuda" and faiss.get_num_gpus() > 0:
+            try:
+                res = faiss.StandardGpuResources()
+                self.faiss_index = faiss.index_cpu_to_gpu(res, 0, cpu_index)
+                LOGGER.info(f"Faiss GPU index initialized (dim={self.embedding_dim})")
+            except Exception as e:
+                LOGGER.warning(f"Failed to initialize Faiss GPU index: {e}, using CPU")
+                self.faiss_index = cpu_index
+        else:
+            self.faiss_index = cpu_index
+            LOGGER.info(f"Faiss CPU index initialized (dim={self.embedding_dim})")
 
     def __len__(self) -> int:
         return len(self.metadata)
@@ -88,6 +122,11 @@ class KeyValueMemory:
             self.keys = key.unsqueeze(0)
         else:
             self.keys = torch.cat([self.keys, key.unsqueeze(0)], dim=0)
+
+        # Add to Faiss index
+        if self.use_faiss and self.faiss_index is not None:
+            key_numpy = key.cpu().numpy().reshape(1, -1).astype('float32')
+            self.faiss_index.add(key_numpy)
 
         # Store value
         self.values.append(value)
@@ -145,15 +184,24 @@ class KeyValueMemory:
         # Normalize query
         query = self._normalize(query)
 
-        # Move keys to query device
-        keys = self.keys.to(query.device)
+        # Compute similarities using Faiss or PyTorch
+        if self.use_faiss and self.faiss_index is not None and self.faiss_index.ntotal > 0:
+            # Faiss GPU-accelerated search
+            k = min(k, self.faiss_index.ntotal)
+            query_numpy = query.cpu().numpy().astype('float32')
 
-        # Compute similarities
-        similarities = torch.clamp(F.linear(query, keys), min=0.0)
+            # Search returns (distances, indices)
+            similarities_np, topk_idx_np = self.faiss_index.search(query_numpy, k)
 
-        # Get top-k
-        k = min(k, keys.size(0))
-        topk_sim, topk_idx = similarities.topk(k, dim=-1)
+            # Convert back to torch tensors
+            topk_sim = torch.from_numpy(similarities_np).to(query.device)
+            topk_idx = torch.from_numpy(topk_idx_np).to(query.device).long()
+        else:
+            # Fallback to PyTorch similarity search
+            keys = self.keys.to(query.device)
+            similarities = torch.clamp(F.linear(query, keys), min=0.0)
+            k = min(k, keys.size(0))
+            topk_sim, topk_idx = similarities.topk(k, dim=-1)
 
         # Process each query
         outputs = []
@@ -305,6 +353,10 @@ class KeyValueMemory:
             self.metadata = [self.metadata[i] for i in keep_indices]
             self.labels = [self.labels[i] for i in keep_indices]
 
+        # Rebuild Faiss index after pruning
+        if self.use_faiss and self.faiss_index is not None:
+            self._rebuild_faiss_index()
+
     def _enforce_capacity(self):
         """Enforce maximum capacity by pruning."""
         self.prune()
@@ -320,6 +372,23 @@ class KeyValueMemory:
             self.values = [self.values[i] for i in keep_indices]
             self.metadata = [self.metadata[i] for i in keep_indices]
             self.labels = [self.labels[i] for i in keep_indices]
+
+            # Rebuild Faiss index
+            if self.use_faiss and self.faiss_index is not None:
+                self._rebuild_faiss_index()
+
+    def _rebuild_faiss_index(self):
+        """Rebuild Faiss index from scratch (after pruning)."""
+        if not self.use_faiss or self.faiss_index is None:
+            return
+
+        # Reset index
+        self.faiss_index.reset()
+
+        # Re-add all keys
+        if len(self.keys) > 0:
+            keys_numpy = self.keys.cpu().numpy().astype('float32')
+            self.faiss_index.add(keys_numpy)
 
     def get_stats(self) -> Dict:
         """Get memory statistics."""
