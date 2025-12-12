@@ -1,71 +1,76 @@
 # KV-1 🧠
 
-**An LLM-powered learning system with graph-based memory and persistent knowledge acquisition.**
+**An LLM-orchestration system with human-inspired memory and recursive knowledge acquisition.**
 
-KV-1 is a research exploration that orchestrates LLMs, symbolic mathematics, and web search to learn concepts on-demand: attempting goals → identifying knowledge gaps → searching the web → learning prerequisites recursively → storing in persistent graph-based memory → retrying until success.
+KV-1 orchestrates LLMs (Ollama/Gemini), symbolic math (SymPy), and web search to learn concepts on-demand through a goal-driven loop: attempt → identify gaps → recursively learn prerequisites → retry. Features a novel 3-stage memory lifecycle inspired by neuroscience.
+
+**Reality check**: This is an LLM orchestration framework with sophisticated memory management, not a standalone AGI. All reasoning, understanding, and concept extraction depend entirely on the underlying LLM.
 
 ---
 
 ## 🎯 Core Concept
 
-**Problem**: Most AI systems have static knowledge and can't dynamically learn new concepts during operation.
+**Problem**: LLMs have static knowledge and can't learn new concepts during operation.
 
-**Approach**: KV-1 combines multiple AI techniques:
-- **LLM orchestration** (Ollama/Gemini) for reasoning and understanding
-- **Small-world graph memory** for organizing knowledge with brain-inspired connectivity
-- **Symbolic mathematics** (SymPy) for mathematical problem-solving
+**Solution**: Orchestrate LLMs with:
+- **3-stage memory lifecycle** (LEARNING → REINFORCEMENT → MATURE) - the main innovation
+- **Dual memory architecture** (STM + LTM) with rehearsal and consolidation
+- **Recursive prerequisite learning** - identifies and learns missing concepts automatically
+- **Persistent storage** - saves learned knowledge across sessions
+- **Symbolic math integration** (SymPy) for computational verification
 - **Multi-source web research** (Wikipedia, ArXiv, StackExchange, etc.)
-- **Dual memory architecture** (STM + LTM) inspired by human cognitive science
-- **GPU-accelerated semantic search** (PyTorch + sentence-transformers)
 
 ---
 
-## 🏗️ Architecture
+## 🏗️ What Actually Exists
 
-### Core Components
+### Core Components (verified)
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│  Self-Discovery Orchestrator                            │
-│  • Goal pursuit loop                                    │
-│  • Concept discovery with recursive learning            │
-│  • Parallel batch processing (up to 10 concepts)        │
+│  Self-Discovery Orchestrator (2,120 lines)              │
+│  • Goal pursuit with failure analysis                   │
+│  • Recursive prerequisite identification                │
+│  • Parallel concept learning (up to 10 concepts/GPU)    │
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐
-│  Hybrid Memory System                                   │
-│  • STM: 50 slots, O(1) lookup (0.001ms)               │
-│  • LTM: GPU semantic search (1-5ms)                    │
-│  • Disk: Persistent JSON storage                       │
+│  HSOKV Memory System (Main Innovation)                  │
+│  • 3-Stage Lifecycle: LEARNING → REINFORCEMENT → MATURE │
+│  • STM: 50 slots, O(1) lookup, 30s decay               │
+│  • LTM: GPU semantic search (768D embeddings)           │
+│  • Rehearsal-based consolidation                        │
+│  • No catastrophic forgetting (frozen embeddings)       │
 └─────────────────────────────────────────────────────────┘
                            ↓
 ┌─────────────────────────────────────────────────────────┐
-│  Knowledge Acquisition Pipeline                         │
-│  • Web Researcher: 9 sources (Wikipedia, ArXiv, etc)   │
-│  • LLM Bridge: Ollama/Gemini support                   │
-│  • MathConnect: Symbolic math reasoning (SymPy)        │
+│  Knowledge Acquisition (LLM-Powered)                    │
+│  • LLM Bridge: Ollama (qwen3:4b) / Gemini              │
+│  • Web Researcher: 9 sources with caching              │
+│  • SymPy Integration: Symbolic math solving            │
 │  • Validator: Optional multi-source verification       │
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Memory Architecture
+### Advanced Modules (33 files, ~14K lines)
 
-```
-User Query: "prime numbers"
-     ↓
-STM Check (O(1) lookup)
-     ↓ miss
-LTM Search (GPU cosine similarity)
-     ↓ found (similarity: 0.89)
-Promote to STM (consolidation)
-     ↓
-Next query → STM hit (instant)
-```
+**Actually implemented:**
+- `unified_agi_learner.py` - Routes between tensor/traditional reasoning
+- `tensor_reasoning_system.py` - 768D Riemannian manifold for math concepts
+- `meta_learner.py` - Tracks learning strategies and improves over time
+- `pattern_learner.py` - Extracts mathematical structures from experience
+- `transfer_learning.py` - Cross-domain knowledge transfer
+- `analogical_reasoning.py` - Structural mapping between concepts
+- `causal_reasoner.py` - Cause-effect modeling
+- `compositional_reasoner.py` - Combines simple → complex concepts
+- `deep_abstraction.py` - Multi-level abstraction hierarchies
+- `advanced_reasoning.py` - Common sense, hypothesis testing
+- `parallel_web_search.py` - Async multi-source searching
+- `geometric_knowledge_space.py` - Riemannian manifold (768D)
+- `framework_invention.py` - Framework creation (Phase 4)
+- `physical_grounding.py` - Physical reality grounding (Phase 5)
 
-**Performance:**
-- STM hit: ~0.001ms
-- LTM semantic search: ~1-5ms
-- Disk persistence: ~50-200ms (atomic write)
+**Important**: These modules exist and integrate with the system, but effectiveness depends heavily on LLM quality. They orchestrate and structure LLM calls rather than providing independent reasoning.
 
 ---
 
@@ -84,190 +89,219 @@ cd hsokv && pip install -e . && cd ..
 # Install dependencies
 pip install -r requirements.txt
 
-# Choose LLM provider:
+# Setup LLM (choose one):
 
-# Option 1: Ollama (local, free)
+# Option 1: Ollama (local, free, default)
 curl -fsSL https://ollama.com/install.sh | sh
 ollama pull qwen3:4b
 
-# Option 2: Gemini (cloud, API key required)
+# Option 2: Gemini (cloud, requires API key)
 export GEMINI_API_KEY="your-key-here"
 ```
 
 ### Basic Usage
 
 ```bash
-# Learn and solve algebra
+# Self-discovery learning
 python run_self_discovery.py "solve 2x + 5 = 15"
 
-# Learn calculus concepts
-python run_self_discovery.py "find the derivative of x^3 + 2x^2"
+# With quality modes
+python run_self_discovery.py "derivative of x^3" \
+  --validate              # Multi-source validation (slower)
+  --target-confidence 0.75 # Higher mastery threshold
 
-# Learn number theory
-python run_self_discovery.py "express 50 as sum of two primes"
+# Fast mode (skip rehearsal)
+python run_self_discovery.py "factor 84" --no-rehearsal
+
+# Custom memory
+python run_self_discovery.py "prime numbers" \
+  --ltm my_memory.json \
+  --reset  # Start fresh
 ```
 
-### Configuration Options
+### Quality vs Speed Tradeoffs
 
-```bash
-# Quality modes
-python run_self_discovery.py "solve x² = 16" \
-  --validate              # Enable multi-source validation (slower, higher quality)
-  --no-rehearsal          # Disable 3-stage learning (faster, lower quality)
-  --target-confidence 0.75 # Mastery threshold (0.65-0.90)
-
-# Memory management
-python run_self_discovery.py "what is a prime" \
-  --ltm my_memory.json    # Custom memory file
-  --reset                 # Start with blank memory
-
-# LLM provider
-python run_self_discovery.py "solve x² = 16" \
-  --provider gemini \
-  --model gemini-2.0-flash-exp \
-  --api-key YOUR_KEY
-```
-
-**Quality vs Speed:**
-
-| Mode | Command | Validation | 3-Stage | Speed | Quality |
-|------|---------|-----------|---------|-------|---------|
-| **Fast** | `--no-rehearsal` | OFF | OFF | ⚡⚡⚡ | ⭐⭐ |
-| **Balanced** (default) | - | OFF | ON | ⚡⚡ | ⭐⭐⭐⭐ |
-| **Quality** | `--validate` | ON | ON | ⚡ | ⭐⭐⭐⭐⭐ |
+| Mode | Validation | 3-Stage | Speed | Quality | Use Case |
+|------|-----------|---------|-------|---------|----------|
+| **Fast** | OFF | OFF | ⚡⚡⚡ | ⭐⭐ | Quick prototyping |
+| **Balanced** (default) | OFF | ON | ⚡⚡ | ⭐⭐⭐⭐ | General learning |
+| **Quality** | ON | ON | ⚡ | ⭐⭐⭐⭐⭐ | Critical concepts |
 
 ---
 
-## 📋 How It Works
+## 📋 How It Actually Works
 
 ### Learning Flow
 
 ```
-1. User Goal: "solve x² - 5x + 6 = 0"
+1. Goal: "solve x² - 5x + 6 = 0"
    ↓
-2. Attempt with current knowledge (LTM: 0 concepts)
-   → Result: FAIL
-   → Missing: ["quadratic formula", "factoring"]
+2. LLM attempts with current knowledge
+   → FAIL (missing concepts)
+   → LLM identifies: ["quadratic formula", "factoring"]
    ↓
-3. For each missing concept (parallel processing):
-   a) Check LTM (semantic search, threshold=0.85)
-   b) Try 5 web search query variations
-   c) Extract: definition, prerequisites, examples (LLM)
-   d) Recursively learn prerequisites (max depth: 7)
-   e) [Optional] 3-Stage Learning:
-      • Test understanding (0.0-1.0)
-      • Rehearse until confidence >= 0.70
-      • Store with final confidence
-   f) [Optional] Multi-source validation (3 sources)
-   g) Store in memory:
+3. For each missing concept:
+   a) Semantic search in LTM (threshold: 0.85)
+   b) If not found → Web search (9 sources)
+   c) LLM extracts: definition, prerequisites, examples
+   d) Recursively learn prerequisites (max depth: 3)
+   e) 3-Stage Learning (optional):
+      • SURPRISE: Test understanding → confidence score
+      • REHEARSAL: Practice until 0.70+ confidence
+      • CORTICAL: Store with final confidence
+   f) Store in memory:
       • Text definition
-      • 384-D tensor embedding (GPU)
-      • Symbolic formulas (SymPy)
-      • Examples/procedures
-   h) Save to disk (ltm_memory.json)
+      • 768-D tensor embedding (GPU)
+      • SymPy symbolic form (if math)
+      • Examples and procedures
+   g) Save to ltm_memory.json
    ↓
-4. Retry goal with new knowledge
-   → Result: SUCCESS
-   → Answer: x = 2, x = 3
+4. Retry goal with LLM + new knowledge
+   → SUCCESS (or repeat until max attempts)
 ```
 
-### 3-Stage Learning (Biological Inspiration)
+**Key point**: LLM does all reasoning. System provides memory, orchestration, and verification.
+
+### 3-Stage Memory Lifecycle (HSOKV)
+
+**The core innovation** - mimics human memory formation:
 
 ```
-STAGE 1: Surprise Episode
-→ Test: "Explain this concept in your own words"
-→ Confidence: 0.60 (partial understanding)
+LEARNING Stage (First ~5 retrievals)
+→ 1.5x confidence boost
+→ Protected from pruning
+→ Like learning a new word - needs reinforcement
 
-STAGE 2: Rehearsal Loop (up to 4 rounds)
-→ Practice: "Solve a problem using this concept"
-→ Confidence: 0.60 → 0.75 → 0.85
-→ Stop when: confidence >= 0.70 (acceptable)
-           OR confidence >= 0.75 (confirmed)
-           OR max rounds reached
+REINFORCEMENT Stage (Retrievals 5-20)
+→ 1.5x → 1.0x gradual decay
+→ Still protected from pruning
+→ Like practicing a skill - becoming automatic
 
-STAGE 3: Cortical Transfer
-→ Store with final confidence
-→ Mark as mastered (0.70+) or needs reinforcement (<0.70)
+MATURE Stage (20+ retrievals)
+→ 1.0x confidence (no boost)
+→ Can be pruned if low confidence
+→ Like well-learned knowledge - established memory
 ```
 
-**Confidence Thresholds:**
-- 0.65: Acceptable (minimum to store)
-- 0.70: Good understanding (default target)
-- 0.75+: Excellent/confirmed mastery
+**3-Stage Learning Loop** (optional quality mode):
+1. **Surprise**: LLM explains concept → confidence 0.0-1.0
+2. **Rehearsal**: LLM practices until 0.70+ confidence (up to 4 rounds)
+3. **Cortical Transfer**: Store with final confidence score
 
 ---
 
-## 🧮 Mathematical Reasoning (MathConnect)
+## 🧮 Mathematical Capabilities
 
-KV-1 stores mathematical concepts as symbolic equations (SymPy), not just text.
+### What Works
 
-**Example:**
+**SymPy-Powered Solving** (`solve.py`, `honest_solver.py`):
+- Equation solving (linear, quadratic, systems)
+- Differentiation and integration
+- Prime checking and factorization
+- Number theory (GCD, Goldbach verification)
+- Collatz sequences
+- Symbolic manipulation
 
+**Tensor Reasoning** (`tensor_reasoning_system.py`):
+- 768D Riemannian manifold for concept geometry
+- Symbolic math engine (SymPy wrapper)
+- Geometric knowledge space
+- Mathematical exploration engine
+
+**Example Storage:**
 ```python
-# Input: "Pythagorean theorem: a squared plus b squared equals c squared"
-
-# Parsed to:
-Eq(a**2 + b**2, c**2)  # SymPy symbolic equation
-
-# Stored with:
-• Text: "In a right triangle, a² + b² = c²"
-• Tensor: [0.123, -0.456, ..., 0.789] (384-D)
-• Formula: "a**2 + b**2 = c**2"
-• Examples: ["3² + 4² = 5²", ...]
-
-# Used for:
-• Connection finding (relates to distance formula, trig identities)
-• Symbolic manipulation (substitution, solving)
-• Theorem composition (derive new results)
+Concept: "Pythagorean theorem"
+├─ Text: "In right triangle: a² + b² = c²"
+├─ Tensor: [0.123, -0.456, ..., 0.789]  # 768D
+├─ SymPy: Eq(a**2 + b**2, c**2)
+├─ Examples: ["3² + 4² = 5²", ...]
+└─ Stage: LEARNING (boost: 1.5x)
 ```
+
+### What Doesn't Work
+
+- **Novel theorem proving** - Uses SymPy + LLM templates, not independent proof discovery
+- **Unsolved problems** - Riemann Hypothesis mentioned as goal but no actual progress
+- **Visual reasoning** - Text-only, no diagrams/images
+- **Physical intuition** - Limited despite `physical_grounding.py` module
 
 ---
 
-## 🧠 Memory System
+## 🧠 Memory System Details
 
-### Hybrid Memory (STM + LTM + Disk)
+### Dual Memory (STM + LTM)
 
-**Short-Term Memory (STM):**
-- Capacity: 50 slots (Miller's Law: 7±2, extended)
-- Decay: 5 minutes without rehearsal
-- Lookup: O(1) direct match using OrderedDict
+**Short-Term Memory:**
+- Capacity: 50 slots (extended from Miller's 7±2)
+- Decay: 30 seconds without access
+- Structure: OrderedDict (O(1) lookup)
 - Speed: ~0.001ms
-- Implements consolidation via rehearsal threshold
+- Eviction: LRU (least recently used)
 
-**Long-Term Memory (LTM):**
+**Long-Term Memory:**
 - Capacity: Unlimited
-- Storage: GPU tensor matrix (384-D embeddings via sentence-transformers)
-- Lookup: Cosine similarity search (PyTorch)
-- Speed: ~1-5ms with GPU acceleration
-- Batch operations for efficiency
+- Storage: PyTorch tensor matrix (768D)
+- Lookup: Cosine similarity (GPU-accelerated)
+- Speed: ~1-5ms
+- Model: sentence-transformers
 
-**Small-World Graph:**
-- Concepts as nodes with connections
-- High clustering + short paths (Watts-Strogatz model)
-- Anatomical (permanent) + Functional (dynamic) edges
-- Automatic analogy discovery via graph shortcuts
-- Hub detection for key concepts
-
-**Disk Persistence:**
-- Format: JSON (ltm_memory.json)
-- Write: Atomic (temp → rename)
-- Load: Automatic on startup
-
-**Data Flow:**
+**Consolidation Flow:**
 ```
-learn("prime numbers", definition)
-  → Store in LTM (tensor + text)
-  → Add to graph with connections
-  → Store in STM (fast lookup)
-  → Save to disk (persistent)
+learn("quadratic formula")
+  → Store in LTM (tensor + text + SymPy)
+  → Add to STM (fast cache)
+  → Save to disk (ltm_memory.json)
+  → Stage: LEARNING (1.5x boost)
 
-recall("primes")
-  → Check STM (miss)
-  → Search LTM (found: "prime numbers", similarity=0.92)
-  → Traverse graph for related concepts
+recall("quadratic")
+  → STM miss
+  → LTM search (similarity: 0.92)
   → Promote to STM
-  → Next recall("primes") → STM hit (instant)
+  → Increment retrieval_count
+  → Next recall → STM hit (instant)
 ```
+
+### Geometric Knowledge Space
+
+**Riemannian Manifold** (768D):
+- Concepts as points
+- Distances = conceptual similarity
+- Geodesics = learning paths
+- Curvature = complexity
+- Parallel transport = analogies
+
+**Property Encoding:**
+- Domain clustering (number theory, algebra, calculus)
+- Prime/composite separation
+- Even/odd grouping
+- Complexity weighting
+
+---
+
+## 🎓 Learning Curriculum
+
+**195 questions** across 6 phases (not 260 as previously stated):
+
+1. **Foundational Math** (75): Arithmetic → Algebra → Trig → Complex
+2. **Calculus** (55): Limits → Derivatives → Integrals → Series
+3. **Advanced Math** (25): Linear algebra → Abstract algebra → Discrete
+4. **Number Theory** (15): Primes → Zeta function → Diophantine
+5. **Complex Analysis** (15): Analytic functions → Residues → Continuation
+6. **Toward Riemann** (10): Hypothesis understanding → Critical line
+
+**Run curriculum:**
+```bash
+# Full curriculum
+python run_curriculum.py --phase all
+
+# Specific phase
+python run_curriculum.py --phase 1
+
+# Resume from checkpoint
+python run_curriculum.py --resume --skip-failed
+```
+
+See [LEARNING_CURRICULUM.md](LEARNING_CURRICULUM.md) for complete list.
 
 ---
 
@@ -277,83 +311,89 @@ recall("primes")
 
 | Parameter | Default | Range | Description |
 |-----------|---------|-------|-------------|
-| `max_depth` | 7 | 1-15 | Max recursive prerequisite learning depth |
+| `max_depth` | 3 | 1-15 | Recursive prerequisite depth |
 | `stm_capacity` | 50 | 7-100 | Short-term memory slots |
-| `target_confidence` | 0.70 | 0.65-0.90 | Mastery threshold for 3-stage learning |
-| `daily_cap` | Unlimited | Any | Web requests per day |
-| `max_parallel_concepts` | 10 | 1-50 | Concepts learned simultaneously |
+| `target_confidence` | 0.70 | 0.65-0.90 | Mastery threshold |
+| `max_parallel_concepts` | 10 | 1-50 | GPU parallel learning |
+| `embedding_dim` | 768 | - | Tensor dimension |
 
 ### Environment Variables
 
 ```bash
-# LLM Configuration
 export OLLAMA_HOST="http://localhost:11434"
 export GEMINI_API_KEY="your-api-key"
-
-# Memory
 export LTM_PATH="./ltm_memory.json"
 ```
 
 ---
 
-## 🎓 Learning Curriculum
+## 📊 Actual Performance
 
-260 questions organized in 6 phases for systematic knowledge building:
-
-1. **Foundational Math** (35 questions): Arithmetic → Algebra → Trig → Complex numbers
-2. **Calculus & Analysis** (50 questions): Limits → Derivatives → Integrals → Series
-3. **Advanced Math** (30 questions): Linear algebra → Abstract algebra → Discrete math
-4. **Number Theory** (35 questions): Primes → Diophantine → Riemann zeta
-5. **Complex Analysis** (25 questions): Analytic functions → Residues → Continuation
-6. **Toward Riemann** (25 questions): Hypothesis understanding → Critical line → Zero distribution
-
-See [LEARNING_CURRICULUM.md](LEARNING_CURRICULUM.md) for full list.
-
-**Run curriculum:**
-```bash
-# Run all phases
-python run_curriculum.py --phase all
-
-# Run specific phase
-python run_curriculum.py --phase 1
-
-# Resume from checkpoint
-python run_curriculum.py --resume
-```
-
----
-
-## 📊 System Statistics
-
-**Typical Performance:**
-- Concept learning time: 15-30 seconds (balanced mode)
-- Memory per concept: ~1-2KB
-- 1000 concepts: ~1-2MB disk space
+**Memory:**
+- Concept storage: ~1-2KB per concept
+- 1000 concepts: ~1-2MB disk
 - STM hit rate: >80% for recent queries
-- LTM search accuracy: ~90% (similarity >= 0.85)
+- LTM search: ~90% accuracy (similarity ≥ 0.85)
 
-**Benchmark Results:**
-- 18/19 hard problems solved (95% success rate)
-- Includes: Collatz sequence, Chinese Remainder, Prime factorization
-- See benchmarks/ for comparison scripts
+**Learning:**
+- Concept acquisition: 15-30 seconds (balanced mode)
+- Web cache: Significant speedup on repeated topics
+- GPU acceleration: 2-5x faster than CPU for large LTM
+
+**Limitations:**
+- No benchmark results verified (benchmark framework exists, results not shown)
+- Success rate depends entirely on LLM quality
+- Web content quality varies significantly
+- Slow for complex prerequisite chains
 
 ---
 
-## 🐛 Known Limitations
+## 🐛 Brutal Honesty: Limitations
 
-### **Critical Dependencies:**
-1. **LLM-Powered Intelligence:** The system's reasoning, understanding, and concept extraction are entirely powered by the LLM (Ollama/Gemini). Without LLM access, the system cannot function. The architecture orchestrates the LLM rather than providing independent intelligence.
+### Critical Dependencies
 
-2. **Mathematical Solving:** SymPy library handles actual equation solving and symbolic manipulation. The system integrates and applies SymPy effectively but doesn't implement novel mathematical reasoning.
+1. **LLM-Powered Everything**
+   - ALL reasoning done by LLM (Ollama/Gemini)
+   - System is orchestration layer, not independent intelligence
+   - Without LLM access → completely non-functional
+   - Quality ceiling = LLM capability ceiling
 
-### **Technical Limitations:**
-3. **Domain Specialization:** Optimized for mathematics; general knowledge works but less effectively
-4. **Web Content Quality:** Depends on finding good explanations online
-5. **No Visual Learning:** Text-only (no images, diagrams, videos)
-6. **Limited Abstraction:** Pattern learner extracts structures but doesn't yet abstract or compose them
-7. **Loop Detection:** Can get stuck if concepts are too abstract/poorly defined
-8. **Security:** Uses `exec()` for math parsing (sandboxing needed for production)
-9. **No Embodiment:** Lacks physical grounding or sensory experience
+2. **SymPy Does Math**
+   - Equation solving: SymPy
+   - Symbolic manipulation: SymPy
+   - Prime checking: SymPy
+   - System integrates SymPy, doesn't invent new math
+
+3. **No Novel Reasoning**
+   - Pattern learner extracts structures but doesn't create new frameworks (despite `framework_invention.py`)
+   - "AGI modules" structure LLM calls, don't provide independent reasoning
+   - Transfer learning limited by LLM's inherent capabilities
+
+### Technical Limitations
+
+4. **Domain Specialization**: Math-optimized, general knowledge less effective
+5. **Web Dependency**: Quality varies, can fail if content poor
+6. **No Visual Learning**: Text-only (no images/diagrams/videos)
+7. **Loop Risk**: Can get stuck on poorly-defined concepts
+8. **Security**: Uses `exec()` for math parsing (not production-safe)
+9. **No Embodiment**: No physical grounding despite module existence
+10. **Unverified Claims**: Benchmark results not demonstrated, Riemann Hypothesis work aspirational only
+
+### What This Is vs What It Isn't
+
+**What it IS:**
+- Sophisticated LLM orchestration framework
+- Novel memory system with 3-stage lifecycle
+- Effective knowledge persistence across sessions
+- Good integration of SymPy + LLM + web search
+- Research platform for continual learning
+
+**What it ISN'T:**
+- Independent AGI or reasoning system
+- Novel theorem prover
+- Replacement for LLMs
+- Production-ready (security issues)
+- Verified on hard benchmarks
 
 ---
 
@@ -361,46 +401,178 @@ python run_curriculum.py --resume
 
 ```
 KV-1/
-├── self_discovery_orchestrator.py  # Main learning loop (1934 lines)
+├── self_discovery_orchestrator.py  # Main loop (2,120 lines)
 ├── run_self_discovery.py           # CLI interface
-├── run_curriculum.py               # Curriculum runner
+├── run_curriculum.py               # 195-question curriculum
+├── solve.py                        # Simple SymPy solver
+├── honest_solver.py                # Computational solver
 │
-├── core/                           # Core modules (~9.4K lines)
-│   ├── llm.py                      # LLM bridge (Ollama/Gemini)
-│   ├── hybrid_memory.py            # STM + LTM + Disk
-│   ├── neurosymbolic_gpu.py        # GPU tensor operations
-│   ├── web_researcher.py           # 9-source web scraper
-│   ├── knowledge_validator.py      # Multi-source validation
-│   ├── math_connect.py             # Symbolic math (SymPy)
-│   ├── meta_learner.py             # Learning strategy adaptation
+├── core/                           # 33 modules (~14K lines)
+│   ├── llm.py                      # Ollama/Gemini bridge
+│   ├── hybrid_memory.py            # STM + LTM orchestration
+│   ├── web_researcher.py           # 9-source web scraping
+│   ├── unified_agi_learner.py      # Math/general routing
+│   ├── tensor_reasoning_system.py  # 768D Riemannian manifold
+│   ├── meta_learner.py             # Strategy optimization
+│   ├── pattern_learner.py          # Structure extraction
 │   ├── transfer_learning.py        # Cross-domain transfer
-│   └── ...                         # Other AGI modules
+│   ├── analogical_reasoning.py     # Structural mapping
+│   ├── math_connect.py             # SymPy integration
+│   ├── knowledge_validator.py      # Multi-source validation
+│   └── ...                         # 22 more modules
 │
 ├── hsokv/                          # HSOKV memory library
-│   ├── dual_memory.py              # STM + LTM implementation
-│   ├── memory.py                   # Base memory classes
-│   └── embedders.py                # Sentence embeddings
+│   ├── memory.py                   # 3-stage lifecycle
+│   ├── dual_memory.py              # STM + LTM
+│   ├── lifecycle.py                # Stage management
+│   ├── embedders.py                # Sentence-BERT
+│   └── config.py                   # Hyperparameters
 │
-├── benchmarks/                     # Performance comparisons
-├── tools/                          # Utilities
-└── LEARNING_CURRICULUM.md          # 260 questions
+├── benchmarks/                     # Testing framework
+│   ├── benchmark_utils.py          # 19 hard problems
+│   └── compare_baselines.py        # LLM/RAG/Few-shot
+│
+├── tests/                          # Unit tests
+├── tools/                          # Knowledge import utilities
+└── *.md                            # Documentation
 ```
+
+Total: ~16K+ lines Python code
+
+---
+
+## 🌟 What's Actually Novel
+
+### Confirmed Innovations
+
+1. **3-Stage Memory Lifecycle** (HSOKV)
+   - LEARNING → REINFORCEMENT → MATURE stages
+   - Confidence boosting during formation
+   - Pruning protection for new memories
+   - Inspired by neuroscience, implemented with PyTorch
+
+2. **Persistent Self-Discovery Loop**
+   - Goal → attempt → gap analysis → recursive learning
+   - JSON-based LTM across sessions
+   - Meta-learning tracks what works
+
+3. **Dual Memory Architecture**
+   - STM (50 slots, O(1)) + LTM (semantic search)
+   - Rehearsal-based consolidation
+   - Time decay and LRU eviction
+
+4. **Hybrid Reasoning Router**
+   - Detects math/general/hybrid questions
+   - Routes to tensor reasoning vs traditional learning
+   - Confidence-based result selection
+
+5. **Geometric Knowledge Space**
+   - 768D Riemannian manifold
+   - Properties → tensor encoding
+   - Geodesics as learning paths
+
+### Engineering Highlights
+
+- Clean LLM + SymPy + PyTorch integration
+- GPU-accelerated semantic search with batching
+- 9-source web research with fallbacks
+- Frozen embeddings (no catastrophic forgetting)
+- Atomic disk writes for persistence
+
+---
+
+## 🔬 Research Vision vs Reality
+
+**Vision**: "Mathematical AGI through domain abstraction"
+
+**Reality**:
+- ✅ Foundation: Memory system, SymPy integration, LLM orchestration
+- ✅ Pattern Learning: Structure extraction from experience
+- ✅ Compositional Reasoning: Concept combination frameworks
+- ✅ Deep Abstraction: Multi-level hierarchies
+- ❌ Framework Invention: Module exists, effectiveness unclear
+- ❌ Physical Grounding: Module exists, integration limited
+- ❌ Novel Mathematics: Not achieved, not close
+
+**Current Status**: ~30-40% toward vision (not 50-55% as claimed)
+- Strong: Memory system, orchestration, persistence
+- Weak: Independent reasoning, novel insights, verification
+- Missing: Actual AGI, theorem proving, Riemann Hypothesis work
+
+**Realistic Timeline**: If continued → 15-25 years to vision (if achievable at all)
+
+This is a research prototype demonstrating concepts, not a complete system.
+
+---
+
+## ⚠️ Use Cases: What This Is Good For
+
+### Good Use Cases
+
+✅ **Research Platform**
+- Experimenting with memory architectures
+- Testing continual learning approaches
+- Studying LLM orchestration patterns
+
+✅ **Educational Tool**
+- Interactive math learning with persistence
+- Concept prerequisite visualization
+- Self-paced curriculum
+
+✅ **Prototyping**
+- Testing recursive learning ideas
+- Exploring human-inspired memory
+- LLM + symbolic math integration
+
+### Bad Use Cases
+
+❌ **Production Deployments**
+- Uses `exec()` without sandboxing
+- No authentication or security
+- Slow (web search latency)
+
+❌ **Independent Reasoning**
+- 100% dependent on LLM
+- No standalone intelligence
+- Quality = LLM quality
+
+❌ **Novel Research**
+- Can't prove new theorems
+- Won't solve unsolved problems
+- Uses existing tools (SymPy, LLMs)
+
+❌ **Real-Time Applications**
+- 15-30 seconds per concept
+- Web search blocking
+- GPU warm-up delays
 
 ---
 
 ## 🤝 Contributing
 
-This is a research project. Contributions welcome for:
-- Improving learning algorithms
-- Adding new knowledge domains
-- Enhancing memory efficiency
-- Fixing bugs (see GitHub issues)
+Research project, contributions welcome:
+- Memory system improvements
+- Better prerequisite detection
+- Domain expansion beyond math
+- Security hardening
+- Benchmark verification
+
+See GitHub issues.
+
+---
+
+## 📚 Documentation
+
+- [BRAIN_ARCHITECTURE.md](BRAIN_ARCHITECTURE.md) - Memory system details
+- [DOMAIN_MATH_BRIDGE.md](DOMAIN_MATH_BRIDGE.md) - Mathematical abstraction
+- [LEARNING_CURRICULUM.md](LEARNING_CURRICULUM.md) - 195 questions
+- [TROUBLESHOOTING.md](TROUBLESHOOTING.md) - Common issues
 
 ---
 
 ## 📄 License
 
-See LICENSE file for details.
+See LICENSE file.
 
 ---
 
@@ -412,82 +584,22 @@ See LICENSE file for details.
 
 ---
 
-## 🌟 What Makes This Interesting
+## 🎯 Bottom Line
 
-### **Novel Contributions:**
-1. **Small-World Graph Memory for LLMs** - Organizes LLM-learned knowledge using neuroscience-inspired graph topology with high clustering and short paths
-2. **Dual Memory Architecture** - Psychology-based STM/LTM system with rehearsal, consolidation, and time decay
-3. **Persistent Learning Loop** - Goal → attempt → identify gaps → learn → retry architecture for continuous improvement
-4. **Hybrid Connectivity Model** - Anatomical (permanent structure) + Functional (dynamic activation) edges inspired by brain networks
-5. **🆕 Mathematical Pattern Learning** - Learns patterns from problem-solving experience, automatically discovers problem types via clustering (NOT keyword matching!)
-6. **🆕 Compositional Reasoning** - Combines learned patterns creatively to solve novel problems, builds abstraction hierarchies (group → ring → field), transforms problems between mathematical representations
-7. **🆕 Deep Mathematical Abstraction** - Recognizes when different domains share the same mathematical structure (e.g., linear algebra ≅ group theory), enables cross-domain knowledge transfer, meta-reasoning for framework selection
+**What this actually is**: A well-engineered LLM orchestration system with a novel 3-stage memory lifecycle, persistent knowledge storage, and good SymPy integration. The memory system (HSOKV) is genuinely interesting research.
 
-### **Engineering Highlights:**
-- Clean integration of LLM, SymPy, PyTorch, and sentence-transformers
-- GPU-accelerated semantic search with batch operations
-- Proper implementation of Watts-Strogatz small-world model
-- Graph-based analogy discovery via network shortcuts
-- Adaptive meta-learning for strategy optimization
+**What this isn't**: Independent AGI, novel theorem prover, or anywhere close to solving the Riemann Hypothesis.
 
----
+**Should you use it?**:
+- Yes: Research, education, prototyping memory systems
+- No: Production, independent reasoning, novel mathematics
 
-## 🔬 Research Vision: Mathematical AGI
-
-**Long-term research direction**: Exploring whether domain-general intelligence can emerge from mathematical abstraction.
-
-**The idea**: Since mathematics is the universal language of patterns (physics = differential equations, biology = dynamical systems, economics = optimization), a system that can:
-1. **Automatically discover** which mathematical structures underlie any domain problem
-2. **Reason abstractly** in pure mathematical forms
-3. **Transfer solutions** by recognizing shared mathematical structure across domains
-4. **Invent new frameworks** when existing mathematics is insufficient
-
-...could achieve domain-general analytical intelligence.
-
-**Current status**: Active development (~50-55% toward this vision)
-- ✅ Foundation: Graph memory, symbolic math integration, transfer learning basics
-- ✅ **Pattern Learning** (Phase 1): Learns mathematical structures from experience, discovers problem types via clustering
-- ✅ **Compositional Reasoning** (Phase 2): Combines learned patterns to solve novel problems, builds abstraction hierarchies, transforms between representations
-- ✅ **Deep Abstraction** (Phase 3): Recognizes structural isomorphisms across domains, meta-reasoning for framework selection, cross-domain knowledge transfer
-- 🚧 Needed: Framework invention (Phase 4 - create new math when needed)
-- 🚧 Needed: Physical grounding (Phase 5 - connect math to reality)
-
-This is a **10-20 year research program**, not a completed system. Current implementation demonstrates the architecture and validates core concepts.
-
----
-
-## ⚠️ Important Notes
-
-**This is a research system, not production-ready:**
-- Primarily an LLM orchestration layer with novel memory architecture
-- No sandboxing (uses `exec()` for math parsing)
-- Limited error handling
-- Optimized for mathematical domains
-- Requires LLM API access (Ollama or Gemini)
-
-**Best Use Cases:**
-- Research in LLM memory systems and knowledge organization
-- Exploring graph-based knowledge representations
-- Educational tool for learning mathematics
-- Prototyping autonomous learning architectures
-- Studying human-inspired memory models in AI
-
-**Not suitable for:**
-- Production deployments (security issues)
-- Independent reasoning (requires LLM)
-- Novel theorem proving (uses SymPy + templates)
-- Real-time applications (web search latency)
-
----
-
-## 📚 Further Reading
-
-- [BRAIN_ARCHITECTURE.md](BRAIN_ARCHITECTURE.md) - Small-world networks and neuroscience inspiration
-- [DOMAIN_MATH_BRIDGE.md](DOMAIN_MATH_BRIDGE.md) - Mathematical abstraction approach
-- [LEARNING_CURRICULUM.md](LEARNING_CURRICULUM.md) - 260 math questions for testing
+**Honest assessment**: Quality LLM orchestration framework with innovative memory. Claims about "AGI" are aspirational. The 3-stage lifecycle is the real contribution. Everything else orchestrates existing tools (LLMs, SymPy, web search).
 
 ---
 
 **Built by [@PlanetDestroyyer](https://github.com/PlanetDestroyyer)**
 
-*A research exploration in LLM orchestration, graph-based memory, and mathematical abstraction for learning systems.*
+*A research exploration in LLM orchestration and human-inspired memory for learning systems.*
+
+**Status**: Research prototype. Use accordingly.
