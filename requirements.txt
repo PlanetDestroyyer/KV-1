@@ -55,3 +55,4 @@ datasets>=2.14.0
 accelerate>=0.20.0
 safetensors>=0.3.0
 scikit-learn>=1.3.0  # For pattern clustering in MathematicalStructureLearner
+faiss-gpu>=1.7.4  # GPU-accelerated similarity search
